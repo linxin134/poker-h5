@@ -1,0 +1,50 @@
+{
+  "name": "poker-h5",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"vite --host 0.0.0.0\" \"tsx watch server/index.ts\"",
+    "dev:web": "vite --host 0.0.0.0",
+    "dev:api": "tsx watch server/index.ts",
+    "build": "vite build && tsup server/index.ts --format esm --platform node --target node22 --out-dir dist-server",
+    "start": "node dist-server/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm test && npm run build"
+  },
+  "dependencies": {
+    "@fastify/cookie": "latest",
+    "@fastify/static": "latest",
+    "@fastify/websocket": "^11.3.0",
+    "@pixi/particle-emitter": "latest",
+    "better-sqlite3": "latest",
+    "dexie": "latest",
+    "fastify": "latest",
+    "howler": "latest",
+    "motion": "latest",
+    "pixi.js": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "zod": "latest",
+    "zustand": "latest"
+  },
+  "devDependencies": {
+    "@playwright/test": "latest",
+    "@types/better-sqlite3": "latest",
+    "@types/howler": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@vitejs/plugin-react": "latest",
+    "concurrently": "latest",
+    "jsdom": "latest",
+    "tsup": "latest",
+    "tsx": "latest",
+    "typescript": "latest",
+    "vite": "latest",
+    "vitest": "latest"
+  }
+}

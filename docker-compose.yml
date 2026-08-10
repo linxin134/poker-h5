@@ -1,0 +1,31 @@
+services:
+  poker:
+    build: .
+    restart: unless-stopped
+    environment:
+      PORT: 8787
+      DATABASE_PATH: /data/poker.db
+      COOKIE_SECURE: "true"
+    volumes:
+      - poker_data:/data
+    networks: [web]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [web]
+
+networks:
+  web:
+
+volumes:
+  poker_data:
+  caddy_data:
+  caddy_config:
