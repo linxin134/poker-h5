@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import type { Card } from "../game/types";
 import type { RoomView } from "../multiplayer/types";
 import { useGameStore } from "../store/gameStore";
+import { GameAvatar } from "./GameAvatar";
 
 type DrawerTab = "settings" | "history" | "guide" | "stats";
 
@@ -31,7 +32,7 @@ export function GameDrawer({ initialTab, onClose, room }: { initialTab: DrawerTa
           <div className="record-board"><small>公共牌</small><CardStrip cards={hand.board} empty="翻牌前结束" /></div>
           <div className="record-seats">
             {hand.seats.map((seat) => <div className={`${seat.won ? "winner" : ""} ${seat.folded ? "folded" : ""}`} key={seat.seatId}>
-              <span className="record-avatar">{seat.avatar}</span>
+              <span className="record-avatar"><GameAvatar seed={seat.seatId} label={seat.nickname} /></span>
               <span className="record-player"><b>{seat.nickname}</b><small>{seat.folded ? "弃牌" : seat.won ? "获胜" : "摊牌"}</small></span>
               <CardStrip cards={seat.cards} />
               <PixelChip value={seat.delta} compact />
@@ -44,7 +45,7 @@ export function GameDrawer({ initialTab, onClose, room }: { initialTab: DrawerTa
         <div className="score-summary"><span>本房积分榜</span><b>{room.hands.length} 手</b><small>以入场筹码 {room.startingStack.toLocaleString()} 为基准</small></div>
         {room.scoreboard.map((entry, index) => <article className={entry.seatId === room.mySeatId ? "me" : ""} key={entry.seatId}>
           <span className="score-rank">{index + 1}</span>
-          <span className="score-avatar">{entry.avatar}<i className={entry.connected ? "online" : ""} /></span>
+          <span className="score-avatar"><GameAvatar seed={entry.seatId} label={entry.nickname} /><i className={entry.connected ? "online" : ""} /></span>
           <span className="score-player"><b>{entry.nickname}</b><small>{entry.stack.toLocaleString()} 筹码</small></span>
           <PixelChip value={entry.delta} />
         </article>)}

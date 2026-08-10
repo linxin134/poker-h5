@@ -18,6 +18,7 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
 
     await page.goto("/");
     await page.getByRole("button", { name: "创建房间" }).click();
+    await page.getByRole("button", { name: "创建并进入" }).click();
     await expect(page.getByText("请选择空位")).toBeVisible();
     await page.locator(".waiting-table-seat.empty").first().click();
 
@@ -26,8 +27,8 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
     const roomTwo = guestTwoPage.locator(".public-room-list article", { hasText: nickname });
     await roomOne.getByRole("button", { name: /加入/ }).click();
     await roomTwo.getByRole("button", { name: /加入/ }).click();
-    await guestOnePage.locator(".waiting-table-seat.empty").first().click();
-    await guestTwoPage.locator(".waiting-table-seat.empty").first().click();
+    await guestOnePage.locator(".waiting-table-seat.empty").nth(1).click();
+    await guestTwoPage.locator(".waiting-table-seat.empty").nth(2).click();
 
     await expect(page.getByRole("button", { name: /开始牌局/ })).toBeEnabled();
     await page.getByRole("button", { name: /开始牌局/ }).click();
@@ -37,6 +38,18 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
     for (const playerPage of pages) {
       await expect(playerPage.locator(".seat .playing-card:not(.card-back)")).toHaveCount(2);
       await expect(playerPage.locator(".seat .card-back")).toHaveCount(4);
+    }
+
+    for (const playerPage of pages) {
+      const raise = playerPage.locator(".action.raise");
+      if (await raise.count() > 0 && await raise.isEnabled()) {
+        await raise.click();
+        await expect(playerPage.locator(".raise-panel")).toBeVisible();
+        await expect(playerPage.locator(".raise-panel .quick-raises button")).toHaveCount(4);
+        await expect(playerPage.locator(".turn-progress")).toBeVisible();
+        await raise.click();
+        break;
+      }
     }
 
     await lateGuestPage.goto("http://127.0.0.1:5173/");
@@ -49,8 +62,8 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
 
     for (let round = 0; round < 3; round += 1) {
       for (const playerPage of pages) {
-        const fold = playerPage.getByRole("button", { name: /弃牌/ });
-        if (await fold.isEnabled()) { await fold.click(); break; }
+        const fold = playerPage.locator(".action.fold");
+        if (await fold.count() > 0 && await fold.isEnabled()) { await fold.click(); break; }
       }
       if (await page.locator(".hand-settlement").count()) break;
       await page.waitForTimeout(150);

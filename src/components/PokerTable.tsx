@@ -9,6 +9,7 @@ import { GameDrawer } from "./GameDrawer";
 import { PlayingCard } from "./PlayingCard";
 import { EffectsLayer } from "../pixi/EffectsLayer";
 import { playSound } from "../services/audio";
+import { GameAvatar } from "./GameAvatar";
 
 type DrawerTab = "settings" | "history" | "guide" | "stats";
 const phaseLabels = { idle: "等待", preflop: "翻牌前", flop: "翻牌", turn: "转牌", river: "河牌", showdown: "摊牌", complete: "本手结束" };
@@ -77,11 +78,11 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
     const angle = (Math.PI / 180) * (90 + relativePosition * 360 / tableCapacity);
     return {
       "--seat-x": `${50 + Math.cos(angle) * (tableCapacity > 6 ? 44 : 42)}%`,
-      "--seat-y": `${49 + Math.sin(angle) * (tableCapacity > 6 ? 41 : 39)}%`
+      "--seat-y": `${47 + Math.sin(angle) * (tableCapacity > 6 ? 37 : 35)}%`
     } as CSSProperties;
   }
 
-  return <section className={`table-screen fresh-table ${game.phase === "complete" ? "settled" : ""} ${!mySeat ? "spectating" : ""}`} style={{ "--animation-speed": `${1 / settings.animationSpeed}s` } as CSSProperties}>
+  return <section className={`table-screen fresh-table ${game.phase === "complete" ? "settled" : ""} ${!mySeat ? "spectating" : ""} ${actorSeatId === room.mySeatId ? "my-turn" : "waiting-turn"}`} style={{ "--animation-speed": `${1 / settings.animationSpeed}s` } as CSSProperties}>
     <header className="table-topbar">
       <div className="table-left"><button className="icon-button" onClick={leaveRoom}>‹</button><span className="brand compact"><i>♠</i>给我擦皮鞋</span><span className="hand-chip">{room.code} · 第 {game.handNumber} 手 · {phaseLabels[game.phase]}</span></div>
       <div className="table-status-hud">
@@ -91,10 +92,8 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
       </div>
       <div className="table-tools">
         <button onClick={() => setDrawer("guide")}><span>?</span><small>玩法</small></button>
-        <button onClick={() => setDrawer("history")}><span>▤</span><small>战绩</small></button>
-        <button onClick={() => setDrawer("stats")}><span>↗</span><small>积分</small></button>
         <button onClick={() => setDrawer("settings")}><span>⚙</span><small>设置</small></button>
-        <button className="user-tool"><span>{user?.avatar ?? "○"}</span><small>{user?.nickname ?? "玩家"}</small></button>
+        <button className="user-tool"><span><GameAvatar seed={user?.id ?? "guest"} label={user?.nickname} /></span><small>{user?.nickname ?? "玩家"}</small></button>
       </div>
     </header>
 
@@ -102,9 +101,7 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
       <div className="fresh-felt" />
       <div className="board-zone">
         <div className="board-cards">
-          {Array.from({ length: 5 }, (_, index) => game.board[index]
-            ? <PlayingCard key={`${game.handId}-${index}`} card={game.board[index]} delay={index * .08} />
-            : <div className="card-slot" key={index} />)}
+          {game.board.map((card, index) => <PlayingCard key={`${game.handId}-${index}`} card={card} delay={index * .08} />)}
         </div>
         <div className="pot-badge"><i>●</i><span>{visiblePot.toLocaleString()}</span></div>
       </div>
@@ -117,7 +114,7 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
           <div className="seat-cards">
             {Array.from({ length: cardCount }, (_, cardIndex) => <PlayingCard small key={`${game.handId}-${cardIndex}`} card={seat.holeCards[cardIndex]} hidden={!seat.holeCards[cardIndex]} delay={cardIndex * .08} />)}
           </div>
-          <div className="avatar-ring"><span>{seat.avatar}</span>{isActor && <i className="timer-ring" style={{ animationDuration: `${Math.max(.5, turnRemaining / 1000)}s` }} />}{seat.connected === false && <em className="offline-dot" />}</div>
+          <div className="avatar-ring"><GameAvatar seed={seat.userId ?? seat.id} label={seat.name} />{isActor && <><i className={`timer-ring ${turnRemaining <= 5_000 ? "urgent" : ""}`} style={{ "--turn-progress": Math.max(0, Math.min(1, turnRemaining / 25_000)) } as CSSProperties} /><em className="seat-countdown">{Math.max(0, Math.ceil(turnRemaining / 1000))}</em></>}{seat.connected === false && <em className="offline-dot" />}</div>
           <div className="seat-info"><b>{seat.name}{isMe ? " · 你" : ""}</b><span>{seat.stack.toLocaleString()}</span></div>
           {seat.lastAction && <motion.div className="action-bubble" initial={{ scale: .7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>{seat.lastAction}</motion.div>}
           {seat.bet > 0 && <motion.div className="seat-bet" initial={{ scale: 0 }} animate={{ scale: 1 }}>● {seat.bet}</motion.div>}
@@ -126,7 +123,7 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
       })}
 
       {pendingMembers.map((member) => <motion.div className={`seat pending-seat ${member.userId === user?.id ? "hero-seat" : ""}`} style={positionStyle(member.seatIndex!)} key={member.userId} initial={{ opacity: 0, scale: .8 }} animate={{ opacity: 1, scale: 1 }}>
-        <div className="avatar-ring"><span>{member.avatar}</span>{!member.connected && <em className="offline-dot" />}</div>
+        <div className="avatar-ring"><GameAvatar seed={member.userId} label={member.nickname} />{!member.connected && <em className="offline-dot" />}</div>
         <div className="seat-info"><b>{member.nickname}{member.userId === user?.id ? " · 你" : ""}</b><span>下一手加入</span></div>
       </motion.div>)}
 
@@ -136,26 +133,29 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
 
       {!mySeat && <div className={`late-join-note ${canChooseLateSeat ? "choosing" : "ready"}`}><i />{canChooseLateSeat ? "选择一个空位，下一手参与" : "已落座，下一手自动参与"}</div>}
 
+      <div className="table-bottom-tools">
+        <button onClick={() => setDrawer("history")}><span>▥</span><small>战绩</small></button>
+        <button onClick={() => setDrawer("stats")}><span>▤</span><small>积分</small></button>
+      </div>
       <EmojiTray targetSeatId={targetSeatId} onSend={(emoji, target) => send({ type: "emoji", emoji, targetSeatId: target })} />
       <EffectsLayer />
       <AnimatePresence>
         {game.phase === "complete" && room.status === "playing" && <motion.div className="winner-banner hand-settlement" initial={{ opacity: 0, scale: .9, y: 18 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: .96 }}>
           <p>HAND {game.handNumber} · POT {(game.result?.pot ?? 0).toLocaleString()}</p>
           <h2>{game.winnerText}</h2>
-          <div className="settlement-winners">{winners.map((winner) => <div key={winner.id}><span>{winner.avatar} {winner.name}</span><div>{winner.holeCards.map((card, index) => <PlayingCard small card={card} key={`${winner.id}-${card}-${index}`} />)}</div></div>)}</div>
+          <div className="settlement-winners">{winners.map((winner) => <div key={winner.id}><span><GameAvatar seed={winner.userId ?? winner.id} label={winner.name} /> {winner.name}</span><div>{winner.holeCards.map((card, index) => <PlayingCard small card={card} key={`${winner.id}-${card}-${index}`} />)}</div></div>)}</div>
           <div className="settlement-board"><small>{game.board.length ? "最终公共牌" : "翻牌前结束 · 全桌手牌已公开"}</small>{game.board.length > 0 && <div>{game.board.map((card, index) => <PlayingCard small card={card} key={`${card}-${index}`} />)}</div>}</div>
           <div className="next-hand-status"><span>下一手自动发牌</span><b>{Math.max(0, Math.ceil(nextHandRemaining / 1000))}</b></div>
         </motion.div>}
         {room.status === "finished" && <motion.div className="winner-banner room-finished" initial={{ opacity: 0, scale: .92 }} animate={{ opacity: 1, scale: 1 }}>
           <p>ROOM COMPLETE · {room.hands.length} HANDS</p><h2>好友房已结束</h2>
-          <div className="finish-ranking">{room.scoreboard.slice(0, 3).map((entry, index) => <div key={entry.seatId}><span>{index + 1}</span><i>{entry.avatar}</i><b>{entry.nickname}</b><strong className={entry.delta >= 0 ? "positive" : "negative"}>{entry.delta >= 0 ? "+" : ""}{entry.delta}</strong></div>)}</div>
+          <div className="finish-ranking">{room.scoreboard.slice(0, 3).map((entry, index) => <div key={entry.seatId}><span>{index + 1}</span><i><GameAvatar seed={entry.seatId} label={entry.nickname} /></i><b>{entry.nickname}</b><strong className={entry.delta >= 0 ? "positive" : "negative"}>{entry.delta >= 0 ? "+" : ""}{entry.delta}</strong></div>)}</div>
           <div className="finish-actions"><button className="secondary-button" onClick={() => setDrawer("history")}>查看战绩</button><button className="primary-button" onClick={leaveRoom}>返回大厅</button></div>
         </motion.div>}
       </AnimatePresence>
     </div>
 
-    {room.status === "playing" && mySeat && <ActionBar game={game} mySeatId={room.mySeatId} onAct={(action, raiseTo) => send({ type: "action", action, raiseTo })} />}
-    <div className="rotate-hint"><span>↻</span><b>横屏体验更佳</b><small>旋转手机获得完整沉浸牌桌</small></div>
+    {room.status === "playing" && mySeat && <ActionBar game={game} mySeatId={room.mySeatId} turnRemainingMs={turnRemaining} onAct={(action, raiseTo) => send({ type: "action", action, raiseTo })} />}
     {roomError && <div className="room-toast">{roomError}</div>}
     <AnimatePresence>{drawer && <><motion.div className="drawer-shade" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setDrawer(null)} /><GameDrawer initialTab={drawer} room={room} onClose={() => setDrawer(null)} /></>}</AnimatePresence>
   </section>;
@@ -174,10 +174,10 @@ function WaitingRoom({ room, user, connectionStatus, onSit, onStart, onLeave }: 
         const relativePosition = (index - myPosition + room.capacity) % room.capacity;
         const angle = (Math.PI / 180) * (90 + relativePosition * 360 / room.capacity);
         const x = 50 + Math.cos(angle) * 42;
-        const y = 49 + Math.sin(angle) * 39;
+        const y = 47 + Math.sin(angle) * 35;
         const canChoose = !member || member.userId === user?.id;
         return <motion.button disabled={!canChoose} onClick={() => onSit(index)} className={`waiting-table-seat ${member ? "occupied" : "empty"} ${member?.userId === user?.id ? "mine" : ""}`} style={{ "--seat-x": `${x}%`, "--seat-y": `${y}%` } as CSSProperties} initial={{ opacity: 0, scale: .8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay:index * .04 }} key={member?.userId ?? index}>
-          <span>{member?.avatar ?? "＋"}{member && <i className={member.connected ? "online" : ""} />}</span>
+          <span>{member ? <GameAvatar seed={member.userId} label={member.nickname} /> : "＋"}{member && <i className={member.connected ? "online" : ""} />}</span>
           <b>{member?.nickname ?? "空位"}</b>
           <small>{member?.isHost ? "房主" : member ? `座位 ${index + 1}` : "等待加入"}</small>
         </motion.button>;

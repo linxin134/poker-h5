@@ -33,7 +33,7 @@ export function App() {
   }
 
   return (
-    <main className="app-shell">
+    <main className="app-shell mode-mobile">
       {screen === "lobby" ? (
         <Lobby user={user} onLogin={() => setAuthOpen(true)} onLogout={async () => { await api.logout(); setUser(null); }} />
       ) : (
