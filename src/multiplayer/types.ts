@@ -11,6 +11,8 @@ export interface RoomMember {
   avatar: string;
   connected: boolean;
   isHost: boolean;
+  buyIn: number;
+  topUpTarget: number | null;
 }
 
 export interface RoomHandSeatResult {
@@ -83,6 +85,7 @@ export type RoomClientMessage =
   | { type: "sit"; seatIndex: number }
   | { type: "action"; action: PlayerAction; raiseTo?: number }
   | { type: "emoji"; emoji: string; targetSeatId: string }
+  | { type: "topup"; targetStack: number }
   | { type: "ping" };
 
 export type RoomServerMessage =

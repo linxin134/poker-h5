@@ -65,7 +65,9 @@ function memberFor(user: SafeUser, hostUserId: string): RoomMember {
     nickname: user.nickname,
     avatar: user.avatar,
     connected: false,
-    isHost: user.id === hostUserId
+    isHost: user.id === hostUserId,
+    buyIn: 0,
+    topUpTarget: null
   };
 }
 
@@ -99,7 +101,7 @@ function scoreboard(room: RoomRuntime) {
       nickname: member.nickname,
       avatar: member.avatar,
       stack,
-      delta: stack - room.startingStack,
+      delta: stack - (member.buyIn || room.startingStack),
       connected: member.connected
     };
   }).sort((a, b) => b.stack - a.stack);
@@ -235,10 +237,23 @@ function syncPendingSeats(room: RoomRuntime) {
   }
 }
 
+function applyPendingTopUps(room: RoomRuntime) {
+  if (!room.game) return;
+  for (const member of room.members) {
+    if (!member.topUpTarget) continue;
+    const seat = room.game.seats.find((entry) => entry.id === member.seatId);
+    if (!seat) continue;
+    const added = Math.max(0, member.topUpTarget - seat.stack);
+    seat.stack += added;
+    member.buyIn += added;
+  }
+}
+
 function dealNextHand(room: RoomRuntime) {
   if (!room.game) return;
   const expired = room.endsAt !== null && Date.now() >= room.endsAt;
   syncPendingSeats(room);
+  applyPendingTopUps(room);
   const activePlayers = room.game.seats.filter((seat) => seat.stack > 0).length;
   if (expired || activePlayers < 2) {
     finishRoom(room);
@@ -387,8 +402,17 @@ export const roomService = {
             if (occupied) throw new Error("这个座位已经有人了");
             member.seatIndex = message.seatIndex;
             member.seatId = `seat-${message.seatIndex}`;
+            if (member.buyIn === 0) member.buyIn = room.startingStack;
             saveRoom(room);
             broadcastRoom(room);
+            return;
+          }
+          if (message.type === "topup") {
+            if (member.seatIndex === null) throw new Error("请先落座再设置补码");
+            const min = room.startingStack;
+            const max = room.startingStack * 3;
+            if (!Number.isFinite(message.targetStack) || message.targetStack < min || message.targetStack > max) throw new Error("补码数量超出范围");
+            member.topUpTarget = Math.round(message.targetStack / room.bigBlind) * room.bigBlind;
             return;
           }
           if (message.type === "emoji") {

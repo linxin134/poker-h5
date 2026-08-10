@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("三名玩家可以加入、选座、行动并自动续手", async ({ page, browser }, testInfo) => {
+  test.setTimeout(60_000);
   const stamp = `${Date.now()}-${testInfo.project.name}`;
   const nickname = `房主${Date.now().toString(36).slice(-6)}`;
   const guestOne = await browser.newContext({ viewport: { width: 1000, height: 720 } });
@@ -40,6 +41,34 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
       await expect(playerPage.locator(".seat .card-back")).toHaveCount(4);
     }
 
+    await expect(guestTwoPage.locator(".wpk-table-bar")).toBeVisible();
+    await expect(guestTwoPage.getByRole("button", { name: "计分" })).toBeVisible();
+    await expect(guestTwoPage.getByRole("button", { name: "聊天" })).toBeVisible();
+    await guestTwoPage.screenshot({ path: testInfo.outputPath("mobile-table.png") });
+
+    await guestTwoPage.locator(".table-bottom-tools button", { hasText: "聊天" }).click();
+    await expect(guestTwoPage.locator(".table-screen")).toHaveAttribute("data-drawer", "chat");
+    await expect(guestTwoPage.locator(".game-drawer.tab-chat")).toBeVisible();
+    await guestTwoPage.getByLabel("聊天内容").fill("这手有点意思");
+    await guestTwoPage.getByRole("button", { name: "发送", exact: true }).click();
+    await expect(guestTwoPage.locator(".chat-messages .mine")).toHaveText("这手有点意思");
+    await guestTwoPage.screenshot({ path: testInfo.outputPath("mobile-chat.png") });
+    await guestTwoPage.locator(".game-drawer .icon-button").click();
+
+    await guestTwoPage.getByRole("button", { name: "补充筹码" }).click();
+    await guestTwoPage.getByRole("button", { name: "4,000" }).click();
+    await guestTwoPage.getByRole("button", { name: "确认补码设置" }).click();
+    await expect(guestTwoPage.getByRole("button", { name: "已设置自动补码" })).toBeVisible();
+    await guestTwoPage.screenshot({ path: testInfo.outputPath("mobile-topup.png") });
+    await guestTwoPage.locator(".game-drawer .icon-button").click();
+
+    await guestTwoPage.getByRole("button", { name: /与 .* 互动/ }).first().click();
+    await expect(guestTwoPage.locator(".player-interaction-card")).toBeVisible();
+    await guestTwoPage.getByRole("button", { name: "送花" }).click();
+    await guestTwoPage.getByRole("button", { name: "发送互动表情" }).click();
+    await expect(guestTwoPage.locator(".interaction-popover")).toBeVisible();
+    await guestTwoPage.locator(".popover-close").click();
+
     for (const playerPage of pages) {
       const raise = playerPage.locator(".action.raise");
       if (await raise.count() > 0 && await raise.isEnabled()) {
@@ -47,6 +76,7 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
         await expect(playerPage.locator(".raise-panel")).toBeVisible();
         await expect(playerPage.locator(".raise-panel .quick-raises button")).toHaveCount(4);
         await expect(playerPage.locator(".turn-progress")).toBeVisible();
+        await playerPage.screenshot({ path: testInfo.outputPath("mobile-raise.png") });
         await raise.click();
         break;
       }
@@ -72,10 +102,12 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
     await expect(page.locator(".hand-settlement")).toBeVisible();
     await expect(page.getByText(/第 2 手/)).toBeVisible({ timeout: 6_000 });
     await expect(lateGuestPage.getByText(/第 2 手/)).toBeVisible({ timeout: 6_000 });
+    await expect(guestTwoPage.locator(".hero-seat .seat-info span")).toContainText("3,");
     await expect(lateGuestPage.locator(".seat .playing-card:not(.card-back)")).toHaveCount(2);
     await expect(lateGuestPage.locator(".seat .card-back")).toHaveCount(6);
 
-    await guestOnePage.getByRole("button", { name: "战绩" }).click();
+    await guestOnePage.getByRole("button", { name: "牌桌功能" }).click();
+    await guestOnePage.getByRole("button", { name: "牌局回顾" }).click();
     await expect(guestOnePage.locator(".record-seats .record-cards i")).toHaveCount(6);
   } finally {
     await guestOne.close();

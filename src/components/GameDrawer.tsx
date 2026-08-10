@@ -5,17 +5,63 @@ import type { RoomView } from "../multiplayer/types";
 import { useGameStore } from "../store/gameStore";
 import { GameAvatar } from "./GameAvatar";
 
-type DrawerTab = "settings" | "history" | "guide" | "stats";
+export type DrawerTab = "menu" | "chat" | "topup" | "settings" | "history" | "guide" | "stats";
 
-export function GameDrawer({ initialTab, onClose, room }: { initialTab: DrawerTab; onClose(): void; room: RoomView }) {
+export function GameDrawer({ initialTab, onClose, onLeave, onTopup, room }: { initialTab: DrawerTab; onClose(): void; onLeave(): void; onTopup(targetStack: number): void; room: RoomView }) {
+  const savedTopup = room.members.find((member) => member.seatId === room.mySeatId)?.topUpTarget;
   const [tab, setTab] = React.useState(initialTab);
+  const [chatText, setChatText] = React.useState("");
+  const [messages, setMessages] = React.useState<Array<{ id: string; mine?: boolean; text: string }>>([
+    { id: "system", text: "文明游戏，轻松交流" }
+  ]);
+  const [topup, setTopup] = React.useState(savedTopup ?? room.startingStack);
+  const [topupSaved, setTopupSaved] = React.useState(Boolean(savedTopup));
   const settings = useGameStore((state) => state.settings);
   const updateSettings = useGameStore((state) => state.updateSettings);
-  const tabs: Array<[DrawerTab, string]> = [["settings", "设置"], ["history", "战绩"], ["stats", "积分"], ["guide", "玩法"]];
-  return <motion.aside className="game-drawer" initial={{ x: 400 }} animate={{ x: 0 }} exit={{ x: 400 }}>
-    <header><div><p className="eyebrow">ROOM {room.code}</p><h2>好友房中心</h2></div><button className="icon-button" onClick={onClose}>×</button></header>
-    <nav>{tabs.map(([id, label]) => <button key={id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>{label}</button>)}</nav>
+  const tabs: Array<[DrawerTab, string]> = [["history", "牌局回顾"], ["stats", "计分板"], ["chat", "聊天"], ["topup", "补筹码"]];
+  const titles: Record<DrawerTab, string> = { menu: "牌桌功能", chat: "牌桌聊天", topup: "补充筹码", settings: "游戏设置", history: "牌局回顾", guide: "玩法说明", stats: "本局计分板" };
+  const sendChat = (text: string) => {
+    const clean = text.trim().slice(0, 40);
+    if (!clean) return;
+    setMessages((items) => [...items, { id: crypto.randomUUID(), mine: true, text: clean }]);
+    setChatText("");
+  };
+  const saveTopup = () => {
+    onTopup(topup);
+    setTopupSaved(true);
+  };
+  return <motion.aside className={`game-drawer table-sheet tab-${tab}`} initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}>
+    <div className="sheet-handle" />
+    <header><div><p className="eyebrow">ROOM {room.code}</p><h2>{titles[tab]}</h2></div><button className="icon-button" onClick={onClose}>×</button></header>
+    {tab !== "menu" && <nav>{tabs.map(([id, label]) => <button key={id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>{label}</button>)}</nav>}
     <div className="drawer-content">
+      {tab === "menu" && <div className="table-function-menu">
+        <div className="function-grid">
+          <FunctionButton icon="▤" label="牌局回顾" onClick={() => setTab("history")} />
+          <FunctionButton icon="▥" label="本局计分" onClick={() => setTab("stats")} />
+          <FunctionButton icon="▰" label="牌桌聊天" onClick={() => setTab("chat")} />
+          <FunctionButton icon="＋" label="补充筹码" onClick={() => setTab("topup")} />
+          <FunctionButton icon="?" label="玩法说明" onClick={() => setTab("guide")} />
+          <FunctionButton icon="⚙" label="游戏设置" onClick={() => setTab("settings")} />
+        </div>
+        <div className="room-menu-meta"><span><small>盲注</small><b>{room.smallBlind} / {room.bigBlind}</b></span><span><small>入场筹码</small><b>{room.startingStack.toLocaleString()}</b></span><span><small>牌局时长</small><b>{room.durationMinutes} 分钟</b></span></div>
+        <button className="leave-table-button" onClick={onLeave}>离开牌桌</button>
+      </div>}
+
+      {tab === "chat" && <div className="table-chat">
+        <div className="quick-chat-list">{["快一点吧", "打得不错", "这手有点意思", "好运！"].map((text) => <button key={text} onClick={() => sendChat(text)}>{text}</button>)}</div>
+        <div className="chat-messages">{messages.map((message) => <p className={message.mine ? "mine" : "system"} key={message.id}>{message.text}</p>)}</div>
+        <form className="chat-compose" onSubmit={(event) => { event.preventDefault(); sendChat(chatText); }}><input aria-label="聊天内容" value={chatText} onChange={(event) => setChatText(event.target.value)} placeholder="说点什么…" maxLength={40} /><button>发送</button></form>
+      </div>}
+
+      {tab === "topup" && <div className="topup-panel">
+        <div className="topup-chip-visual"><i /><i /><i /><b>{topup.toLocaleString()}</b><small>目标筹码</small></div>
+        <div className="topup-presets">{[room.startingStack, room.startingStack * 2, room.startingStack * 3].map((amount) => <button className={topup === amount ? "active" : ""} onClick={() => { setTopup(amount); setTopupSaved(false); }} key={amount}>{amount.toLocaleString()}</button>)}</div>
+        <input aria-label="补充筹码数量" type="range" min={room.startingStack} max={room.startingStack * 3} step={room.bigBlind * 5} value={topup} onChange={(event) => { setTopup(Number(event.target.value)); setTopupSaved(false); }} />
+        <p>筹码不足目标值时，下一手开始前自动补至该数量。</p>
+        <button className="primary-button topup-confirm" onClick={saveTopup}>{topupSaved ? "已设置自动补码" : "确认补码设置"}</button>
+      </div>}
+
       {tab === "settings" && <div className="settings-list">
         <RangeSetting label="背景音乐" value={settings.music} onChange={(music) => updateSettings({ music })} />
         <RangeSetting label="游戏音效" value={settings.sound} onChange={(sound) => updateSettings({ sound })} />
@@ -59,6 +105,10 @@ export function GameDrawer({ initialTab, onClose, room }: { initialTab: DrawerTa
       </div>}
     </div>
   </motion.aside>;
+}
+
+function FunctionButton({ icon, label, onClick }: { icon: string; label: string; onClick(): void }) {
+  return <button onClick={onClick}><span>{icon}</span><b>{label}</b></button>;
 }
 
 function CardStrip({ cards, empty }: { cards: Card[]; empty?: string }) {
