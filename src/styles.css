@@ -54,7 +54,7 @@ button { color:inherit; }
 .playing-card{position:relative;width:62px;height:88px;border-radius:7px;background:linear-gradient(145deg,#fff,#e9e5dc);color:#17201e;box-shadow:0 6px 14px #00100bbd,inset 0 0 0 1px #fff;display:flex;flex-direction:column;align-items:flex-start;padding:6px;font-weight:800;line-height:1}.playing-card.red{color:#c83239}.card-rank{font-size:20px}.card-suit{font-size:23px;margin:auto;align-self:center}.playing-card.small{width:39px;height:55px;border-radius:5px;padding:4px}.playing-card.small .card-rank{font-size:12px}.playing-card.small .card-suit{font-size:14px}.card-back{align-items:center;justify-content:center;background:repeating-linear-gradient(45deg,#17324a,#17324a 4px,#d6b86a 4px,#d6b86a 5px);border:2px solid #eee2ca;color:#ead090}.back-glyph{display:grid;width:65%;height:70%;place-items:center;border:1px solid #e8cc8888;border-radius:3px;background:#0c2133;font-size:17px}
 .pot-badge{display:flex;align-items:center;gap:7px;padding:5px 11px;border:1px solid #f0cd8030;border-radius:999px;background:#061611c9;box-shadow:0 6px 18px #0008;color:#f5d58d;font-size:12px;font-weight:800}.pot-badge i{color:#e2a846;font-style:normal}
 .seat{--seat-x:50%;--seat-y:50%;position:absolute;z-index:7;left:var(--seat-x);top:var(--seat-y);transform:translate(-50%,-50%);display:grid;grid-template-columns:auto auto;grid-template-rows:auto auto;align-items:center;filter:drop-shadow(0 7px 10px #0009);transition:opacity .3s}.seat.folded{opacity:.42;filter:grayscale(1)}.avatar-ring{position:relative;z-index:2;grid-row:1/3;display:grid;width:55px;height:55px;place-items:center;border:2px solid #4e625f;border-radius:50%;background:linear-gradient(145deg,#243a3c,#0b171c);box-shadow:inset 0 2px #ffffff1c}.avatar-ring>span{font-size:29px}.seat.active .avatar-ring{border-color:#f0c66c;box-shadow:0 0 0 4px #f0c66c20,0 0 26px #f0c66c55}.timer-ring{position:absolute;inset:-5px;border:2px solid transparent;border-top-color:#f8d177;border-right-color:#f8d177;border-radius:50%;animation:spin 3s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
-.seat-info{min-width:93px;margin-left:-10px;padding:6px 10px 6px 18px;border:1px solid #ffffff17;border-radius:0 11px 11px 0;background:#07131be8;backdrop-filter:blur(8px)}.seat-info b,.seat-info span{display:block;white-space:nowrap}.seat-info b{font-size:11px}.seat-info span{color:#ecc979;font-size:10px}.seat-cards{position:absolute;z-index:-1;left:50%;top:-25px;display:flex;transform:translateX(-50%);}.seat-cards>*:nth-child(1){transform:rotate(-8deg)!important}.seat-cards>*:nth-child(2){margin-left:-13px;transform:rotate(8deg)!important}.action-bubble{position:absolute;left:50%;top:100%;margin-top:5px;transform:translateX(-50%);white-space:nowrap;padding:4px 8px;border-radius:999px;background:#f3e1bd;color:#261c11;font-size:9px;font-weight:800}.seat-bet{position:absolute;left:50%;top:-49px;transform:translateX(-50%);white-space:nowrap;color:#f4cd79;font-size:10px}.dealer-button{position:absolute;left:-7px;bottom:-7px;display:grid;width:20px;height:20px;place-items:center;border-radius:50%;background:#eee8dc;color:#29312e;font-size:9px;font-weight:900;box-shadow:0 2px 8px #000}
+.seat-info{min-width:93px;margin-left:-10px;padding:6px 10px 6px 18px;border:1px solid #ffffff17;border-radius:0 11px 11px 0;background:#07131be8;backdrop-filter:blur(8px)}.seat-info b,.seat-info span{display:block;white-space:nowrap}.seat-info b{font-size:11px}.seat-info span{color:#ecc979;font-size:10px}.seat-cards{position:absolute;z-index:-1;left:50%;top:-25px;display:flex;transform:translateX(-50%);}.action-bubble{position:absolute;left:50%;top:100%;margin-top:5px;transform:translateX(-50%);white-space:nowrap;padding:4px 8px;border-radius:999px;background:#f3e1bd;color:#261c11;font-size:9px;font-weight:800}.seat-bet{position:absolute;left:50%;top:-49px;transform:translateX(-50%);white-space:nowrap;color:#f4cd79;font-size:10px}.dealer-button{position:absolute;left:-7px;bottom:-7px;display:grid;width:20px;height:20px;place-items:center;border-radius:50%;background:#eee8dc;color:#29312e;font-size:9px;font-weight:900;box-shadow:0 2px 8px #000}
 .winner-banner{position:absolute;z-index:30;left:50%;top:50%;transform:translate(-50%,-50%)!important;width:min(480px,82vw);padding:22px;text-align:center;border:1px solid #f4ce7770;border-radius:20px;background:#07161aee;box-shadow:0 30px 100px #000,inset 0 1px #fff2;backdrop-filter:blur(16px)}.winner-banner p{margin:3px;color:#c5a55d;font-size:9px;letter-spacing:.2em}.winner-banner h2{margin:8px 0 17px;font-size:20px}.winner-crown{color:#f0c66d;font-size:35px;text-shadow:0 0 25px #f0c66d}
 .pixi-effects{position:absolute;z-index:24;inset:0;pointer-events:none}.emoji-tray{position:absolute;z-index:25;right:24px;bottom:15px}.round-tool{display:grid;width:45px;height:45px;place-items:center;border:1px solid #ffffff21;border-radius:50%;background:#081820da;color:#f6d487;font-size:21px;cursor:pointer;box-shadow:0 8px 20px #0008}.emoji-popover{position:absolute;right:0;bottom:55px;display:grid;grid-template-columns:repeat(4,44px);padding:8px;border:1px solid #ffffff1c;border-radius:14px;background:#07161ded;box-shadow:0 15px 40px #000}.emoji-popover button{height:42px;border:0;border-radius:9px;background:transparent;font-size:23px;cursor:pointer}.emoji-popover button:hover{background:#fff1;transform:scale(1.14)}
 
@@ -1684,3 +1684,208 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
   border-radius:50%;
 }
 .app-shell.mode-mobile .fresh-table .pot-badge small { color:#a8c8bb; font-size:7px; font-weight:600; }
+
+/* Player stack hierarchy: ID, avatar, stack, then two horizontal hole cards. */
+.app-shell.mode-mobile .fresh-table .seat {
+  width:72px;
+  min-width:72px;
+  min-height:56px;
+  overflow:visible;
+}
+.app-shell.mode-mobile .fresh-table .seat-info { display:contents; }
+.app-shell.mode-mobile .fresh-table .seat-info b {
+  position:absolute;
+  left:50%;
+  bottom:calc(100% + 5px);
+  width:104px;
+  overflow:hidden;
+  transform:translateX(-50%);
+  color:#f3f8f6;
+  font-size:9px;
+  font-weight:700;
+  line-height:13px;
+  text-align:center;
+  text-overflow:ellipsis;
+  text-shadow:0 1px 3px #00241dbd;
+}
+.app-shell.mode-mobile .fresh-table .seat-info span {
+  position:absolute;
+  z-index:4;
+  left:50%;
+  top:calc(100% + 5px);
+  min-width:54px;
+  height:19px;
+  justify-content:center;
+  margin:0;
+  padding:2px 9px;
+  transform:translateX(-50%);
+  border:1px solid #d8ebe44a;
+  border-radius:999px;
+  color:#f4f8f6;
+  background:#00372ecf;
+  box-shadow:0 2px 6px #001c1666;
+  font-size:9px;
+  font-variant-numeric:tabular-nums;
+  line-height:13px;
+}
+.app-shell.mode-mobile .fresh-table .seat-cards {
+  z-index:3;
+  top:calc(100% + 29px);
+  display:flex;
+  gap:3px;
+  align-items:flex-start;
+}
+.app-shell.mode-mobile .fresh-table .seat-cards>* { flex:0 0 auto; margin:0!important; }
+.app-shell.mode-mobile .fresh-table .seat-cards .playing-card.small { width:29px; height:42px; }
+.app-shell.mode-mobile .fresh-table.my-turn .seat.hero-seat,
+.app-shell.mode-mobile .fresh-table.waiting-turn .seat.hero-seat { top:69%!important; }
+.app-shell.mode-mobile .fresh-table .seat.folded { opacity:.48; }
+.app-shell.mode-mobile .fresh-table .seat.folded.hero-seat { opacity:1; filter:none; }
+.app-shell.mode-mobile .fresh-table .seat.winner-seat .avatar-ring { box-shadow:0 0 0 3px #ffc56c40,0 0 24px #ffc56c8c; }
+.app-shell.mode-mobile .fresh-table .seat-bet { left:calc(100% + 3px); top:45%; transform:translateY(-50%); }
+.app-shell.mode-mobile .fresh-table .dealer-button { left:calc(50% + 31px); top:62px; bottom:auto; width:16px; height:16px; border:1px solid #dfe9e4; font-size:8px; }
+.app-shell.mode-mobile .fresh-table .action-bubble { top:calc(100% + 76px); margin-top:0; }
+.app-shell.mode-mobile .reveal-hole-card {
+  position:relative;
+  display:block;
+  padding:0;
+  border:0;
+  color:#fff;
+  background:transparent;
+  cursor:pointer;
+}
+.app-shell.mode-mobile .reveal-hole-card:after {
+  content:"";
+  position:absolute;
+  inset:-3px;
+  border:1px solid #ffc56c99;
+  border-radius:6px;
+  animation:reveal-card-pulse 1.2s ease-in-out infinite;
+}
+.app-shell.mode-mobile .reveal-hole-card em {
+  position:absolute;
+  left:50%;
+  top:calc(100% + 2px);
+  transform:translateX(-50%);
+  color:#ffe2ae;
+  font-size:6px;
+  font-style:normal;
+  white-space:nowrap;
+}
+@keyframes reveal-card-pulse { 50% { opacity:.3; transform:scale(1.04); } }
+
+/* Showdown sequence: reveal first, then stream the pot into the winner. */
+.app-shell.mode-mobile .pot-award-layer { position:absolute; z-index:45; inset:0; overflow:hidden; pointer-events:none; }
+.app-shell.mode-mobile .pot-award-coin {
+  position:absolute;
+  width:13px;
+  height:13px;
+  margin:-6px 0 0 -6px;
+  border:1px solid #ffe3a8;
+  border-radius:50%;
+  background:#e9a43f;
+  box-shadow:inset 0 0 0 2px #f8c971,0 2px 6px #0018118c;
+}
+.app-shell.mode-mobile .pot-award-coin:after { content:""; position:absolute; inset:3px; border:1px solid #a76020; border-radius:50%; }
+.app-shell.mode-mobile .pot-winner-burst {
+  position:absolute;
+  display:grid;
+  width:72px;
+  height:72px;
+  margin:-36px 0 0 -36px;
+  place-items:center;
+  border:2px solid #ffd27f;
+  border-radius:18px;
+  color:#ffe2aa;
+  box-shadow:0 0 24px #ffc45f8c;
+}
+.app-shell.mode-mobile .pot-winner-burst b { padding:3px 7px; border-radius:99px; background:#00372ee0; font-size:8px; }
+.app-shell.mode-mobile .showdown-summary {
+  position:absolute;
+  z-index:41;
+  left:50%;
+  top:61%;
+  display:grid;
+  width:210px;
+  min-height:52px;
+  transform:translate(-50%,-50%)!important;
+  grid-template-columns:auto 1fr;
+  align-items:center;
+  gap:2px 8px;
+  padding:8px 12px;
+  border:1px solid #ffffff1f;
+  border-radius:12px;
+  color:#edf5f2;
+  background:#05271fe3;
+  box-shadow:0 9px 28px #0018108a;
+  backdrop-filter:blur(10px);
+}
+.app-shell.mode-mobile .showdown-summary>span { display:flex; grid-row:1/3; align-items:center; gap:4px; color:#ffd28a; font-size:10px; font-weight:800; }
+.app-shell.mode-mobile .showdown-summary>span i { width:12px; height:12px; border:1px solid #ffe2a4; border-radius:50%; background:#e8a13d; box-shadow:inset 0 0 0 2px #f7c66f; }
+.app-shell.mode-mobile .showdown-summary>b { overflow:hidden; font-size:9px; text-overflow:ellipsis; white-space:nowrap; }
+.app-shell.mode-mobile .showdown-summary>small { color:#9fb7ae; font-size:7px; }
+
+/* Lightweight history: neutral rows and signed chip delta only. */
+.app-shell.mode-mobile .tab-history .hand-record-card>header>strong { color:#647a72; font-size:12px; }
+.app-shell.mode-mobile .tab-history .record-seats>div { background:transparent; opacity:1; }
+.app-shell.mode-mobile .tab-history .record-card-back {
+  color:#d9eee6;
+  border-color:#4b8976!important;
+  background:repeating-linear-gradient(45deg,#34715f,#34715f 3px,#b6dbcf 3px,#b6dbcf 4px)!important;
+  text-shadow:0 1px #174c3d;
+}
+.app-shell.mode-mobile .pixel-chip {
+  --chip-tone:#e66560;
+  display:inline-flex;
+  min-width:54px;
+  height:24px;
+  align-items:center;
+  justify-content:flex-end;
+  gap:5px;
+  padding:0;
+  border:0;
+  clip-path:none;
+  color:var(--chip-tone);
+  background:transparent;
+  box-shadow:none;
+  font-family:ui-monospace,"SFMono-Regular",Consolas,monospace;
+  font-size:9px;
+}
+.app-shell.mode-mobile .pixel-chip>i {
+  position:relative;
+  left:auto;
+  top:auto;
+  width:14px;
+  height:14px;
+  flex:0 0 auto;
+  order:2;
+  border:2px solid currentColor;
+  border-radius:50%;
+  background:repeating-conic-gradient(currentColor 0 12deg,transparent 12deg 36deg);
+  box-shadow:none;
+}
+.app-shell.mode-mobile .pixel-chip.positive { --chip-tone:#e66560; color:var(--chip-tone); }
+.app-shell.mode-mobile .pixel-chip.negative { --chip-tone:#47a87b; color:var(--chip-tone); }
+.app-shell.mode-mobile .pixel-chip.zero { --chip-tone:#929d98; color:var(--chip-tone); }
+.app-shell.mode-mobile .pixel-chip.compact { min-width:50px; height:22px; padding:0; font-size:8px; }
+.app-shell.mode-mobile .pixel-chip.compact>i { left:auto; top:auto; width:13px; height:13px; }
+
+/* Keep the mark on compact hole-card backs small, upright and centered. */
+.app-shell.mode-mobile .fresh-table .playing-card.small .back-glyph {
+  display:flex;
+  width:56%;
+  height:50%;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  transform:none;
+  color:#dceee7;
+  font-size:8px;
+  line-height:1;
+  text-align:center;
+}
+.app-shell.mode-mobile .fresh-table .playing-card.small .back-glyph i { inset:2px; transform:none; }
+.app-shell.mode-mobile .fresh-table .board-cards .card-back .back-glyph { width:54%; height:50%; font-size:10px; line-height:1; }
+.app-shell.mode-mobile .fresh-table .board-cards .card-back .back-glyph i { inset:2px; }
+.app-shell.mode-mobile .fresh-table .board-cards .playing-card .card-suit i { font-size:12px; line-height:1; }
+.app-shell.mode-mobile .fresh-table .seat-cards .playing-card.small .card-suit i { font-size:9px; line-height:1; }

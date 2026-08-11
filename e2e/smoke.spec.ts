@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("三名玩家可以加入、选座、行动并自动续手", async ({ page, browser }, testInfo) => {
-  test.setTimeout(60_000);
+  test.setTimeout(90_000);
   const stamp = `${Date.now()}-${testInfo.project.name}`;
   const nickname = `房主${Date.now().toString(36).slice(-6)}`;
   const guestOne = await browser.newContext({ viewport: { width: 1000, height: 720 } });
@@ -162,6 +162,8 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
     await expect(lateGuestPage.getByText("选择空位落座，下一手发两张底牌")).toHaveCount(0);
     await page.getByRole("button", { name: "计分" }).click();
     await expect(page.locator(".wpk-spectators")).toContainText(`中途${testInfo.project.name}`);
+    const rankingDeltas = (await page.locator(".wpk-ranking-list .pixel-chip b").allTextContents()).map((value) => Number(value.replaceAll(",", "")));
+    expect(rankingDeltas).toEqual([...rankingDeltas].sort((a, b) => b - a));
     await page.locator(".game-drawer .panel-close").click();
 
     for (let actionIndex = 0; actionIndex < 12 && await page.locator(".board-cards .playing-card:not(.card-back)").count() < 3; actionIndex += 1) {
@@ -179,6 +181,16 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
     await expect(lateGuestPage.locator(".board-cards .card-back")).toHaveCount(2);
     await expect(page.locator(".pot-badge")).toContainText("总底池");
     await expect(page.locator(".pot-badge i")).toBeVisible();
+    const seatHierarchy = await page.locator(".hero-seat").evaluate((seat) => {
+      const id = seat.querySelector(".seat-info b")!.getBoundingClientRect();
+      const avatar = seat.querySelector(".avatar-ring")!.getBoundingClientRect();
+      const stack = seat.querySelector(".seat-info span")!.getBoundingClientRect();
+      const cards = seat.querySelector(".seat-cards")!.getBoundingClientRect();
+      return { idBottom:id.bottom, avatarTop:avatar.top, avatarBottom:avatar.bottom, stackTop:stack.top, stackBottom:stack.bottom, cardsTop:cards.top };
+    });
+    expect(seatHierarchy.idBottom).toBeLessThanOrEqual(seatHierarchy.avatarTop + 2);
+    expect(seatHierarchy.stackTop).toBeGreaterThanOrEqual(seatHierarchy.avatarBottom);
+    expect(seatHierarchy.cardsTop).toBeGreaterThanOrEqual(seatHierarchy.stackBottom);
     await lateGuestPage.screenshot({ path: testInfo.outputPath("mobile-spectator-flop.png") });
 
     for (const playerPage of pages) {
@@ -203,18 +215,32 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
     await lateGuestPage.locator(".late-seat-choice").first().click();
     await expect(lateGuestPage.locator(".pending-seat.hero-seat")).toBeVisible();
 
+    let revealedFoldedCard = false;
     for (let round = 0; round < 3; round += 1) {
       for (const playerPage of pages) {
         const fold = playerPage.locator(".action.fold");
-        if (await fold.count() > 0 && await fold.isEnabled()) { await fold.click(); break; }
+        if (await fold.count() > 0 && await fold.isEnabled()) {
+          await fold.click();
+          if (!revealedFoldedCard) {
+            const reveal = playerPage.getByRole("button", { name:"公开第 1 张底牌" });
+            await expect(reveal).toBeVisible();
+            await reveal.click();
+            const observer = pages.find((candidate) => candidate !== playerPage)!;
+            await expect.poll(() => observer.locator(".seat.folded .playing-card:not(.card-back)").count()).toBe(1);
+            await expect(observer.locator(".seat.folded .card-back")).toHaveCount(1);
+            revealedFoldedCard = true;
+          }
+          break;
+        }
       }
       if (await page.locator(".hand-settlement").count()) break;
       await page.waitForTimeout(150);
     }
 
     await expect(page.locator(".hand-settlement")).toBeVisible();
-    await expect(page.getByText(/第 2 手/)).toBeVisible({ timeout: 6_000 });
-    await expect(lateGuestPage.getByText(/第 2 手/)).toBeVisible({ timeout: 6_000 });
+    await expect(page.locator(".pot-award-layer .pot-award-coin")).toHaveCount(9);
+    await expect(page.getByText(/第 2 手/)).toBeVisible({ timeout: 8_000 });
+    await expect(lateGuestPage.getByText(/第 2 手/)).toBeVisible({ timeout: 8_000 });
     await expect(guestTwoPage.locator(".hero-seat .seat-info span")).toContainText("3,");
     await expect(lateGuestPage.locator(".seat .playing-card:not(.card-back)")).toHaveCount(2);
     await expect(lateGuestPage.locator(".seat .card-back")).toHaveCount(6);
@@ -222,11 +248,34 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
     await expect(guestTwoPage.getByRole("button", { name: "带入", exact: true })).toBeVisible();
     await guestTwoPage.locator(".game-drawer .panel-close").click();
 
+    const showdownPlayers = [...pages, lateGuestPage];
+    for (let actionIndex = 0; actionIndex < 40; actionIndex += 1) {
+      let acted = false;
+      for (const playerPage of showdownPlayers) {
+        const passiveAction = playerPage.locator(".action.neutral");
+        if (await passiveAction.count() > 0 && await passiveAction.isEnabled()) {
+          await passiveAction.click();
+          acted = true;
+          break;
+        }
+      }
+      if (await page.locator(".table-screen").getAttribute("data-result") === "showdown") break;
+      await page.waitForTimeout(acted ? 140 : 80);
+    }
+    await expect(page.locator(".table-screen")).toHaveAttribute("data-result", "showdown");
+    await expect(page.locator(".seat .playing-card:not(.card-back)")).toHaveCount(8);
+    await expect(page.locator(".hand-settlement")).toBeVisible();
+
     await guestOnePage.getByRole("button", { name: "牌桌功能" }).click();
     await guestOnePage.locator(".wpk-function-menu").getByRole("button", { name: /牌局回顾/ }).click();
     await expect(guestOnePage.locator(".history-pager")).toBeVisible();
     await expect(guestOnePage.locator(".hand-record-card")).toHaveCount(1);
+    await expect(guestOnePage.locator(".record-seats .record-card-back")).toHaveCount(0);
+    await expect(guestOnePage.locator(".record-player small").filter({ hasText:/高牌|一对|两对|三条|顺子|同花|葫芦|四条|同花顺|皇家同花顺/ })).toHaveCount(4);
+    await expect(guestOnePage.locator(".record-seats>div.winner")).toHaveCount(0);
+    await guestOnePage.getByRole("button", { name:"更早一手" }).click();
     await expect(guestOnePage.locator(".record-seats .record-cards i")).toHaveCount(6);
+    await expect(guestOnePage.locator(".record-seats .record-card-back")).toHaveCount(5);
 
     await page.locator(".table-menu-trigger").click();
     await page.getByRole("button", { name: "解散房间" }).click();

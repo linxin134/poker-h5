@@ -59,7 +59,7 @@ export function startHand(input: PokerState, random = Math.random): PokerState {
   state.winnerText = undefined;
   state.result = undefined;
   state.handStartStacks = Object.fromEntries(state.seats.map((seat) => [seat.id, seat.stack]));
-  state.seats.forEach((seat) => Object.assign(seat, { holeCards: [], bet: 0, totalContribution: 0, folded: seat.stack <= 0, allIn: false, lastAction: undefined }));
+  state.seats.forEach((seat) => Object.assign(seat, { holeCards: [], bet: 0, totalContribution: 0, folded: seat.stack <= 0, allIn: false, revealedHoleCardIndexes: [], shownHoleCards: undefined, lastAction: undefined }));
   state.dealerIndex = nextIndex(state, state.dealerIndex, (seat) => seat.stack > 0);
   const headsUp = state.seats.filter((seat) => seat.stack > 0).length === 2;
   const sb = headsUp ? state.dealerIndex : nextIndex(state, state.dealerIndex, (seat) => seat.stack > 0);

@@ -20,6 +20,8 @@ export interface Seat {
   connected?: boolean;
   standing?: boolean;
   holeCardCount?: number;
+  revealedHoleCardIndexes?: number[];
+  shownHoleCards?: Array<Card | null>;
   lastAction?: string;
 }
 

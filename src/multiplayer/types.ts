@@ -22,7 +22,9 @@ export interface RoomHandSeatResult {
   seatId: string;
   nickname: string;
   avatar: string;
-  cards: Card[];
+  cards: Array<Card | null>;
+  handName?: string;
+  showedDown: boolean;
   delta: number;
   finalStack: number;
   folded: boolean;
@@ -100,6 +102,7 @@ export type RoomClientMessage =
   | { type: "sit"; seatIndex: number }
   | { type: "stand" }
   | { type: "action"; action: PlayerAction; raiseTo?: number }
+  | { type: "revealCard"; cardIndex: number }
   | { type: "emoji"; emoji: string; targetSeatId: string }
   | { type: "chat"; text: string }
   | { type: "topup"; targetStack: number }

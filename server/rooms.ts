@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { applyAction, createInitialState, legalActions, startHand } from "../src/game/engine";
+import { evaluateHand } from "../src/game/cards";
 import type { PokerState } from "../src/game/types";
 import type {
   RoomClientMessage,
@@ -86,11 +87,14 @@ function saveRoom(room: RoomRuntime) {
 function publicGame(room: RoomRuntime, userId: string) {
   if (!room.game) return null;
   const game = structuredClone(room.game);
-  const reveal = game.phase === "complete" || game.phase === "showdown";
+  const reveal = game.phase === "showdown" || (game.phase === "complete" && game.result?.reason === "showdown");
   for (const seat of game.seats) {
     seat.connected = room.members.find((member) => member.seatId === seat.id)?.connected ?? false;
-    if (!reveal && seat.userId !== userId) {
-      seat.holeCardCount = seat.holeCards.length;
+    const ownCards = seat.userId === userId;
+    const publicIndexes = new Set(seat.revealedHoleCardIndexes ?? []);
+    seat.holeCardCount = seat.holeCards.length;
+    seat.shownHoleCards = seat.holeCards.map((card, index) => ownCards || (reveal && !seat.folded) || publicIndexes.has(index) ? card : null);
+    if (!ownCards && (!reveal || seat.folded)) {
       seat.holeCards = [];
     }
   }
@@ -109,7 +113,7 @@ function scoreboard(room: RoomRuntime) {
       delta: stack - (member.buyIn || room.startingStack),
       connected: member.connected
     };
-  }).sort((a, b) => b.stack - a.stack);
+  }).sort((a, b) => b.delta - a.delta || b.stack - a.stack || a.nickname.localeCompare(b.nickname, "zh-CN"));
 }
 
 function viewFor(room: RoomRuntime, userId: string): RoomView {
@@ -163,6 +167,7 @@ function recordCompletedHand(room: RoomRuntime) {
   const game = room.game!;
   if (room.hands.some((hand) => hand.id === game.handId)) return;
   const winners = new Set(game.result?.winnerSeatIds ?? []);
+  const reachedShowdown = game.result?.reason === "showdown";
   const hand: RoomHandRecord = {
     id: game.handId,
     handNumber: game.handNumber,
@@ -173,7 +178,9 @@ function recordCompletedHand(room: RoomRuntime) {
       seatId: seat.id,
       nickname: seat.name,
       avatar: seat.avatar,
-      cards: [...seat.holeCards],
+      cards: seat.holeCards.map((card, index) => reachedShowdown && !seat.folded || seat.revealedHoleCardIndexes?.includes(index) ? card : null),
+      handName: reachedShowdown && !seat.folded && seat.holeCards.length + game.board.length >= 5 ? evaluateHand([...seat.holeCards, ...game.board]).name : undefined,
+      showedDown: reachedShowdown && !seat.folded,
       delta: seat.stack - (game.handStartStacks?.[seat.id] ?? room.startingStack),
       finalStack: seat.stack,
       folded: seat.folded,
@@ -197,8 +204,12 @@ function scheduleTurn(room: RoomRuntime) {
     room.turnEndsAt = null;
     return;
   }
-  room.turnEndsAt = Date.now() + 25_000;
+  const actor = room.game.seats[room.game.actorIndex];
+  const actorConnected = room.members.find((member) => member.userId === actor?.userId)?.connected ?? false;
+  const turnDuration = actorConnected ? 25_000 : 1_800;
+  room.turnEndsAt = Date.now() + turnDuration;
   room.turnTimer = setTimeout(() => {
+    room.turnTimer = undefined;
     if (!room.game || room.game.phase === "complete") return;
     const actor = room.game.seats[room.game.actorIndex];
     if (!actor) return;
@@ -210,7 +221,22 @@ function scheduleTurn(room: RoomRuntime) {
       scheduleTurn(room);
       broadcastRoom(room);
     }
-  }, 25_050);
+  }, turnDuration + 50);
+}
+
+function ensureRoomProgress(room: RoomRuntime) {
+  if (room.status !== "playing" || !room.game) return;
+  if (room.game.phase === "complete") {
+    if (!room.nextHandTimer && room.nextHandAt) {
+      const remaining = Math.max(0, room.nextHandAt - Date.now());
+      room.nextHandTimer = setTimeout(() => dealNextHand(room), remaining);
+    }
+    return;
+  }
+  const actor = room.game.seats[room.game.actorIndex];
+  const actorConnected = room.members.find((member) => member.userId === actor?.userId)?.connected ?? false;
+  const remaining = (room.turnEndsAt ?? 0) - Date.now();
+  if (!room.turnTimer || remaining <= 0 || (!actorConnected && remaining > 2_000)) scheduleTurn(room);
 }
 
 function syncPendingSeats(room: RoomRuntime) {
@@ -298,10 +324,10 @@ function completeHand(room: RoomRuntime) {
   if (room.turnTimer) clearTimeout(room.turnTimer);
   room.turnEndsAt = null;
   recordCompletedHand(room);
-  room.nextHandAt = Date.now() + 3_500;
+  room.nextHandAt = Date.now() + 4_800;
   saveRoom(room);
   broadcastRoom(room);
-  room.nextHandTimer = setTimeout(() => dealNextHand(room), 3_500);
+  room.nextHandTimer = setTimeout(() => dealNextHand(room), 4_800);
 }
 
 function startRoom(room: RoomRuntime) {
@@ -407,6 +433,7 @@ export const roomService = {
     sockets.add(socket);
     room.clients.set(user.id, sockets);
     member.connected = true;
+    ensureRoomProgress(room);
     broadcastRoom(room);
 
     return {
@@ -507,6 +534,23 @@ export const roomService = {
             broadcastRoom(room);
             return;
           }
+          if (message.type === "revealCard") {
+            if (!room.game || room.status !== "playing") throw new Error("牌局尚未开始");
+            const seat = room.game.seats.find((entry) => entry.userId === user.id);
+            if (!seat || !seat.folded) throw new Error("只有弃牌后才能公开底牌");
+            if (!Number.isInteger(message.cardIndex) || message.cardIndex < 0 || message.cardIndex >= seat.holeCards.length) throw new Error("底牌不存在");
+            const revealed = new Set(seat.revealedHoleCardIndexes ?? []);
+            revealed.add(message.cardIndex);
+            seat.revealedHoleCardIndexes = [...revealed].sort();
+            if (room.game.phase === "complete") {
+              const recordedHand = room.hands.find((hand) => hand.id === room.game?.handId);
+              const recordedSeat = recordedHand?.seats.find((entry) => entry.seatId === seat.id);
+              if (recordedSeat) recordedSeat.cards[message.cardIndex] = seat.holeCards[message.cardIndex];
+            }
+            saveRoom(room);
+            broadcastRoom(room);
+            return;
+          }
           if (message.type === "action") {
             if (!room.game || room.status !== "playing") throw new Error("牌局尚未开始");
             const actor = room.game.seats[room.game.actorIndex];
@@ -533,6 +577,7 @@ export const roomService = {
         if (!current?.size) {
           room.clients.delete(user.id);
           member.connected = false;
+          ensureRoomProgress(room);
           broadcastRoom(room);
         }
       }

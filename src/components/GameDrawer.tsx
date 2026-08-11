@@ -155,11 +155,11 @@ export function GameDrawer({ initialTab, onClose, onLeave, onDissolve, onStand, 
                 if (info.offset.x > 45) moveHistory(historyIndex - 1);
               }}
             >
-              <header><div><span>第 {visibleHand.handNumber} 手</span><b>{visibleHand.winnerText}</b></div><strong>{visibleHand.pot.toLocaleString()}</strong></header>
+              <header><div><span>第 {visibleHand.handNumber} 手</span><b>{visibleHand.board.length ? "本手牌面" : "翻牌前结束"}</b></div><strong>{visibleHand.pot.toLocaleString()}</strong></header>
               <div className="record-board"><small>公共牌</small><CardStrip cards={visibleHand.board} empty="翻牌前结束" /></div>
-              <div className="record-seats">{visibleHand.seats.map((seat) => <div className={`${seat.won ? "winner" : ""} ${seat.folded ? "folded" : ""}`} key={seat.seatId}>
+              <div className="record-seats">{visibleHand.seats.map((seat) => <div key={seat.seatId}>
                 <span className="record-avatar"><GameAvatar seed={seat.seatId} label={seat.nickname} /></span>
-                <span className="record-player"><b>{seat.nickname}</b><small>{seat.folded ? "弃牌" : seat.won ? "获胜" : "摊牌"}</small></span>
+                <span className="record-player"><b>{seat.nickname}</b><small>{seat.handName ?? (seat.folded ? "弃牌" : seat.showedDown ? "摊牌" : "未公开")}</small></span>
                 <CardStrip cards={seat.cards} />
                 <PixelChip value={seat.delta} compact />
               </div>)}</div>
@@ -185,7 +185,7 @@ export function GameDrawer({ initialTab, onClose, onLeave, onDissolve, onStand, 
 
       {tab === "guide" && <div className="wpk-guide-panel">
         <Guide n="01" title="多人好友房">每位玩家独立登录并选择座位，全部下注由服务器校验。</Guide>
-        <Guide n="02" title="自动续手">每手结算后公开全桌最终手牌，随后自动洗牌并发下一手。</Guide>
+        <Guide n="02" title="自动续手">每手结算后公开摊牌玩家手牌；弃牌玩家可自行选择公开任意底牌，随后自动洗牌并发下一手。</Guide>
         <Guide n="03" title="中途加入">牌局开始后仍可进入空位，落座玩家从下一手开始参与。</Guide>
         <div className="hand-order"><b>牌型顺序</b><p>皇家同花顺 → 同花顺 → 四条 → 葫芦 → 同花 → 顺子 → 三条 → 两对 → 一对 → 高牌</p></div>
       </div>}
@@ -195,14 +195,15 @@ export function GameDrawer({ initialTab, onClose, onLeave, onDissolve, onStand, 
 
 function MenuButton({ icon, label, onClick }: { icon: UiIconName; label: string; onClick(): void }) { return <button onClick={onClick}><span><UiIcon name={icon} /></span><b>{label}</b></button>; }
 function Metric({ label, value }: { label: string; value: string }) { return <span><small>{label}</small><b>{value}</b></span>; }
-function CardStrip({ cards, empty }: { cards: Card[]; empty?: string }) {
+function CardStrip({ cards, empty }: { cards: Array<Card | null>; empty?: string }) {
   if (!cards.length) return <span className="record-empty">{empty ?? "—"}</span>;
   return <span className="record-cards">{cards.map((card, index) => {
+    if (!card) return <i className="record-card-back" aria-label="未公开底牌" key={`hidden-${index}`}>♠</i>;
     const red = card.includes("♥") || card.includes("♦");
     return <i className={red ? "red" : ""} key={`${card}-${index}`}>{card.replace("T", "10")}</i>;
   })}</span>;
 }
-function PixelChip({ value, compact = false }: { value: number; compact?: boolean }) { return <span className={`pixel-chip ${value >= 0 ? "positive" : "negative"} ${compact ? "compact" : ""}`}><i /><b>{value >= 0 ? "+" : ""}{value.toLocaleString()}</b></span>; }
+function PixelChip({ value, compact = false }: { value: number; compact?: boolean }) { return <span className={`pixel-chip ${value > 0 ? "positive" : value < 0 ? "negative" : "zero"} ${compact ? "compact" : ""}`}><b>{value > 0 ? "+" : ""}{value.toLocaleString()}</b><i /></span>; }
 function RangeSetting({ label, value, onChange, min = 0, max = 1, step = .05 }: { label: string; value: number; onChange(value: number): void; min?: number; max?: number; step?: number }) { return <label className="drawer-setting"><span>{label}<b>{Math.round(value * (max <= 2 ? 100 : 1))}{max === 1 ? "%" : ""}</b></span><input type="range" min={min} max={max} step={step} value={value} onChange={(event) => onChange(Number(event.target.value))} /></label>; }
 function Empty({ icon, title, body }: { icon: string; title: string; body: string }) { return <div className="empty-state"><span>{icon}</span><b>{title}</b><p>{body}</p></div>; }
 function Guide({ n, title, children }: { n: string; title: string; children: React.ReactNode }) { return <article><span>{n}</span><div><b>{title}</b><p>{children}</p></div></article>; }
