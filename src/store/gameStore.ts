@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import { applyAction, createInitialState, legalActions, startHand } from "../game/engine";
 import type { PlayerAction, PokerState } from "../game/types";
 import { archiveReplay, loadLocalGame, saveLocalGame } from "../services/localDb";
+import { createUuid } from "../lib/uuid";
 
 export type Screen = "lobby" | "table";
 export interface GameSettings {
@@ -57,7 +58,7 @@ export const useGameStore = create<GameStore>()(persist((set, get) => ({
     const durationMinutes = options?.durationMinutes ?? 30;
     const base = makeGame(options?.seats, options?.stack, options?.smallBlind, options?.bigBlind);
     base.room = {
-      id: `NC-${crypto.randomUUID().slice(0, 4).toUpperCase()}`,
+      id: `NC-${createUuid().slice(0, 4).toUpperCase()}`,
       durationMinutes,
       startedAt: now,
       endsAt: now + durationMinutes * 60_000,
@@ -98,7 +99,7 @@ export const useGameStore = create<GameStore>()(persist((set, get) => ({
     void saveLocalGame(game);
   },
   sendEmoji: (emoji, target) => {
-    const burst = { id: crypto.randomUUID(), emoji, from: "seat-0", to: target };
+    const burst = { id: createUuid(), emoji, from: "seat-0", to: target };
     set((state) => ({ emojiBursts: [...state.emojiBursts, burst] }));
   },
   receiveEmoji: (id, emoji, from, to) => set((state) => ({ emojiBursts: [...state.emojiBursts, { id, emoji, from, to }] })),

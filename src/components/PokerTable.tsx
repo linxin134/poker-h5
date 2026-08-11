@@ -12,6 +12,7 @@ import { playSound } from "../services/audio";
 import { GameAvatar } from "./GameAvatar";
 import { UiIcon } from "./UiIcon";
 import { anchoredSeatPoint } from "../game/tableLayout";
+import { createUuid } from "../lib/uuid";
 
 const phaseLabels = { idle: "等待", preflop: "翻牌前", flop: "翻牌", turn: "转牌", river: "河牌", showdown: "摊牌", complete: "本手结束" };
 
@@ -103,7 +104,7 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
   }
 
   function playInteraction(emoji: string, target: string) {
-    receiveEmoji(crypto.randomUUID(), emoji, myRoomSeatId, target);
+    receiveEmoji(createUuid(), emoji, myRoomSeatId, target);
   }
 
   return <section data-drawer={drawer ?? ""} data-phase={game.phase} data-result={game.result?.reason ?? ""} className={`table-screen fresh-table ${game.phase === "complete" ? "settled" : ""} ${!mySeat ? "spectating" : ""} ${actorSeatId === room.mySeatId ? "my-turn" : "waiting-turn"}`} style={{ "--animation-speed": `${1 / settings.animationSpeed}s` } as CSSProperties}>
@@ -256,7 +257,7 @@ function WaitingRoom({ room, user, connectionStatus, onSit, onStart, onTopup, on
         <button aria-label="计分" onClick={() => setDrawer("stats")}><UiIcon name="stats" /></button>
         <button aria-label="聊天" onClick={() => setDrawer("chat")}><UiIcon name="chat" /></button>
       </nav>
-      <EmojiTray targetSeatId={emojiTarget} targets={emojiTargets} onSend={(emoji, target) => receiveEmoji(crypto.randomUUID(), emoji, room.mySeatId || "waiting-self", target)} />
+      <EmojiTray targetSeatId={emojiTarget} targets={emojiTargets} onSend={(emoji, target) => receiveEmoji(createUuid(), emoji, room.mySeatId || "waiting-self", target)} />
       <EffectsLayer seatPositions={waitingEffectPositions} />
     </main>
     {drawer && <><div className="drawer-shade" onClick={() => setDrawer(null)} /><GameDrawer key={drawer} initialTab={drawer} room={room} currentUserId={user?.id ?? ""} onClose={() => setDrawer(null)} onLeave={onLeave} onDissolve={() => useRoomStore.getState().send({ type: "dissolve" })} onStand={() => useRoomStore.getState().send({ type: "stand" })} onTopup={onTopup} onChat={(text) => useRoomStore.getState().send({ type: "chat", text })} /></>}

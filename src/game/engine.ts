@@ -1,8 +1,9 @@
 import { evaluateHand, compareScores, shuffleDeck } from "./cards";
 import { buildSidePots } from "./pots";
 import type { ActionRecord, GameEvent, LegalActions, PlayerAction, PokerState, Seat } from "./types";
+import { createUuid } from "../lib/uuid";
 
-const uid = () => crypto.randomUUID();
+const uid = () => createUuid();
 const clone = (state: PokerState): PokerState => structuredClone(state);
 
 function record(state: PokerState, detail: string, type: string, seatId?: string, amount?: number) {
