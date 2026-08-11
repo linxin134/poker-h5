@@ -1458,7 +1458,7 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
 .app-shell.mode-mobile .wpk-guide-panel article { display:grid; grid-template-columns:28px 1fr; gap:8px; padding:10px; border-bottom:1px solid #ffffff0d; }
 .app-shell.mode-mobile .wpk-guide-panel article>span { color:#17c7ba; font-size:9px; }.app-shell.mode-mobile .wpk-guide-panel article b { font-size:10px; }.app-shell.mode-mobile .wpk-guide-panel article p { margin:3px 0 0; color:#87948f; font-size:8px; line-height:1.6; }
 
-.app-shell.mode-mobile .interaction-popover { position:fixed; left:0; right:0; bottom:44px; width:100%; min-height:205px; padding:8px 10px max(12px,env(safe-area-inset-bottom)); border:0; border-radius:0; background:#202735f8; box-shadow:0 -13px 32px #0007; }
+.app-shell.mode-mobile .interaction-popover { position:absolute; left:0; right:0; bottom:44px; width:100%; min-height:205px; padding:8px 10px max(12px,env(safe-area-inset-bottom)); border:0; border-radius:0; background:#202735f8; box-shadow:0 -13px 32px #0007; }
 .app-shell.mode-mobile .interaction-popover>header { min-height:39px; border-bottom:1px solid #ffffff10; }
 .app-shell.mode-mobile .interaction-popover>header nav button { color:#8f9b97; background:transparent; }.app-shell.mode-mobile .interaction-popover>header nav button.active { color:#edf3f1; background:#313949; }
 .app-shell.mode-mobile .emoji-targets { margin:7px 0; }.app-shell.mode-mobile .emoji-grid { grid-template-columns:repeat(8,1fr); gap:3px; }.app-shell.mode-mobile .emoji-grid button { background:transparent; font-size:22px; }
@@ -2331,8 +2331,8 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
    Size the poker stage from the live visual viewport and keep a denser layout
    when the remaining content area is short (roughly 390 x 640-720). */
 @media (max-width:900px) {
-  html,body,#root { height:100dvh; min-height:0; }
-  .app-shell.mode-mobile { width:100%; height:100dvh; min-height:0; }
+  html,body,#root { height:var(--app-height,100dvh); min-height:0; overflow:hidden; }
+  .app-shell.mode-mobile { width:100%; height:var(--app-height,100dvh); min-height:0; }
 }
 
 /* The final mobile surface rule must own the texture for both waiting and

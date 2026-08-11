@@ -17,6 +17,26 @@ export function App() {
   const sound = useGameStore((state) => state.settings.sound);
 
   useEffect(() => {
+    const syncVisualViewport = () => {
+      const viewport = window.visualViewport;
+      const visibleHeight = Math.round(viewport?.height ?? window.innerHeight);
+      document.documentElement.style.setProperty("--app-height", `${visibleHeight}px`);
+    };
+    syncVisualViewport();
+    window.addEventListener("resize", syncVisualViewport, { passive: true });
+    window.addEventListener("orientationchange", syncVisualViewport, { passive: true });
+    window.visualViewport?.addEventListener("resize", syncVisualViewport, { passive: true });
+    window.visualViewport?.addEventListener("scroll", syncVisualViewport, { passive: true });
+    return () => {
+      window.removeEventListener("resize", syncVisualViewport);
+      window.removeEventListener("orientationchange", syncVisualViewport);
+      window.visualViewport?.removeEventListener("resize", syncVisualViewport);
+      window.visualViewport?.removeEventListener("scroll", syncVisualViewport);
+      document.documentElement.style.removeProperty("--app-height");
+    };
+  }, []);
+
+  useEffect(() => {
     const unlock = (event: PointerEvent) => {
       unlockAudio();
       if ((event.target as Element | null)?.closest("button")) playSound("click", sound * .55);

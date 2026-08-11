@@ -3,6 +3,11 @@ export interface TableSeatPoint {
   y: number;
 }
 
+export function relativeSeatPosition(position: number, anchorPosition: number, capacity: number) {
+  const normalizedCapacity = Math.max(3, Math.round(capacity));
+  return ((Math.round(position) - Math.round(anchorPosition)) % normalizedCapacity + normalizedCapacity) % normalizedCapacity;
+}
+
 /**
  * Anchors the local player at the bottom and keeps every side seat on one of
  * two vertical rails. This leaves the board and action area unobstructed.

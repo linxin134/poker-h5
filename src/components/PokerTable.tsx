@@ -11,7 +11,7 @@ import { EffectsLayer } from "../pixi/EffectsLayer";
 import { playSound, speakAction } from "../services/audio";
 import { GameAvatar } from "./GameAvatar";
 import { UiIcon } from "./UiIcon";
-import { anchoredSeatPoint } from "../game/tableLayout";
+import { anchoredSeatPoint, relativeSeatPosition } from "../game/tableLayout";
 import { createUuid } from "../lib/uuid";
 
 const phaseLabels = { idle: "等待", preflop: "翻牌前", flop: "翻牌", turn: "转牌", river: "河牌", showdown: "摊牌", complete: "本手结束" };
@@ -98,9 +98,9 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
   const winners = game.seats.filter((seat) => game.result?.winnerSeatIds.includes(seat.id));
   const myMember = room.members.find((member) => member.userId === user?.id);
   const mySeat = game.seats.find((seat) => seat.id === room.mySeatId && !seat.standing);
-  // Keep every physical slot stable. Sitting down must never rotate the table
-  // or move the avatar away from the slot the player selected.
-  const anchorPosition = 0;
+  // Every client owns its perspective: rotate the local player's physical
+  // seat to relative position zero, the safe bottom position.
+  const anchorPosition = mySeat?.position ?? myMember?.seatIndex ?? game.seats[0]?.position ?? 0;
   const actorSeatId = game.seats[game.actorIndex]?.id;
   const dealerSeatId = game.seats[game.dealerIndex]?.id;
   const displaySeats = [...game.seats].sort((a, b) => (((a.position ?? 0) - anchorPosition + room.capacity) % room.capacity) - (((b.position ?? 0) - anchorPosition + room.capacity) % room.capacity));
@@ -111,7 +111,7 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
   const tableCapacity = room.capacity;
 
   function positionPoint(position: number) {
-    const relativePosition = (position - anchorPosition + tableCapacity) % tableCapacity;
+    const relativePosition = relativeSeatPosition(position, anchorPosition, tableCapacity);
     return anchoredSeatPoint(relativePosition, tableCapacity);
   }
 
@@ -264,9 +264,11 @@ function WaitingRoom({ room, user, connectionStatus, onSit, onStart, onTopup, on
   const slots = Array.from({ length: room.capacity }, (_, index) => room.members.find((member) => member.seatIndex === index));
   const emojiTargets = room.members.filter((member) => member.seatIndex !== null && member.userId !== user?.id).map((member) => ({ id: member.seatId, name: member.nickname }));
   const emojiTarget = emojiTargets[0]?.id ?? room.mySeatId ?? "waiting-table";
+  const myPosition = room.members.find((member) => member.userId === user?.id)?.seatIndex ?? 0;
+  const waitingPoint = (position: number) => anchoredSeatPoint(relativeSeatPosition(position, myPosition, room.capacity), room.capacity);
   const waitingEffectPositions = Object.fromEntries(room.members.flatMap((member) => {
     if (member.seatIndex === null) return [];
-    const point = anchoredSeatPoint(member.seatIndex, room.capacity);
+    const point = waitingPoint(member.seatIndex);
     return [[member.seatId, { x: point.x / 100, y: point.y / 100 }]];
   }));
   return <section className="waiting-room waiting-with-tools">
@@ -274,7 +276,7 @@ function WaitingRoom({ room, user, connectionStatus, onSit, onStart, onTopup, on
     <main className="waiting-table-stage">
       <div className="waiting-felt" />
       {slots.map((member, index) => {
-        const { x, y } = anchoredSeatPoint(index, room.capacity);
+        const { x, y } = waitingPoint(index);
         const canChoose = !member || member.userId === user?.id;
         return <motion.button disabled={!canChoose} onClick={() => onSit(index)} className={`waiting-table-seat ${member ? "occupied" : "empty"} ${member?.userId === user?.id ? "mine" : ""}`} style={{ "--seat-x": `${x}%`, "--seat-y": `${y}%` } as CSSProperties} initial={{ opacity: 0, scale: .8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay:index * .04 }} key={member?.userId ?? index}>
           <span>{member ? <GameAvatar seed={member.avatar || member.userId} label={member.nickname} /> : "＋"}{member && <i className={member.connected ? "online" : ""} />}</span>
