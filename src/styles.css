@@ -1285,3 +1285,18 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
   #root:has(.app-shell.mode-mobile):before { content:"MOBILE H5 · 390 × 845"; position:fixed; z-index:80; left:50%; top:max(8px,calc(50% - min(422.5px,calc(50vh - 36px)) - 27px)); transform:translateX(-50%); color:#60776e; font-size:9px; font-weight:900; letter-spacing:.13em; }
   .app-shell.mode-mobile { position:absolute; left:50%; top:50%; width:auto; height:min(845px,calc(100vh - 72px)); aspect-ratio:390 / 845; transform:translate(-50%,-50%); overflow:hidden; border:7px solid #415750; border-radius:28px; background:#e9f2ee; box-shadow:0 28px 90px #294c3f42,0 0 0 1px #ffffff88; }
 }
+
+/* Waiting table keeps every requested tool visible before the room starts. */
+.app-shell.mode-mobile .waiting-with-tools>header { position:absolute; left:0; right:0; top:0; display:flex; align-items:center; }
+.app-shell.mode-mobile .waiting-with-tools>main.waiting-table-stage { position:absolute; inset:0; width:auto; height:auto; }
+.app-shell.mode-mobile .waiting-top-tools { display:flex; align-items:center; gap:9px; margin-left:auto; }
+.app-shell.mode-mobile .waiting-top-tools button { display:grid; min-width:28px; height:34px; place-items:center; align-content:center; gap:0; padding:0; border:0; color:#edf5f2; background:transparent; filter:drop-shadow(0 2px 3px #002c22a0); }
+.app-shell.mode-mobile .waiting-top-tools button span { font-size:18px; line-height:1; }
+.app-shell.mode-mobile .waiting-top-tools button small { margin-top:1px; color:#b9d0c7; font-size:6px; font-weight:800; }
+.app-shell.mode-mobile .waiting-bottom-tools { position:absolute; z-index:42; left:0; right:0; bottom:0; height:49px; display:grid; grid-template-columns:repeat(4,1fr); padding:3px 10px max(3px,env(safe-area-inset-bottom)); border-top:1px solid #c8d1ce30; background:linear-gradient(180deg,#27312eec,#0b110fff); box-shadow:0 -6px 20px #001b1554,inset 0 1px #ffffff17; }
+.app-shell.mode-mobile .waiting-bottom-tools button { display:grid; place-items:center; align-content:center; gap:2px; border:0; color:#dce8e3; background:transparent; }
+.app-shell.mode-mobile .waiting-bottom-tools button span { font-size:17px; line-height:1; }
+.app-shell.mode-mobile .waiting-bottom-tools button small { color:#aebfb8; font-size:7px; font-weight:800; }
+.app-shell.mode-mobile .waiting-bottom-tools button:active { color:#ffd18f; transform:scale(.96); }
+.app-shell.mode-mobile .waiting-with-tools .waiting-felt { bottom:48px; }
+.app-shell.mode-mobile .waiting-with-tools .waiting-table-seat.mine { top:80%!important; }

@@ -54,7 +54,7 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
   }
 
   if (!room) return <section className="room-loading"><span className="room-loader" /><b>{connectionStatus === "error" ? "连接失败" : "正在进入好友房"}</b><p>{roomError ?? "正在建立实时连接…"}</p><button className="ghost-button" onClick={leaveRoom}>返回大厅</button></section>;
-  if (room.status === "waiting" || !room.game) return <WaitingRoom room={room} user={user} connectionStatus={connectionStatus} onSit={(seatIndex) => send({ type: "sit", seatIndex })} onStart={() => send({ type: "start" })} onLeave={leaveRoom} />;
+  if (room.status === "waiting" || !room.game) return <WaitingRoom room={room} user={user} connectionStatus={connectionStatus} onSit={(seatIndex) => send({ type: "sit", seatIndex })} onStart={() => send({ type: "start" })} onTopup={(targetStack) => send({ type: "topup", targetStack })} onLeave={leaveRoom} />;
 
   const game = room.game;
   const visiblePot = game.phase === "complete" ? (game.result?.pot ?? 0) : game.pot + game.seats.reduce((sum, seat) => sum + seat.bet, 0);
@@ -193,13 +193,14 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
   </section>;
 }
 
-function WaitingRoom({ room, user, connectionStatus, onSit, onStart, onLeave }: { room: NonNullable<ReturnType<typeof useRoomStore.getState>["room"]>; user: User | null; connectionStatus: string; onSit(seatIndex: number): void; onStart(): void; onLeave(): void }) {
+function WaitingRoom({ room, user, connectionStatus, onSit, onStart, onTopup, onLeave }: { room: NonNullable<ReturnType<typeof useRoomStore.getState>["room"]>; user: User | null; connectionStatus: string; onSit(seatIndex: number): void; onStart(): void; onTopup(targetStack: number): void; onLeave(): void }) {
+  const [drawer, setDrawer] = useState<DrawerTab | null>(null);
   const isHost = room.hostUserId === user?.id;
   const seatedCount = room.members.filter((member) => member.seatIndex !== null).length;
   const slots = Array.from({ length: room.capacity }, (_, index) => room.members.find((member) => member.seatIndex === index));
   const myPosition = room.members.find((member) => member.userId === user?.id)?.seatIndex ?? 0;
-  return <section className="waiting-room">
-    <header><button className="icon-button" onClick={onLeave}>‹</button><span className="brand compact"><i>♠</i>给我擦皮鞋</span><span className="hand-chip">房间 {room.code} · 等待开始</span><span className={`connection-pill ${connectionStatus}`}>● {connectionStatus === "connected" ? "实时连接" : "正在重连"}</span></header>
+  return <section className="waiting-room waiting-with-tools">
+    <header><button className="icon-button" onClick={onLeave}>‹</button><span className="brand compact"><i>♠</i>给我擦皮鞋</span><span className="hand-chip">房间 {room.code} · 等待开始</span><span className={`connection-pill ${connectionStatus}`}>● {connectionStatus === "connected" ? "实时连接" : "正在重连"}</span><div className="waiting-top-tools"><button onClick={() => setDrawer("guide")}><span>?</span><small>玩法</small></button><button onClick={() => setDrawer("settings")}><span>⚙</span><small>设置</small></button></div></header>
     <main className="waiting-table-stage">
       <div className="waiting-felt" />
       {slots.map((member, index) => {
@@ -219,6 +220,13 @@ function WaitingRoom({ room, user, connectionStatus, onSit, onStart, onLeave }: 
         <div className="room-rules"><span><small>时长</small><b>{room.durationMinutes} 分钟</b></span><span><small>盲注</small><b>{room.smallBlind} / {room.bigBlind}</b></span><span><small>筹码</small><b>{room.startingStack.toLocaleString()}</b></span></div>
         {isHost ? <button className="primary-button start-room-button" disabled={seatedCount < 3} onClick={onStart}>{seatedCount < 3 ? `还需 ${3 - seatedCount} 人落座` : "开始牌局 →"}</button> : <div className="guest-waiting"><span className="room-loader" /><b>{room.mySeatId ? "等待房主开始" : "请选择一个空位落座"}</b></div>}
       </motion.div>
+      <nav className="waiting-bottom-tools" aria-label="牌桌功能栏">
+        <button onClick={() => setDrawer("history")}><span>▥</span><small>回顾</small></button>
+        <button onClick={() => setDrawer("stats")}><span>▤</span><small>计分板</small></button>
+        <button onClick={() => setDrawer("chat")}><span>▰</span><small>聊天</small></button>
+        <button onClick={() => setDrawer("topup")}><span>＋</span><small>补筹码</small></button>
+      </nav>
     </main>
+    {drawer && <><div className="drawer-shade" onClick={() => setDrawer(null)} /><GameDrawer key={drawer} initialTab={drawer} room={room} onClose={() => setDrawer(null)} onLeave={onLeave} onTopup={onTopup} /></>}
   </section>;
 }

@@ -22,6 +22,15 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
     await page.getByRole("button", { name: "创建并进入" }).click();
     await expect(page.getByText("请选择空位")).toBeVisible();
     await page.locator(".waiting-table-seat.empty").first().click();
+    await expect(page.getByRole("navigation", { name: "牌桌功能栏" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /回顾/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /计分板/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /补筹码/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /玩法/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /设置/ })).toBeVisible();
+    await page.locator(".waiting-bottom-tools button", { hasText: "聊天" }).click();
+    await expect(page.getByLabel("聊天内容")).toBeVisible();
+    await page.locator(".game-drawer .icon-button").click();
 
     await Promise.all([guestOnePage.goto("http://127.0.0.1:5173/"), guestTwoPage.goto("http://127.0.0.1:5173/")]);
     const roomOne = guestOnePage.locator(".public-room-list article", { hasText: nickname });
