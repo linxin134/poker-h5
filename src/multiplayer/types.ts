@@ -19,6 +19,7 @@ export interface RoomMember {
 }
 
 export interface RoomHandSeatResult {
+  userId?: string;
   seatId: string;
   nickname: string;
   avatar: string;

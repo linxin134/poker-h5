@@ -205,7 +205,10 @@ test("six-player authoritative battle keeps perspectives, side pots and cumulati
         };
         const avatars = [...document.querySelectorAll<HTMLElement>(".seat .avatar-ring")].map((element) => element.getBoundingClientRect());
         const collisions = avatars.filter((avatar) => !(avatar.right <= board.left || avatar.left >= board.right || avatar.bottom <= board.top || avatar.top >= board.bottom)).length;
-        const hero = document.querySelector<HTMLElement>(".hero-seat")!.getBoundingClientRect();
+        const heroElement = document.querySelector<HTMLElement>(".hero-seat")!;
+        const heroParts = [".seat-info b", ".avatar-ring", ".seat-info span", ".seat-cards"]
+          .map((selector) => heroElement.querySelector<HTMLElement>(selector)!.getBoundingClientRect());
+        const heroTop = Math.min(...heroParts.map((rect) => rect.top));
         const actions = document.querySelector<HTMLElement>(".action-dock.my-turn")!.getBoundingClientRect();
         const playerUi = [...document.querySelectorAll<HTMLElement>(".seat .avatar-ring,.seat .seat-info b,.seat .seat-info span,.seat .seat-cards,.seat .seat-bet,.seat .dealer-button")];
         const clippedPlayerUi = playerUi.filter((element) => {
@@ -215,14 +218,14 @@ test("six-player authoritative battle keeps perspectives, side pots and cumulati
         return {
           collisions,
           clippedPlayerUi,
-          actionGap: actions.top - hero.bottom,
+          actionGap: heroTop - actions.bottom,
           horizontalOverflow: document.documentElement.scrollWidth - window.innerWidth,
           verticalOverflow: document.documentElement.scrollHeight - window.innerHeight
         };
       });
       expect(geometry.collisions).toBe(0);
       expect(geometry.clippedPlayerUi).toBe(0);
-      expect(geometry.actionGap).toBeGreaterThanOrEqual(8);
+      expect(geometry.actionGap).toBeGreaterThanOrEqual(3);
       expect(geometry.horizontalOverflow).toBeLessThanOrEqual(0);
       expect(geometry.verticalOverflow).toBeLessThanOrEqual(1);
       await uiPage.screenshot({ path: testInfo.outputPath("complex-six-player-actor-view.png") });

@@ -10,6 +10,15 @@ test("账号会话与服务端房间参数校验", async ({ page }, testInfo) =>
   expect(register.ok()).toBe(true);
   expect((await api.get("/api/auth/me")).ok()).toBe(true);
 
+  const profile = await api.put("/api/profile", { data: { nickname: "新昵称牌手", avatar: "avatar-6" } });
+  expect(profile.ok()).toBe(true);
+  expect(await profile.json()).toMatchObject({ user: { nickname: "新昵称牌手", avatar: "avatar-6" } });
+  const me = await (await api.get("/api/auth/me")).json() as { user: { nickname: string; avatar: string } };
+  expect(me.user).toMatchObject({ nickname: "新昵称牌手", avatar: "avatar-6" });
+  const history = await api.get("/api/history");
+  expect(history.ok()).toBe(true);
+  expect(await history.json()).toEqual({ hands: [], rooms: [] });
+
   const duplicate = await api.post("/api/auth/register", { data: { email, password, nickname: "重复牌手" } });
   expect(duplicate.status()).toBe(409);
 

@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
 
-export type UiIconName = "back" | "cards" | "chat" | "chips" | "close" | "history" | "leave" | "menu" | "plus" | "rules" | "send" | "settings" | "shield" | "smile" | "stats" | "user";
+export type UiIconName = "back" | "cards" | "chat" | "chevron" | "chips" | "close" | "history" | "leave" | "menu" | "plus" | "rules" | "send" | "settings" | "shield" | "smile" | "stats" | "user";
 
 export function UiIcon({ name, className = "" }: { name: UiIconName; className?: string }) {
   const paths: Record<UiIconName, ReactNode> = {
     back: <path d="m15 5-7 7 7 7" />,
     cards: <><rect x="5" y="4" width="11" height="15" rx="2" /><path d="m9 8 3-2 3 2-3 2-3-2ZM16 7l3 .8v10.7" /></>,
     chat: <><path d="M5 5.5h14v10H9l-4 3v-13Z" /><path d="M8 9h8M8 12h5" /></>,
+    chevron: <path d="m9 6 6 6-6 6" />,
     chips: <><ellipse cx="12" cy="6.5" rx="7" ry="3" /><path d="M5 6.5v4c0 1.7 3.1 3 7 3s7-1.3 7-3v-4M5 10.5v4c0 1.7 3.1 3 7 3s7-1.3 7-3v-4" /></>,
     close: <path d="m6 6 12 12M18 6 6 18" />,
     history: <><path d="M4 8V4m0 0h4M4.8 4.8A8 8 0 1 1 4 14" /><path d="M12 8v5l3 2" /></>,

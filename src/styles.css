@@ -1319,7 +1319,21 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
 @media (min-width:901px) {
   #root:has(.app-shell.mode-mobile) { position:relative; overflow:hidden; background:radial-gradient(circle at 50% 45%,#d7e9e2,#edf4f0 64%); }
   #root:has(.app-shell.mode-mobile):before { content:"MOBILE H5 · 390 × 845"; position:fixed; z-index:80; left:50%; top:max(8px,calc(50% - min(422.5px,calc(50vh - 36px)) - 27px)); transform:translateX(-50%); color:#60776e; font-size:9px; font-weight:900; letter-spacing:.13em; }
-  .app-shell.mode-mobile { position:absolute; left:50%; top:50%; width:auto; height:min(845px,calc(100vh - 72px)); aspect-ratio:390 / 845; transform:translate(-50%,-50%); overflow:hidden; border:7px solid #415750; border-radius:28px; background:#e9f2ee; box-shadow:0 28px 90px #294c3f42,0 0 0 1px #ffffff88; }
+  .app-shell.mode-mobile {
+    --preview-scale:min(1,calc((100vh - 72px) / 845px));
+    position:absolute;
+    left:50%;
+    top:50%;
+    width:390px;
+    height:845px;
+    transform:translate(-50%,-50%) scale(var(--preview-scale));
+    transform-origin:center;
+    overflow:hidden;
+    border:7px solid #415750;
+    border-radius:28px;
+    background:#e9f2ee;
+    box-shadow:0 28px 90px #294c3f42,0 0 0 1px #ffffff88;
+  }
 }
 
 /* Waiting table keeps every requested tool visible before the room starts. */
@@ -1918,3 +1932,525 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
 .app-shell.mode-mobile .fresh-table .board-cards .card-back .back-glyph i { inset:2px; }
 .app-shell.mode-mobile .fresh-table .board-cards .playing-card .card-suit i { font-size:12px; line-height:1; }
 .app-shell.mode-mobile .fresh-table .seat-cards .playing-card.small .card-suit i { font-size:9px; line-height:1; }
+
+/* Personal profile and persistent hand history. */
+.app-shell.mode-mobile .profile-sheet-shade { z-index:95; }
+.app-shell.mode-mobile .profile-sheet {
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  color:#17352d;
+  background:#edf5f2;
+}
+.app-shell.mode-mobile .profile-sheet-header {
+  display:grid;
+  height:58px;
+  flex:0 0 auto;
+  grid-template-columns:44px 1fr 44px;
+  align-items:center;
+  padding:max(5px,env(safe-area-inset-top)) 14px 0;
+  border-bottom:1px solid #cfe0da;
+  background:#e6f3ef;
+}
+.app-shell.mode-mobile .profile-sheet-header button { display:grid; width:38px; height:38px; place-items:center; padding:0; border:0; color:#43665d; background:transparent; }
+.app-shell.mode-mobile .profile-sheet-header .ui-icon { width:22px; }
+.app-shell.mode-mobile .profile-sheet-header h2 { margin:0; font-size:17px; text-align:center; }
+.app-shell.mode-mobile .profile-tabs { display:grid; height:48px; flex:0 0 auto; grid-template-columns:1fr 1fr; padding:6px 18px 0; border-bottom:1px solid #d5e4df; background:#f8fbfa; }
+.app-shell.mode-mobile .profile-tabs button { position:relative; border:0; color:#81978f; background:transparent; font-size:13px; font-weight:700; }
+.app-shell.mode-mobile .profile-tabs button.active { color:#217762; }
+.app-shell.mode-mobile .profile-tabs button.active:after { content:""; position:absolute; right:28%; bottom:0; left:28%; height:2px; border-radius:9px; background:#25a489; }
+.app-shell.mode-mobile .profile-content,
+.app-shell.mode-mobile .personal-history { min-height:0; flex:1 1 auto; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:none; }
+.app-shell.mode-mobile .profile-content::-webkit-scrollbar,
+.app-shell.mode-mobile .personal-history::-webkit-scrollbar { display:none; }
+.app-shell.mode-mobile .profile-content { display:flex; flex-direction:column; gap:12px; padding:18px 18px max(20px,env(safe-area-inset-bottom)); }
+.app-shell.mode-mobile .profile-hero { display:flex; align-items:center; gap:13px; padding:16px; border:1px solid #d9e7e2; border-radius:14px; background:#fff; box-shadow:0 7px 20px #2c695710; }
+.app-shell.mode-mobile .profile-hero>.game-avatar { width:58px; height:58px; flex:0 0 auto; border-radius:13px; }
+.app-shell.mode-mobile .profile-hero>div { display:grid; gap:4px; min-width:0; }
+.app-shell.mode-mobile .profile-hero b { overflow:hidden; font-size:17px; text-overflow:ellipsis; white-space:nowrap; }
+.app-shell.mode-mobile .profile-hero small { color:#82968f; font-size:10px; }
+.app-shell.mode-mobile .profile-stats { display:grid; grid-template-columns:1fr 1fr; gap:1px; overflow:hidden; border:1px solid #d9e7e2; border-radius:14px; background:#d9e7e2; }
+.app-shell.mode-mobile .profile-stats>div { display:grid; min-height:70px; align-content:center; gap:5px; padding:11px 14px; background:#fff; }
+.app-shell.mode-mobile .profile-stats small { color:#82968f; font-size:10px; }
+.app-shell.mode-mobile .profile-stats b { font-size:17px; }
+.app-shell.mode-mobile .profile-stats b.positive,.app-shell.mode-mobile .personal-hand-card .positive { color:#d95050; }
+.app-shell.mode-mobile .profile-stats b.negative,.app-shell.mode-mobile .personal-hand-card .negative { color:#278b65; }
+.app-shell.mode-mobile .profile-editor { display:grid; gap:16px; padding:16px; border:1px solid #d9e7e2; border-radius:14px; background:#fff; }
+.app-shell.mode-mobile .profile-editor label { display:grid; gap:7px; color:#637c74; font-size:11px; }
+.app-shell.mode-mobile .profile-editor input { width:100%; height:42px; box-sizing:border-box; padding:0 12px; border:1px solid #cdded8; border-radius:9px; outline:0; color:#17352d; background:#f6faf8; font:600 14px inherit; }
+.app-shell.mode-mobile .profile-editor input:focus { border-color:#43a88f; box-shadow:0 0 0 3px #43a88f1c; }
+.app-shell.mode-mobile .avatar-picker { display:grid; gap:9px; color:#637c74; font-size:11px; }
+.app-shell.mode-mobile .avatar-picker>div { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.app-shell.mode-mobile .avatar-picker button { display:grid; aspect-ratio:1; place-items:center; padding:5px; border:1px solid #d8e5e1; border-radius:12px; background:#f1f7f5; }
+.app-shell.mode-mobile .avatar-picker button.active { border-color:#2c9d82; background:#daf0e9; box-shadow:0 0 0 2px #2c9d8228; }
+.app-shell.mode-mobile .avatar-picker .game-avatar { width:100%; height:100%; border-radius:9px; }
+.app-shell.mode-mobile .profile-editor .avatar-upload { position:relative; display:block; color:inherit; }
+.app-shell.mode-mobile .avatar-upload input { position:absolute; width:1px; height:1px; overflow:hidden; opacity:0; pointer-events:none; }
+.app-shell.mode-mobile .avatar-upload>span { display:flex; height:42px; align-items:center; justify-content:center; gap:7px; border:1px dashed #aacbc0; border-radius:10px; color:#367765; background:#f2f8f6; font-size:11px; font-weight:700; cursor:pointer; }
+.app-shell.mode-mobile .avatar-upload .ui-icon { width:17px; }
+.app-shell.mode-mobile .profile-save { min-height:48px; margin-top:auto; border:0; border-radius:11px; color:#fff; background:#24987d; box-shadow:0 8px 18px #1f7c6729; font-size:14px; font-weight:800; }
+.app-shell.mode-mobile .profile-save:disabled { opacity:.6; }
+.app-shell.mode-mobile .profile-error { margin:0; color:#c75252; font-size:11px; text-align:center; }
+.app-shell.mode-mobile .personal-history { padding:14px 14px max(18px,env(safe-area-inset-bottom)); }
+.app-shell.mode-mobile .personal-history>header { display:flex; align-items:flex-end; justify-content:space-between; margin:0 2px 12px; }
+.app-shell.mode-mobile .personal-history>header b { font-size:15px; }
+.app-shell.mode-mobile .personal-history>header small { color:#80958e; font-size:8px; }
+.app-shell.mode-mobile .personal-history-empty { display:grid; min-height:280px; place-content:center; justify-items:center; color:#759088; text-align:center; }
+.app-shell.mode-mobile .personal-history-empty .ui-icon { width:34px; margin-bottom:12px; }
+.app-shell.mode-mobile .personal-history-empty b { color:#34564d; font-size:14px; }
+.app-shell.mode-mobile .personal-history-empty p { margin:7px 0; font-size:10px; }
+.app-shell.mode-mobile .personal-hand-card { overflow:hidden; margin-bottom:11px; border:1px solid #d5e4df; border-radius:13px; background:#fff; box-shadow:0 5px 16px #174f3d0b; }
+.app-shell.mode-mobile .personal-hand-card>header { display:flex; align-items:center; justify-content:space-between; padding:11px 12px; border-bottom:1px solid #e2ece8; }
+.app-shell.mode-mobile .personal-hand-card>header>span { display:grid; gap:3px; }
+.app-shell.mode-mobile .personal-hand-card>header b { font-size:12px; }
+.app-shell.mode-mobile .personal-hand-card>header small { color:#8b9d97; font-size:8px; }
+.app-shell.mode-mobile .personal-hand-card>header strong { display:flex; align-items:center; gap:4px; color:#8b9995; font-size:13px; }
+.app-shell.mode-mobile .personal-hand-card>header strong i { width:11px; height:11px; border:1px solid currentColor; border-radius:50%; background:repeating-conic-gradient(currentColor 0 12deg,transparent 12deg 36deg); }
+.app-shell.mode-mobile .personal-hand-board { display:flex; min-height:50px; align-items:center; justify-content:space-between; gap:8px; padding:8px 12px; background:#f5f9f7; }
+.app-shell.mode-mobile .personal-hand-board>small { color:#7d928b; font-size:8px; }
+.app-shell.mode-mobile .personal-hand-board>span { display:flex; gap:3px; }
+.app-shell.mode-mobile .personal-hand-card .playing-card.small { width:26px; height:37px; border-radius:4px; }
+.app-shell.mode-mobile .personal-hand-card .playing-card.small .card-corner { font-size:6px; line-height:6px; }
+.app-shell.mode-mobile .personal-hand-card .playing-card.small .card-suit { display:none; }
+.app-shell.mode-mobile .personal-hand-result { display:grid; grid-template-columns:36px minmax(0,1fr) auto; align-items:center; gap:8px; padding:10px 12px; }
+.app-shell.mode-mobile .personal-hand-result>.game-avatar { width:36px; height:36px; border-radius:8px; }
+.app-shell.mode-mobile .personal-hand-result>span { display:grid; min-width:0; gap:3px; }
+.app-shell.mode-mobile .personal-hand-result>span b { overflow:hidden; font-size:10px; text-overflow:ellipsis; white-space:nowrap; }
+.app-shell.mode-mobile .personal-hand-result>span small,.app-shell.mode-mobile .personal-hand-result>div>small { color:#7e918b; font-size:8px; }
+.app-shell.mode-mobile .personal-hand-result>div { display:flex; gap:4px; align-items:center; }
+
+/* One coordinate system for every in-table function panel. */
+.app-shell.mode-mobile .game-drawer.wpk-panel {
+  box-sizing:border-box;
+  min-width:0;
+  max-width:none;
+  max-height:none;
+  margin:0;
+}
+.app-shell.mode-mobile .game-drawer.wpk-panel.drawer-left,
+.app-shell.mode-mobile .game-drawer.wpk-panel.drawer-right {
+  top:0;
+  bottom:0;
+  height:auto;
+  overflow:hidden;
+  border-radius:0;
+}
+.app-shell.mode-mobile .game-drawer.wpk-panel.drawer-left { left:0; right:auto; width:84%; }
+.app-shell.mode-mobile .game-drawer.wpk-panel.drawer-right { right:0; left:auto; width:84%; }
+.app-shell.mode-mobile .game-drawer.wpk-panel.drawer-menu {
+  top:max(46px,env(safe-area-inset-top));
+  right:auto;
+  bottom:auto;
+  left:8px;
+  width:154px;
+  height:auto;
+  max-height:calc(100% - 58px);
+  overflow-y:auto;
+  transform-origin:top left;
+}
+.app-shell.mode-mobile .game-drawer.wpk-panel.drawer-modal {
+  top:50%;
+  right:auto;
+  bottom:auto;
+  left:50%;
+  display:flex;
+  width:calc(100% - 32px);
+  height:auto;
+  max-height:calc(100% - 96px);
+  flex-direction:column;
+  overflow:hidden;
+  translate:-50% -50%;
+  transform:none;
+  transform-origin:center;
+  border-radius:12px;
+}
+.app-shell.mode-mobile .game-drawer.wpk-panel>.wpk-panel-header { flex:0 0 42px; box-sizing:border-box; }
+.app-shell.mode-mobile .game-drawer.wpk-panel.drawer-left>.wpk-panel-header,
+.app-shell.mode-mobile .game-drawer.wpk-panel.drawer-right>.wpk-panel-header { width:100%; }
+.app-shell.mode-mobile .game-drawer.wpk-panel.drawer-modal>.wpk-panel-header { width:100%; padding:0 10px; }
+.app-shell.mode-mobile .drawer-modal .wpk-topup-panel,
+.app-shell.mode-mobile .drawer-modal .wpk-settings-panel,
+.app-shell.mode-mobile .drawer-modal .wpk-guide-panel {
+  width:100%;
+  min-height:0;
+  box-sizing:border-box;
+  overflow-x:hidden;
+  overflow-y:auto;
+}
+.app-shell.mode-mobile .drawer-left .wpk-chat-panel,
+.app-shell.mode-mobile .drawer-left .wpk-stats-panel,
+.app-shell.mode-mobile .drawer-left .wpk-history-panel {
+  width:100%;
+  min-height:0;
+  box-sizing:border-box;
+  scrollbar-width:none;
+}
+.app-shell.mode-mobile .drawer-left .wpk-chat-panel::-webkit-scrollbar,
+.app-shell.mode-mobile .drawer-left .wpk-stats-panel::-webkit-scrollbar,
+.app-shell.mode-mobile .drawer-left .wpk-history-panel::-webkit-scrollbar,
+.app-shell.mode-mobile .drawer-modal .wpk-topup-panel::-webkit-scrollbar,
+.app-shell.mode-mobile .drawer-modal .wpk-settings-panel::-webkit-scrollbar,
+.app-shell.mode-mobile .drawer-modal .wpk-guide-panel::-webkit-scrollbar { display:none; }
+.app-shell.mode-mobile .drawer-modal .drawer-setting { width:100%; box-sizing:border-box; }
+
+/* Complete final scoreboard, sorted by the authoritative room score order. */
+.app-shell.mode-mobile .winner-banner.room-finished { top:50%; display:flex; max-height:calc(100% - 72px); box-sizing:border-box; flex-direction:column; padding:16px; }
+.app-shell.mode-mobile .winner-banner.room-finished h2 { margin:7px 0 9px; }
+.app-shell.mode-mobile .room-finished .finish-ranking { min-height:0; margin:7px 0 11px; overflow-y:auto; scrollbar-width:none; }
+.app-shell.mode-mobile .room-finished .finish-ranking::-webkit-scrollbar { display:none; }
+.app-shell.mode-mobile .room-finished .finish-ranking>div { grid-template-columns:20px 30px minmax(0,1fr) auto auto; gap:6px; min-height:44px; box-sizing:border-box; padding:6px 8px; }
+.app-shell.mode-mobile .room-finished .finish-ranking b { overflow:hidden; font-size:10px; text-overflow:ellipsis; white-space:nowrap; }
+.app-shell.mode-mobile .room-finished .finish-ranking small { color:#80938c; font-size:7px; white-space:nowrap; }
+.app-shell.mode-mobile .room-finished .finish-ranking strong { min-width:35px; font-size:10px; text-align:right; }
+.app-shell.mode-mobile .room-finished .finish-ranking strong.zero { color:#8c9994; }
+.app-shell.mode-mobile .room-finished .finish-actions { flex:0 0 auto; }
+
+/* Per-room scoreboards in persistent personal history. */
+.app-shell.mode-mobile .room-score-history { display:grid; gap:10px; margin-bottom:16px; }
+.app-shell.mode-mobile .room-score-card { overflow:hidden; border:1px solid #d5e4df; border-radius:13px; background:#fff; box-shadow:0 5px 16px #174f3d0b; }
+.app-shell.mode-mobile .room-score-card>header { display:flex; align-items:center; justify-content:space-between; padding:11px 12px; border-bottom:1px solid #e2ece8; background:#f8fbfa; }
+.app-shell.mode-mobile .room-score-card>header>span { display:grid; gap:3px; }
+.app-shell.mode-mobile .room-score-card>header b { font-size:11px; }
+.app-shell.mode-mobile .room-score-card>header small { color:#879a94; font-size:8px; }
+.app-shell.mode-mobile .room-score-card>header>strong { color:#5f7e74; font-size:9px; }
+.app-shell.mode-mobile .room-score-card>div { display:grid; }
+.app-shell.mode-mobile .room-score-card p { display:grid; min-height:42px; grid-template-columns:18px 30px minmax(0,1fr) auto auto; align-items:center; gap:7px; margin:0; padding:5px 10px; border-bottom:1px solid #e8efec; }
+.app-shell.mode-mobile .room-score-card p:last-child { border-bottom:0; }
+.app-shell.mode-mobile .room-score-card p.me { background:#eaf6f2; }
+.app-shell.mode-mobile .room-score-card p>em { color:#80938c; font-size:9px; font-style:normal; text-align:center; }
+.app-shell.mode-mobile .room-score-card p>.game-avatar { width:30px; height:30px; border-radius:7px; }
+.app-shell.mode-mobile .room-score-card p>b { overflow:hidden; font-size:9px; text-overflow:ellipsis; white-space:nowrap; }
+.app-shell.mode-mobile .room-score-card p>small { color:#80938c; font-size:8px; }
+.app-shell.mode-mobile .room-score-card p>strong { display:flex; min-width:48px; align-items:center; justify-content:flex-end; gap:4px; font-size:9px; }
+.app-shell.mode-mobile .room-score-card p>strong.positive { color:#d95050; }
+.app-shell.mode-mobile .room-score-card p>strong.negative { color:#278b65; }
+.app-shell.mode-mobile .room-score-card p>strong.zero { color:#8c9994; }
+.app-shell.mode-mobile .room-score-card p>strong i { width:10px; height:10px; border:1px solid currentColor; border-radius:50%; background:repeating-conic-gradient(currentColor 0 12deg,transparent 12deg 36deg); }
+.app-shell.mode-mobile .history-detail-title { display:flex; align-items:flex-end; justify-content:space-between; margin:1px 2px 10px; }
+.app-shell.mode-mobile .history-detail-title b { font-size:13px; }
+.app-shell.mode-mobile .history-detail-title small { color:#879a94; font-size:8px; }
+
+/* Dedicated bottom-center safety zone for the local player's perspective. */
+.app-shell.mode-mobile .fresh-table.my-turn .seat.hero-seat { top:72%!important; }
+.app-shell.mode-mobile .fresh-table.waiting-turn .seat.hero-seat { top:72%!important; }
+.app-shell.mode-mobile .fresh-table.settled .seat.hero-seat { top:72%!important; }
+.app-shell.mode-mobile .fresh-table.my-turn .seat.seat-lower:not(.hero-seat) { top:65%!important; }
+.app-shell.mode-mobile .fresh-table.settled .showdown-summary { top:55%; width:196px; min-height:48px; padding:7px 10px; }
+.app-shell.mode-mobile .fresh-table .seat.hero-seat .action-bubble { display:none; }
+.app-shell.mode-mobile .fresh-table .seat.hero-seat .dealer-button { right:auto; left:calc(50% - 39px); }
+.app-shell.mode-mobile .fresh-table .action-dock.waiting-turn { right:auto; left:50%; transform:translateX(-50%); }
+.app-shell.mode-mobile .fresh-table .action-dock.waiting-turn .preaction-buttons { display:flex; justify-content:center; gap:7px; }
+.app-shell.mode-mobile .fresh-table .reveal-hole-card em { display:none; }
+
+/* Compact, Chinese-only betting controls float above the utility icons. */
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn { height:auto; padding:10px 0 0; }
+.app-shell.mode-mobile .fresh-table .action-buttons {
+  width:calc(100% - 56px);
+  max-width:320px;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:5px;
+  margin:0 auto;
+}
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn .action,
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn .raise-box>.action {
+  height:38px;
+  border-radius:8px;
+  font-size:9px;
+}
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn .turn-progress {
+  left:50%;
+  right:auto;
+  width:calc(100% - 56px);
+  max-width:320px;
+  transform:translateX(-50%);
+}
+.app-shell.mode-mobile .fresh-table .action-submitting {
+  left:50%;
+  right:auto;
+  bottom:58px;
+  display:flex;
+  width:auto;
+  height:34px;
+  min-height:0;
+  align-items:center;
+  gap:7px;
+  padding:0 13px;
+  transform:translateX(-50%);
+  border:1px solid #ffffff20;
+  border-radius:999px;
+  color:#dfeae6;
+  background:#0b211be8;
+  box-shadow:0 6px 17px #00181270;
+  font-size:9px;
+  white-space:nowrap;
+  backdrop-filter:blur(9px);
+}
+.app-shell.mode-mobile .fresh-table .action-submitting i {
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#e8b86d;
+  box-shadow:0 0 0 4px #e8b86d20;
+  animation:pulse .75s ease-in-out infinite;
+}
+.app-shell.mode-mobile .fresh-table .preaction-buttons button.active:before { content:"✓"; margin-right:4px; }
+
+/* In-hand actions sit above the local avatar as quiet text controls. */
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn {
+  top:52.5%;
+  bottom:auto;
+  padding:7px 0 0;
+}
+.app-shell.mode-mobile .fresh-table .action-buttons {
+  display:flex;
+  width:auto;
+  max-width:calc(100% - 96px);
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+}
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn .action,
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn .action.fold,
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn .action.raise,
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn .action.allin,
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn .raise-box>.action {
+  width:auto;
+  min-width:0;
+  height:22px;
+  flex:0 0 auto;
+  padding:0 4px;
+  border:1px solid #ffffff17;
+  border-radius:999px;
+  color:#ffffffc9;
+  background:#062e2670;
+  box-shadow:0 3px 10px #001c1640,inset 0 1px #ffffff0b;
+  font-size:7px;
+  font-weight:700;
+  text-shadow:0 1px 3px #002c22;
+  backdrop-filter:blur(5px);
+}
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn .action:hover:not(:disabled),
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn .action:active:not(:disabled) {
+  color:#fff;
+  background:#ffffff16;
+  transform:none;
+}
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn .action.raise.selected {
+  color:#fff;
+  background:#ffffff1b;
+  box-shadow:0 3px 10px #001c1640,inset 0 0 0 1px #ffffff35;
+}
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn .action:disabled { opacity:.26; }
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn .turn-progress {
+  display:none;
+}
+.app-shell.mode-mobile .fresh-table .action-submitting {
+  top:52.5%;
+  bottom:auto;
+  height:27px;
+  border:0;
+  color:#ffffffb8;
+  background:transparent;
+  box-shadow:none;
+  backdrop-filter:none;
+}
+.app-shell.mode-mobile .fresh-table .raise-panel {
+  left:50%;
+  right:auto;
+  width:280px;
+  max-width:calc(100vw - 28px);
+  transform:translateX(-50%);
+}
+
+/* Pre-actions mirror the same quiet action language and live beside the hero. */
+.app-shell.mode-mobile .fresh-table .action-dock.waiting-turn {
+  left:calc(50% + 34px);
+  right:auto;
+  top:calc(72% - 13px);
+  bottom:auto;
+  width:72px;
+  height:22px;
+  padding:0;
+  transform:none;
+}
+.app-shell.mode-mobile .fresh-table .action-dock.waiting-turn .preaction-buttons { gap:2px; }
+.app-shell.mode-mobile .fresh-table .action-dock.waiting-turn .preaction-buttons button {
+  height:22px;
+  padding:0 2px;
+  border:1px solid #ffffff17;
+  border-radius:999px;
+  color:#ffffffa8;
+  background:#062e2670;
+  box-shadow:0 3px 10px #001c1640,inset 0 1px #ffffff0b;
+  font-size:6px;
+  font-weight:700;
+  text-shadow:0 1px 3px #002c22;
+  backdrop-filter:blur(5px);
+}
+.app-shell.mode-mobile .fresh-table .action-dock.waiting-turn .preaction-buttons button.active {
+  color:#fff;
+  background:#ffffff1b;
+  box-shadow:0 3px 10px #001c1640,inset 0 0 0 1px #ffffff35;
+}
+
+/* Personal history is room-first and collapsed by default. */
+.app-shell.mode-mobile .room-history-toggle {
+  display:grid;
+  width:100%;
+  min-height:58px;
+  grid-template-columns:minmax(0,1fr) auto 20px;
+  align-items:center;
+  gap:9px;
+  padding:10px 11px;
+  border:0;
+  color:#27483e;
+  background:#fff;
+  text-align:left;
+}
+.app-shell.mode-mobile .room-history-toggle>span { display:grid; min-width:0; gap:3px; }
+.app-shell.mode-mobile .room-history-toggle>span b { overflow:hidden; font-size:11px; text-overflow:ellipsis; white-space:nowrap; }
+.app-shell.mode-mobile .room-history-toggle>span small { color:#879a94; font-size:8px; }
+.app-shell.mode-mobile .room-history-toggle>strong { display:flex; min-width:47px; align-items:center; justify-content:flex-end; gap:4px; font-size:11px; }
+.app-shell.mode-mobile .room-history-toggle>strong.positive { color:#d95050; }
+.app-shell.mode-mobile .room-history-toggle>strong.negative { color:#278b65; }
+.app-shell.mode-mobile .room-history-toggle>strong.zero { color:#8c9994; }
+.app-shell.mode-mobile .room-history-toggle>strong i { width:10px; height:10px; border:1px solid currentColor; border-radius:50%; background:repeating-conic-gradient(currentColor 0 12deg,transparent 12deg 36deg); }
+.app-shell.mode-mobile .room-history-toggle>.ui-icon { width:16px; height:16px; color:#82968f; transition:transform .2s ease; }
+.app-shell.mode-mobile .room-score-card.expanded .room-history-toggle>.ui-icon { transform:rotate(90deg); }
+.app-shell.mode-mobile .room-score-card.expanded .room-history-toggle { border-bottom:1px solid #e2ece8; background:#f8fbfa; }
+.app-shell.mode-mobile .room-history-details { display:grid; overflow:hidden; }
+.app-shell.mode-mobile .room-final-score>header { display:flex; align-items:center; justify-content:space-between; padding:9px 11px; color:#4f6c63; background:#f4f8f6; }
+.app-shell.mode-mobile .room-final-score>header b { font-size:9px; }
+.app-shell.mode-mobile .room-final-score>header small { color:#8a9b95; font-size:7px; }
+.app-shell.mode-mobile .room-history-details .history-detail-title { margin:10px 11px 8px; }
+.app-shell.mode-mobile .room-history-details .personal-hand-card { margin:0 9px 9px; border-radius:9px; box-shadow:none; }
+
+/* Real mobile browsers reserve a large part of the physical screen for chrome.
+   Size the poker stage from the live visual viewport and keep a denser layout
+   when the remaining content area is short (roughly 390 x 640-720). */
+@media (max-width:900px) {
+  html,body,#root { height:100dvh; min-height:0; }
+  .app-shell.mode-mobile { width:100%; height:100dvh; min-height:0; }
+}
+
+/* The final mobile surface rule must own the texture for both waiting and
+   active tables. Earlier parity passes only textured the active felt. */
+.app-shell.mode-mobile .fresh-table .fresh-felt,
+.app-shell.mode-mobile .waiting-room .waiting-felt {
+  background:
+    radial-gradient(circle,#d9fff315 0 .8px,transparent 1px) 0 0/5px 5px,
+    linear-gradient(115deg,transparent 0 46%,#ffffff08 48%,transparent 50% 100%) 0 0/8px 8px,
+    radial-gradient(circle at 48% 34%,#0e9472,#087158 48%,#044d3b 82%,#033a2d);
+}
+
+@media (max-width:600px) and (max-height:720px) {
+  .app-shell.mode-mobile .wpk-table-bar,
+  .app-shell.mode-mobile .waiting-room>header {
+    height:42px;
+    padding-top:max(3px,env(safe-area-inset-top));
+  }
+  .app-shell.mode-mobile .wpk-table-bar .table-menu-trigger,
+  .app-shell.mode-mobile .waiting-room>header .table-menu-trigger { width:30px; height:30px; }
+  .app-shell.mode-mobile .wpk-table-bar .hand-chip,
+  .app-shell.mode-mobile .waiting-room>header .hand-chip { max-width:155px; padding:5px 8px; font-size:8px; }
+
+  .app-shell.mode-mobile .waiting-table-seat {
+    min-width:64px;
+    transform:translate(-50%,-50%) scale(.76)!important;
+  }
+  .app-shell.mode-mobile .waiting-table-seat>span,
+  .app-shell.mode-mobile .waiting-table-seat.empty>span { width:52px; height:52px; }
+  .app-shell.mode-mobile .waiting-table-seat b { margin-top:2px; font-size:10px; }
+  .app-shell.mode-mobile .waiting-table-seat small { font-size:7px; }
+  .app-shell.mode-mobile .waiting-with-tools .waiting-table-seat.mine {
+    top:82%!important;
+    transform:translate(-50%,-50%) scale(.82)!important;
+  }
+  .app-shell.mode-mobile .waiting-table-center {
+    top:45%;
+    width:226px;
+    padding:11px 12px;
+    transform:translate(-50%,-50%) scale(.78)!important;
+  }
+  .app-shell.mode-mobile .waiting-table-center .waiting-state { font-size:9px; }
+  .app-shell.mode-mobile .waiting-table-center h1 { margin-top:3px; font-size:21px; }
+  .app-shell.mode-mobile .waiting-table-center .room-rules { margin-top:9px; gap:10px; }
+  .app-shell.mode-mobile .waiting-table-center .room-rules small { font-size:7px; }
+  .app-shell.mode-mobile .waiting-table-center .room-rules b { font-size:10px; }
+  .app-shell.mode-mobile .waiting-table-center .start-room-button { min-height:40px; margin-top:11px; }
+
+  .app-shell.mode-mobile .fresh-table .board-zone { top:44%; gap:6px; }
+  .app-shell.mode-mobile .fresh-table .board-cards { min-height:54px; }
+  .app-shell.mode-mobile .fresh-table .board-cards>.playing-card {
+    width:clamp(32px,9.5cqw,37px);
+    height:clamp(46px,13.5cqw,53px);
+  }
+  .app-shell.mode-mobile .fresh-table .pot-badge { min-height:22px; padding:3px 10px; font-size:9px; }
+  .app-shell.mode-mobile .fresh-table .seat { transform:translate(-50%,-50%) scale(.78)!important; }
+  .app-shell.mode-mobile .fresh-table.my-turn .seat.seat-lower:not(.hero-seat) { top:60%!important; }
+  .app-shell.mode-mobile .fresh-table.my-turn .seat.hero-seat { top:69%!important; transform:translate(-50%,-50%) scale(.82)!important; }
+  .app-shell.mode-mobile .fresh-table.waiting-turn .seat.hero-seat { top:69%!important; transform:translate(-50%,-50%) scale(.82)!important; }
+  .app-shell.mode-mobile .fresh-table.settled .seat.hero-seat { top:69%!important; transform:translate(-50%,-50%) scale(.82)!important; }
+  .app-shell.mode-mobile .fresh-table.settled .showdown-summary { top:54%; }
+  .app-shell.mode-mobile .fresh-table .action-dock.my-turn { top:52%; height:auto; padding:7px 0 0; }
+  .app-shell.mode-mobile .fresh-table .action-dock.my-turn .action,
+  .app-shell.mode-mobile .fresh-table .action-dock.my-turn .raise-box>.action { height:22px; }
+  .app-shell.mode-mobile .fresh-table .action-dock.waiting-turn { bottom:41px; }
+  .app-shell.mode-mobile .fresh-table .action-dock.waiting-turn { top:calc(69% - 11px); bottom:auto; }
+  .app-shell.mode-mobile .fresh-table .raise-panel { max-height:44dvh; overflow-y:auto; }
+  .app-shell.mode-mobile .table-bottom-tools,
+  .app-shell.mode-mobile .emoji-tray { bottom:max(3px,env(safe-area-inset-bottom)); }
+}
+
+/* Final stable-seat contract. Keep this after every responsive override. */
+.app-shell.mode-mobile .waiting-with-tools .waiting-table-seat.mine {
+  top:var(--seat-y)!important;
+}
+.app-shell.mode-mobile .fresh-table.my-turn .seat.hero-seat,
+.app-shell.mode-mobile .fresh-table.waiting-turn .seat.hero-seat,
+.app-shell.mode-mobile .fresh-table.settled .seat.hero-seat {
+  top:var(--seat-y)!important;
+}
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn {
+  left:var(--hero-x);
+  right:auto;
+  top:max(47px,calc(var(--hero-y) - 66px));
+  bottom:auto;
+  width:max-content;
+  max-width:calc(100% - 8px);
+  padding:0;
+  transform:translateX(-50%);
+}
+.app-shell.mode-mobile .fresh-table .action-buttons {
+  width:auto;
+  max-width:none;
+  gap:2px;
+}
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn .action,
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn .action.fold,
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn .action.raise,
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn .action.allin,
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn .raise-box>.action {
+  height:20px;
+  padding:0 3px;
+  font-size:6px;
+}
+.app-shell.mode-mobile .fresh-table .seat.hero-seat .seat-bet {
+  right:calc(100% + 3px);
+  left:auto;
+}
+.app-shell.mode-mobile .fresh-table .action-dock.waiting-turn {
+  left:var(--preaction-x);
+  right:auto;
+  top:var(--preaction-y);
+  bottom:auto;
+}
+.app-shell.mode-mobile .fresh-table .action-submitting {
+  left:var(--hero-x);
+  right:auto;
+  top:max(47px,calc(var(--hero-y) - 66px));
+  bottom:auto;
+  transform:translateX(-50%);
+}

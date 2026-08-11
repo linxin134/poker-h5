@@ -102,9 +102,13 @@ function publicGame(room: RoomRuntime, userId: string) {
 }
 
 function scoreboard(room: RoomRuntime) {
-  const stacks = new Map(room.game?.seats.map((seat) => [seat.id, seat.stack]) ?? []);
-  return room.members.filter((member) => member.seatIndex !== null).map((member) => {
-    const stack = stacks.get(member.seatId) ?? room.startingStack;
+  const activeSeats = new Map(room.game?.seats.flatMap((seat) => seat.userId ? [[seat.userId, seat]] : []) ?? []);
+  const participantUserIds = new Set<string>([
+    ...activeSeats.keys(),
+    ...room.hands.flatMap((hand) => hand.seats.flatMap((seat) => seat.userId ? [seat.userId] : []))
+  ]);
+  return room.members.filter((member) => participantUserIds.has(member.userId)).map((member) => {
+    const stack = activeSeats.get(member.userId)?.stack ?? member.savedStack ?? room.startingStack;
     return {
       seatId: member.seatId,
       nickname: member.nickname,
@@ -175,6 +179,7 @@ function recordCompletedHand(room: RoomRuntime) {
     pot: game.result?.pot ?? 0,
     winnerText: game.winnerText ?? "本手结束",
     seats: game.seats.map((seat) => ({
+      userId: seat.userId,
       seatId: seat.id,
       nickname: seat.name,
       avatar: seat.avatar,
@@ -357,6 +362,21 @@ function startRoom(room: RoomRuntime) {
 }
 
 export const roomService = {
+  updateProfile(user: SafeUser) {
+    for (const room of rooms.values()) {
+      const member = room.members.find((entry) => entry.userId === user.id);
+      if (!member) continue;
+      member.nickname = user.nickname;
+      member.avatar = user.avatar;
+      const seat = room.game?.seats.find((entry) => entry.userId === user.id);
+      if (seat) {
+        seat.name = user.nickname;
+        seat.avatar = user.avatar;
+      }
+      broadcastRoom(room);
+    }
+  },
+
   create(user: SafeUser, options: CreateRoomOptions) {
     const code = makeCode();
     const room: RoomRuntime = {

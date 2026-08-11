@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 const mobileSizes = [
+  { width: 390, height: 660 },
   { width: 360, height: 780 },
   { width: 390, height: 845 },
   { width: 430, height: 932 }

@@ -6,6 +6,7 @@ import { PokerTable } from "./components/PokerTable";
 import { api, type User } from "./services/api";
 import { useGameStore } from "./store/gameStore";
 import { useRoomStore } from "./store/roomStore";
+import { playSound, unlockAudio } from "./services/audio";
 
 export function App() {
   const screen = useGameStore((state) => state.screen);
@@ -13,6 +14,16 @@ export function App() {
   const connectRoom = useRoomStore((state) => state.connect);
   const [user, setUser] = useState<User | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
+  const sound = useGameStore((state) => state.settings.sound);
+
+  useEffect(() => {
+    const unlock = (event: PointerEvent) => {
+      unlockAudio();
+      if ((event.target as Element | null)?.closest("button")) playSound("click", sound * .55);
+    };
+    window.addEventListener("pointerdown", unlock, { passive: true });
+    return () => window.removeEventListener("pointerdown", unlock);
+  }, [sound]);
 
   useEffect(() => {
     void api.me().then(async ({ user: current }) => {
@@ -35,7 +46,7 @@ export function App() {
   return (
     <main className="app-shell mode-mobile">
       {screen === "lobby" ? (
-        <Lobby user={user} onLogin={() => setAuthOpen(true)} onLogout={async () => { await api.logout(); setUser(null); }} />
+        <Lobby user={user} onLogin={() => setAuthOpen(true)} onLogout={async () => { await api.logout(); setUser(null); }} onUserChange={setUser} />
       ) : (
         <PokerTable user={user} onLogin={() => setAuthOpen(true)} />
       )}

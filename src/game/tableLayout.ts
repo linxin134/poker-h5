@@ -10,7 +10,9 @@ export interface TableSeatPoint {
 export function anchoredSeatPoint(relativePosition: number, capacity: number): TableSeatPoint {
   const normalizedCapacity = Math.max(3, Math.round(capacity));
   const relative = ((Math.round(relativePosition) % normalizedCapacity) + normalizedCapacity) % normalizedCapacity;
-  if (relative === 0) return { x: 50, y: 82 };
+  // Reserve the bottom safe area for hole cards, showdown labels and browser
+  // controls. Waiting and active tables both consume this same coordinate.
+  if (relative === 0) return { x: 50, y: 78 };
 
   const hasTopSeat = normalizedCapacity % 2 === 0;
   const sideCount = hasTopSeat ? (normalizedCapacity - 2) / 2 : (normalizedCapacity - 1) / 2;

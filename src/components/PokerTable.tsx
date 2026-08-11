@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { User } from "../services/api";
 import { useGameStore } from "../store/gameStore";
@@ -8,7 +8,7 @@ import { EmojiTray } from "./EmojiTray";
 import { GameDrawer, type DrawerTab } from "./GameDrawer";
 import { PlayingCard } from "./PlayingCard";
 import { EffectsLayer } from "../pixi/EffectsLayer";
-import { playSound } from "../services/audio";
+import { playSound, speakAction } from "../services/audio";
 import { GameAvatar } from "./GameAvatar";
 import { UiIcon } from "./UiIcon";
 import { anchoredSeatPoint } from "../game/tableLayout";
@@ -34,6 +34,9 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
   const [interactionSeatId, setInteractionSeatId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
+  const soundedHandRef = useRef<string | null>(null);
+  const collectedHandRef = useRef<string | null>(null);
+  const countdownRef = useRef(0);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 250);
@@ -44,12 +47,39 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
   useEffect(() => {
     const latest = activeGame?.history.at(-1);
     if (!latest || (activeGame?.history.length ?? 0) === 1) return;
-    if (latest.type === "fold") playSound("fold", settings.sound);
-    else if (["call", "raise", "all-in"].includes(latest.type)) playSound("chips", settings.sound);
+    if (latest.type === "fold") { playSound("fold", settings.sound); speakAction("fold", settings.sound); }
+    else if (latest.type === "all-in") { playSound("allin", settings.sound); speakAction("all-in", settings.sound); }
+    else if (latest.type === "call") { playSound("chips", settings.sound); speakAction("call", settings.sound); }
+    else if (latest.type === "raise") { playSound("chips", settings.sound); speakAction("raise", settings.sound); }
     else if (latest.type === "check") playSound("check", settings.sound);
     else if (latest.type === "street") playSound("street", settings.sound);
     else if (["win", "showdown"].includes(latest.type)) playSound("win", settings.sound);
   }, [activeGame?.handId, activeGame?.history.length, settings.sound]);
+
+  useEffect(() => {
+    if (!activeGame?.handId || soundedHandRef.current === activeGame.handId) return;
+    soundedHandRef.current = activeGame.handId;
+    playSound("deal", settings.sound);
+  }, [activeGame?.handId, settings.sound]);
+
+  const activeActorSeatId = activeGame?.seats[activeGame.actorIndex]?.id;
+  const isOwnTurn = Boolean(activeActorSeatId && activeActorSeatId === room?.mySeatId && activeGame?.phase !== "complete");
+  useEffect(() => {
+    if (isOwnTurn) playSound("turn", settings.sound);
+  }, [activeActorSeatId, activeGame?.handId, isOwnTurn, settings.sound]);
+
+  const soundCountdown = isOwnTurn && room?.turnEndsAt ? Math.max(0, Math.ceil((room.turnEndsAt - now) / 1000)) : 0;
+  useEffect(() => {
+    if (soundCountdown > 0 && soundCountdown <= 5 && countdownRef.current !== soundCountdown) playSound("countdown", settings.sound);
+    countdownRef.current = soundCountdown;
+  }, [soundCountdown, settings.sound]);
+
+  useEffect(() => {
+    if (!activeGame?.handId || activeGame.phase !== "complete" || !activeGame.result?.pot || collectedHandRef.current === activeGame.handId) return;
+    collectedHandRef.current = activeGame.handId;
+    const timer = window.setTimeout(() => playSound("collect", settings.sound), 520);
+    return () => window.clearTimeout(timer);
+  }, [activeGame?.handId, activeGame?.phase, activeGame?.result?.pot, settings.sound]);
 
   function leaveRoom() {
     disconnect();
@@ -68,7 +98,9 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
   const winners = game.seats.filter((seat) => game.result?.winnerSeatIds.includes(seat.id));
   const myMember = room.members.find((member) => member.userId === user?.id);
   const mySeat = game.seats.find((seat) => seat.id === room.mySeatId && !seat.standing);
-  const anchorPosition = mySeat?.position ?? myMember?.seatIndex ?? game.seats[0]?.position ?? 0;
+  // Keep every physical slot stable. Sitting down must never rotate the table
+  // or move the avatar away from the slot the player selected.
+  const anchorPosition = 0;
   const actorSeatId = game.seats[game.actorIndex]?.id;
   const dealerSeatId = game.seats[game.dealerIndex]?.id;
   const displaySeats = [...game.seats].sort((a, b) => (((a.position ?? 0) - anchorPosition + room.capacity) % room.capacity) - (((b.position ?? 0) - anchorPosition + room.capacity) % room.capacity));
@@ -138,9 +170,10 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
         const isMe = seat.id === room.mySeatId;
         const seatPoint = positionPoint(seat.position ?? 0);
         const sideClass = seatPoint.x > 50 ? "seat-right" : seatPoint.x < 50 ? "seat-left" : "seat-center";
+        const rowClass = seatPoint.y >= 64 ? "seat-lower" : seatPoint.y <= 25 ? "seat-upper" : "seat-middle";
         const displayHoleCards = seat.holeCards.length ? seat.holeCards : (seat.shownHoleCards ?? []);
         const cardCount = Math.max(displayHoleCards.length, seat.holeCardCount || 0);
-        return <motion.div role={isMe ? undefined : "button"} tabIndex={isMe ? undefined : 0} aria-label={isMe ? undefined : `与 ${seat.name} 互动`} onClick={() => !isMe && setInteractionSeatId(seat.id)} className={`seat ${sideClass} ${isActor ? "active" : ""} ${seat.folded ? "folded" : ""} ${winners.some((winner) => winner.id === seat.id) ? "winner-seat" : ""} ${isMe ? "hero-seat" : ""} ${seat.connected === false ? "offline" : ""} ${!isMe ? "interactable-seat" : ""}`} style={positionStyle(seat.position ?? 0)} key={seat.id} layout>
+        return <motion.div role={isMe ? undefined : "button"} tabIndex={isMe ? undefined : 0} aria-label={isMe ? undefined : `与 ${seat.name} 互动`} onClick={() => !isMe && setInteractionSeatId(seat.id)} className={`seat ${sideClass} ${rowClass} ${isActor ? "active" : ""} ${seat.folded ? "folded" : ""} ${winners.some((winner) => winner.id === seat.id) ? "winner-seat" : ""} ${isMe ? "hero-seat" : ""} ${seat.connected === false ? "offline" : ""} ${!isMe ? "interactable-seat" : ""}`} style={positionStyle(seat.position ?? 0)} key={seat.id} layout>
           <div className="seat-cards">
             {Array.from({ length: cardCount }, (_, cardIndex) => {
               const card = displayHoleCards[cardIndex] ?? undefined;
@@ -149,25 +182,30 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
               return canReveal ? <button className="reveal-hole-card" aria-label={`公开第 ${cardIndex + 1} 张底牌`} key={`${game.handId}-reveal-${cardIndex}`} onClick={(event) => { event.stopPropagation(); send({ type:"revealCard", cardIndex }); }}>{renderedCard}<em>点击公开</em></button> : renderedCard;
             })}
           </div>
-          <div className="avatar-ring"><GameAvatar seed={seat.userId ?? seat.id} label={seat.name} />{isActor && <><i className={`timer-ring ${turnRemaining <= 5_000 ? "urgent" : ""}`} style={{ "--turn-progress": Math.max(0, Math.min(1, turnRemaining / 25_000)) } as CSSProperties} /><em className="seat-countdown">{Math.max(0, Math.ceil(turnRemaining / 1000))}</em></>}</div>
+          <div className="avatar-ring"><GameAvatar seed={seat.avatar || seat.userId || seat.id} label={seat.name} />{isActor && <><i className={`timer-ring ${turnRemaining <= 5_000 ? "urgent" : ""}`} style={{ "--turn-progress": Math.max(0, Math.min(1, turnRemaining / 25_000)) } as CSSProperties} /><em className="seat-countdown">{Math.max(0, Math.ceil(turnRemaining / 1000))}</em></>}</div>
           <div className="seat-info"><b>{seat.name}{isMe ? " · 你" : ""}</b><span>{seat.stack.toLocaleString()}</span></div>
-          {seat.lastAction && <motion.div className="action-bubble" initial={{ scale: .7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>{seat.lastAction}</motion.div>}
+          {seat.lastAction && !seat.folded && <motion.div className="action-bubble" initial={{ scale: .7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>{seat.lastAction}</motion.div>}
           {seat.bet > 0 && <motion.div className="seat-bet" initial={{ scale: 0 }} animate={{ scale: 1 }}>● {seat.bet}</motion.div>}
           {seat.id === dealerSeatId && <span className="dealer-button">D</span>}
         </motion.div>;
       })}
 
-      {pendingMembers.map((member) => <motion.div className={`seat pending-seat ${member.userId === user?.id ? "hero-seat" : ""}`} style={positionStyle(member.seatIndex!)} key={member.userId} initial={{ opacity: 0, scale: .8 }} animate={{ opacity: 1, scale: 1 }}>
-        <div className="avatar-ring"><GameAvatar seed={member.userId} label={member.nickname} /></div>
-        <div className="seat-info"><b>{member.nickname}{member.userId === user?.id ? " · 你" : ""}</b><span>下一手加入</span></div>
-      </motion.div>)}
+      {pendingMembers.map((member) => {
+        const point = positionPoint(member.seatIndex!);
+        const sideClass = point.x > 50 ? "seat-right" : point.x < 50 ? "seat-left" : "seat-center";
+        const rowClass = point.y >= 64 ? "seat-lower" : point.y <= 25 ? "seat-upper" : "seat-middle";
+        return <motion.div className={`seat pending-seat ${sideClass} ${rowClass} ${member.userId === user?.id ? "hero-seat" : ""}`} style={positionStyle(member.seatIndex!)} key={member.userId} initial={{ opacity: 0, scale: .8 }} animate={{ opacity: 1, scale: 1 }}>
+          <div className="avatar-ring"><GameAvatar seed={member.avatar || member.userId} label={member.nickname} /></div>
+          <div className="seat-info"><b>{member.nickname}{member.userId === user?.id ? " · 你" : ""}</b><span>下一手加入</span></div>
+        </motion.div>;
+      })}
 
       {canChooseLateSeat && Array.from({ length: room.capacity }, (_, position) => !occupiedPositions.has(position) && <motion.button type="button" className="waiting-table-seat empty late-seat-choice" style={positionStyle(position)} onClick={() => send({ type: "sit", seatIndex: position })} key={`late-${position}`} initial={{ opacity: 0, scale: .75 }} animate={{ opacity: 1, scale: 1 }}>
         <span>＋</span><b>空位</b><small>点击落座</small>
       </motion.button>)}
 
       <AnimatePresence>{interactionSeat && <motion.div className="player-interaction-card" initial={{ opacity: 0, scale: .86, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: .9 }}>
-        <header><span><GameAvatar seed={interactionSeat.userId ?? interactionSeat.id} label={interactionSeat.name} /></span><div><small>与玩家互动</small><b>{interactionSeat.name}</b></div><button aria-label="关闭玩家互动" onClick={() => setInteractionSeatId(null)}><UiIcon name="close" /></button></header>
+        <header><span><GameAvatar seed={interactionSeat.avatar || interactionSeat.userId || interactionSeat.id} label={interactionSeat.name} /></span><div><small>与玩家互动</small><b>{interactionSeat.name}</b></div><button aria-label="关闭玩家互动" onClick={() => setInteractionSeatId(null)}><UiIcon name="close" /></button></header>
         <div>{[["👏", "点赞"], ["🍺", "干杯"], ["🌹", "送花"], ["🍅", "番茄"]].map(([emoji, label]) => <button key={label} onClick={() => { playInteraction(emoji, interactionSeat.id); setInteractionSeatId(null); }}><span>{emoji}</span><small>{label}</small></button>)}</div>
       </motion.div>}</AnimatePresence>
 
@@ -187,13 +225,12 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
         </motion.div>}
         {room.status === "finished" && <motion.div className="winner-banner room-finished" initial={{ opacity: 0, scale: .92 }} animate={{ opacity: 1, scale: 1 }}>
           <p>ROOM COMPLETE · {room.hands.length} HANDS</p><h2>好友房已结束</h2>
-          <div className="finish-ranking">{room.scoreboard.slice(0, 3).map((entry, index) => <div key={entry.seatId}><span>{index + 1}</span><i><GameAvatar seed={entry.seatId} label={entry.nickname} /></i><b>{entry.nickname}</b><strong className={entry.delta >= 0 ? "positive" : "negative"}>{entry.delta >= 0 ? "+" : ""}{entry.delta}</strong></div>)}</div>
+          <div className="finish-ranking">{room.scoreboard.map((entry, index) => <div key={entry.seatId}><span>{index + 1}</span><i><GameAvatar seed={entry.avatar || entry.seatId} label={entry.nickname} /></i><b>{entry.nickname}</b><small>最终 {entry.stack.toLocaleString()}</small><strong className={entry.delta > 0 ? "positive" : entry.delta < 0 ? "negative" : "zero"}>{entry.delta > 0 ? "+" : ""}{entry.delta}</strong></div>)}</div>
           <div className="finish-actions"><button className="secondary-button" onClick={() => setDrawer("history")}>查看战绩</button><button className="primary-button" onClick={leaveRoom}>返回大厅</button></div>
         </motion.div>}
       </AnimatePresence>
+      {room.status === "playing" && mySeat && <ActionBar game={game} mySeatId={room.mySeatId} heroPoint={positionPoint(mySeat.position ?? 0)} turnRemainingMs={turnRemaining} onAct={(action, raiseTo) => send({ type: "action", action, raiseTo })} />}
     </div>
-
-    {room.status === "playing" && mySeat && <ActionBar game={game} mySeatId={room.mySeatId} turnRemainingMs={turnRemaining} onAct={(action, raiseTo) => send({ type: "action", action, raiseTo })} />}
     {(roomError || notice) && <div className="room-toast">{roomError ?? notice}</div>}
     {drawer && <><div className="drawer-shade" onClick={() => setDrawer(null)} /><GameDrawer key={drawer} initialTab={drawer} room={room} currentUserId={user?.id ?? ""} onClose={() => setDrawer(null)} onLeave={leaveRoom} onDissolve={() => send({ type: "dissolve" })} onStand={() => send({ type: "stand" })} onTopup={(targetStack) => send({ type: "topup", targetStack })} onChat={(text) => send({ type: "chat", text })} /></>}
   </section>;
@@ -225,13 +262,11 @@ function WaitingRoom({ room, user, connectionStatus, onSit, onStart, onTopup, on
   const isHost = room.hostUserId === user?.id;
   const seatedCount = room.members.filter((member) => member.seatIndex !== null).length;
   const slots = Array.from({ length: room.capacity }, (_, index) => room.members.find((member) => member.seatIndex === index));
-  const myPosition = room.members.find((member) => member.userId === user?.id)?.seatIndex ?? 0;
   const emojiTargets = room.members.filter((member) => member.seatIndex !== null && member.userId !== user?.id).map((member) => ({ id: member.seatId, name: member.nickname }));
   const emojiTarget = emojiTargets[0]?.id ?? room.mySeatId ?? "waiting-table";
   const waitingEffectPositions = Object.fromEntries(room.members.flatMap((member) => {
     if (member.seatIndex === null) return [];
-    const relativePosition = (member.seatIndex - myPosition + room.capacity) % room.capacity;
-    const point = anchoredSeatPoint(relativePosition, room.capacity);
+    const point = anchoredSeatPoint(member.seatIndex, room.capacity);
     return [[member.seatId, { x: point.x / 100, y: point.y / 100 }]];
   }));
   return <section className="waiting-room waiting-with-tools">
@@ -239,11 +274,10 @@ function WaitingRoom({ room, user, connectionStatus, onSit, onStart, onTopup, on
     <main className="waiting-table-stage">
       <div className="waiting-felt" />
       {slots.map((member, index) => {
-        const relativePosition = (index - myPosition + room.capacity) % room.capacity;
-        const { x, y } = anchoredSeatPoint(relativePosition, room.capacity);
+        const { x, y } = anchoredSeatPoint(index, room.capacity);
         const canChoose = !member || member.userId === user?.id;
         return <motion.button disabled={!canChoose} onClick={() => onSit(index)} className={`waiting-table-seat ${member ? "occupied" : "empty"} ${member?.userId === user?.id ? "mine" : ""}`} style={{ "--seat-x": `${x}%`, "--seat-y": `${y}%` } as CSSProperties} initial={{ opacity: 0, scale: .8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay:index * .04 }} key={member?.userId ?? index}>
-          <span>{member ? <GameAvatar seed={member.userId} label={member.nickname} /> : "＋"}{member && <i className={member.connected ? "online" : ""} />}</span>
+          <span>{member ? <GameAvatar seed={member.avatar || member.userId} label={member.nickname} /> : "＋"}{member && <i className={member.connected ? "online" : ""} />}</span>
           <b>{member?.nickname ?? "空位"}</b>
           <small>{member?.isHost ? "房主" : member ? `座位 ${index + 1}` : "等待加入"}</small>
         </motion.button>;

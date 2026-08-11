@@ -56,9 +56,14 @@ app.post("/api/auth/logout", async (request, reply) => {
 });
 app.put("/api/profile", async (request) => {
   const user = requireUser(request);
-  const body = z.object({ nickname: z.string().trim().min(2).max(20), avatar: z.string().min(1).max(8) }).parse(request.body);
+  const body = z.object({
+    nickname: z.string().trim().min(2).max(20),
+    avatar: z.string().min(1).max(250_000).refine((value) => /^avatar-[0-7]$/.test(value) || /^data:image\/(?:png|jpeg|webp);base64,/.test(value), { message: "头像格式不支持" })
+  }).parse(request.body);
   db.prepare("UPDATE users SET nickname=?,avatar=? WHERE id=?").run(body.nickname, body.avatar, user.id);
-  return { user: { ...user, ...body } };
+  const updatedUser = { ...user, ...body };
+  roomService.updateProfile(updatedUser);
+  return { user: updatedUser };
 });
 app.get("/api/save", async (request) => {
   const user = requireUser(request);
@@ -84,6 +89,52 @@ app.post("/api/stats", async (request) => {
   db.prepare("UPDATE stats SET hands=hands+?,wins=wins+?,profit=profit+?,biggest_pot=MAX(biggest_pot,?) WHERE user_id=?")
     .run(body.hands, body.wins, body.profit, body.biggestPot, user.id);
   return { ok: true };
+});
+
+app.get("/api/history", async (request) => {
+  const user = requireUser(request);
+  const rows = db.prepare("SELECT room_code AS roomCode,result_json AS resultJson FROM room_hands ORDER BY created_at DESC LIMIT 500")
+    .all() as Array<{ roomCode: string; resultJson: string }>;
+  const records = rows.flatMap((row) => {
+    try {
+      const hand = JSON.parse(row.resultJson) as import("../src/multiplayer/types").RoomHandRecord;
+      return [{ ...hand, roomCode: row.roomCode }];
+    } catch {
+      return [];
+    }
+  });
+  const belongsToUser = (hand: (typeof records)[number]) => hand.seats.some((seat) => seat.userId === user.id || (!seat.userId && seat.nickname === user.nickname));
+  const hands = records.filter(belongsToUser).slice(0, 100);
+  const roomGroups = new Map<string, typeof records>();
+  for (const hand of records) {
+    const group = roomGroups.get(hand.roomCode) ?? [];
+    group.push(hand);
+    roomGroups.set(hand.roomCode, group);
+  }
+  const rooms = [...roomGroups.entries()].flatMap(([roomCode, roomHands]) => {
+    if (!roomHands.some(belongsToUser)) return [];
+    const scores = new Map<string, { userId?: string; nickname: string; avatar: string; delta: number; finalStack: number }>();
+    for (const hand of roomHands) {
+      for (const seat of hand.seats) {
+        const key = seat.userId ?? `nickname:${seat.nickname}`;
+        const previous = scores.get(key);
+        scores.set(key, {
+          userId: seat.userId,
+          nickname: previous?.nickname ?? seat.nickname,
+          avatar: previous?.avatar ?? seat.avatar,
+          delta: (previous?.delta ?? 0) + seat.delta,
+          finalStack: previous?.finalStack ?? seat.finalStack
+        });
+      }
+    }
+    return [{
+      roomCode,
+      handCount: roomHands.length,
+      completedAt: Math.max(...roomHands.map((hand) => hand.completedAt)),
+      scoreboard: [...scores.values()].sort((a, b) => b.delta - a.delta || b.finalStack - a.finalStack || a.nickname.localeCompare(b.nickname, "zh-CN"))
+    }];
+  }).sort((a, b) => b.completedAt - a.completedAt);
+  return { hands, rooms };
 });
 
 const roomOptions = z.object({

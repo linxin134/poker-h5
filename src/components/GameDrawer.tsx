@@ -64,11 +64,11 @@ export function GameDrawer({ initialTab, onClose, onLeave, onDissolve, onStand, 
     setHistoryIndex(clamped);
   };
   const visibleHand = room.hands[historyIndex];
-  const initial = side === "left" ? { x: "-100%" } : side === "right" ? { x: "100%" } : side === "menu" ? { opacity: 0, scale: .92, x: -8, y: -8 } : { opacity: 0 };
-  const animate = side === "left" || side === "right" ? { x: 0 } : side === "menu" ? { opacity: 1, scale: 1, x: 0, y: 0 } : { opacity: 1 };
-  const exit = initial;
+  const initial = side === "left" ? { x: "-100%" } : side === "right" ? { x: "100%" } : side === "menu" ? { opacity: 0, scale: .94, x: -6, y: -6 } : { opacity: 0, scale: .96, x: 0, y: 0 };
+  const animate = side === "left" || side === "right" ? { x: 0 } : side === "menu" ? { opacity: 1, scale: 1, x: 0, y: 0 } : { opacity: 1, scale: 1, x: 0, y: 0 };
+  const exit = side === "modal" ? { opacity: 0, scale: .96, x: 0, y: 0 } : initial;
 
-  return <motion.aside className={`game-drawer wpk-panel drawer-${side} tab-${tab}`} initial={initial} animate={animate} exit={exit} transition={{ duration: .22, ease: "easeOut" }}>
+  return <motion.aside key={`${side}-${tab}`} className={`game-drawer wpk-panel drawer-${side} tab-${tab}`} initial={initial} animate={animate} exit={exit} transition={{ duration: .22, ease: "easeOut" }}>
     {tab === "menu" ? <div className="wpk-function-menu">
       <MenuButton icon="leave" label="退出牌局" onClick={onLeave} />
       {currentMember?.seatIndex !== null && !currentMember?.standingNow && <MenuButton icon="user" label={currentMember?.standAfterHand ? "取消本手后旁观" : "站起旁观"} onClick={onStand} />}
@@ -89,7 +89,7 @@ export function GameDrawer({ initialTab, onClose, onLeave, onDissolve, onStand, 
         <div className="wpk-chat-messages" ref={chatListRef}>{room.chatMessages.length === 0
           ? <div className="chat-empty"><p>还没有消息，和牌友打个招呼吧</p></div>
           : room.chatMessages.map((message) => <div className={message.userId === currentUserId ? "mine" : "other"} key={message.id}>
-            <i><GameAvatar seed={message.userId} label={message.nickname} /></i>
+            <i><GameAvatar seed={message.avatar || message.userId} label={message.nickname} /></i>
             <span><small>{message.nickname}</small><p>{message.text}</p></span>
           </div>)}</div>
         <form className="wpk-chat-compose" onSubmit={(event) => { event.preventDefault(); sendChat(); }}>
@@ -107,7 +107,7 @@ export function GameDrawer({ initialTab, onClose, onLeave, onDissolve, onStand, 
           const wins = playerHands.filter((hand) => hand.seats.some((seat) => seat.seatId === entry.seatId && seat.won)).length;
           return <article className={entry.seatId === room.mySeatId ? "me" : ""} key={entry.seatId}>
             <span className="wpk-rank">{index + 1}</span>
-            <span className="wpk-rank-avatar"><GameAvatar seed={entry.seatId} label={entry.nickname} /></span>
+            <span className="wpk-rank-avatar"><GameAvatar seed={entry.avatar || entry.seatId} label={entry.nickname} /></span>
             <div><b>{entry.nickname}</b><p><span>入池 {playerHands.length ? "100" : "0"}%</span><span>胜率 {playerHands.length ? Math.round(wins / playerHands.length * 100) : 0}%</span><span>带入 {(member?.buyIn || room.startingStack).toLocaleString()}</span></p></div>
             <PixelChip value={entry.delta} />
           </article>;
@@ -115,7 +115,7 @@ export function GameDrawer({ initialTab, onClose, onLeave, onDissolve, onStand, 
         <section className="wpk-spectators">
           <header><span>旁观人员</span><b>{spectators.length} 人</b></header>
           {spectators.length === 0 ? <p>暂无旁观人员</p> : spectators.map((member) => <article key={member.userId}>
-            <span><GameAvatar seed={member.userId} label={member.nickname} /></span>
+            <span><GameAvatar seed={member.avatar || member.userId} label={member.nickname} /></span>
             <b>{member.nickname}</b>
             <small className={member.connected ? "online" : ""}>{member.connected ? "在线旁观" : "已离线"}</small>
           </article>)}
@@ -158,7 +158,7 @@ export function GameDrawer({ initialTab, onClose, onLeave, onDissolve, onStand, 
               <header><div><span>第 {visibleHand.handNumber} 手</span><b>{visibleHand.board.length ? "本手牌面" : "翻牌前结束"}</b></div><strong>{visibleHand.pot.toLocaleString()}</strong></header>
               <div className="record-board"><small>公共牌</small><CardStrip cards={visibleHand.board} empty="翻牌前结束" /></div>
               <div className="record-seats">{visibleHand.seats.map((seat) => <div key={seat.seatId}>
-                <span className="record-avatar"><GameAvatar seed={seat.seatId} label={seat.nickname} /></span>
+                <span className="record-avatar"><GameAvatar seed={seat.avatar || seat.seatId} label={seat.nickname} /></span>
                 <span className="record-player"><b>{seat.nickname}</b><small>{seat.handName ?? (seat.folded ? "弃牌" : seat.showedDown ? "摊牌" : "未公开")}</small></span>
                 <CardStrip cards={seat.cards} />
                 <PixelChip value={seat.delta} compact />

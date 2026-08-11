@@ -1,11 +1,22 @@
 import type { PokerState } from "../game/types";
-import type { RoomDurationMinutes, RoomListItem, RoomView } from "../multiplayer/types";
+import type { RoomDurationMinutes, RoomHandRecord, RoomListItem, RoomView } from "../multiplayer/types";
 
 export interface User {
   id: string;
   email: string;
   nickname: string;
   avatar: string;
+}
+
+export interface UserHandHistory extends RoomHandRecord {
+  roomCode: string;
+}
+
+export interface UserRoomHistory {
+  roomCode: string;
+  handCount: number;
+  completedAt: number;
+  scoreboard: Array<{ userId?: string; nickname: string; avatar: string; delta: number; finalStack: number }>;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -30,6 +41,7 @@ export const api = {
   pullSave: () => request<{ state: PokerState | null; savedAt: number | null }>("/save"),
   pushStats: (payload: Record<string, number>) => request<{ ok: true }>("/stats", { method: "POST", body: JSON.stringify(payload) }),
   stats: () => request<{ hands: number; wins: number; profit: number; biggestPot: number }>("/stats"),
+  history: () => request<{ hands: UserHandHistory[]; rooms: UserRoomHistory[] }>("/history"),
   createRoom: (options: { durationMinutes: RoomDurationMinutes; capacity: number; startingStack: number; smallBlind: number; bigBlind: number }) => request<{ code: string }>("/rooms", { method: "POST", body: JSON.stringify(options) }),
   rooms: () => request<{ rooms: RoomListItem[] }>("/rooms"),
   joinRoom: (code: string) => request<{ code: string }>(`/rooms/${encodeURIComponent(code)}/join`, { method: "POST" }),
