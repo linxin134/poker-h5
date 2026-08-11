@@ -53,6 +53,7 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
 
     const pages = [page, guestOnePage, guestTwoPage];
     for (const playerPage of pages) {
+      await expect(playerPage.locator(".board-cards > *")).toHaveCount(5);
       await expect(playerPage.locator(".seat .playing-card:not(.card-back)")).toHaveCount(2);
       await expect(playerPage.locator(".seat .card-back")).toHaveCount(4);
     }

@@ -127,7 +127,9 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
       <div className="fresh-felt" />
       <div className="board-zone">
         <div className="board-cards">
-          {game.board.map((card, index) => <PlayingCard key={`${game.handId}-${index}`} card={card} delay={index * .08} />)}
+          {Array.from({ length: 5 }, (_, index) => game.board[index]
+            ? <PlayingCard key={`${game.handId}-${index}-${game.board[index]}`} card={game.board[index]} delay={index * .08} />
+            : <span className="card-slot board-card-slot" aria-label={`公共牌位 ${index + 1}`} key={`${game.handId}-slot-${index}`}><i>♠</i></span>)}
         </div>
         <div className="pot-badge"><i>●</i><span>{visiblePot.toLocaleString()}</span></div>
       </div>
