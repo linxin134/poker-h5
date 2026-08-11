@@ -1,15 +1,17 @@
 FROM node:22-bookworm-slim AS build
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci
+RUN corepack enable && corepack prepare pnpm@10.14.0 --activate
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 COPY . .
-RUN npm run check
+RUN pnpm run check
 
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production PORT=8787 DATABASE_PATH=/data/poker.db COOKIE_SECURE=true
-COPY package*.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+RUN corepack enable && corepack prepare pnpm@10.14.0 --activate
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --prod --frozen-lockfile && pnpm store prune
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/dist-server ./dist-server
 RUN mkdir -p /data
