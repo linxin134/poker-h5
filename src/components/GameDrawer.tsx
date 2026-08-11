@@ -7,21 +7,36 @@ import { GameAvatar } from "./GameAvatar";
 
 export type DrawerTab = "menu" | "chat" | "topup" | "settings" | "history" | "guide" | "stats";
 
+const drawerSide: Record<DrawerTab, "left" | "right" | "modal" | "menu"> = {
+  menu: "menu",
+  chat: "left",
+  stats: "left",
+  history: "right",
+  topup: "modal",
+  settings: "modal",
+  guide: "modal"
+};
+
 export function GameDrawer({ initialTab, onClose, onLeave, onTopup, room }: { initialTab: DrawerTab; onClose(): void; onLeave(): void; onTopup(targetStack: number): void; room: RoomView }) {
   const savedTopup = room.members.find((member) => member.seatId === room.mySeatId)?.topUpTarget;
   const [tab, setTab] = React.useState(initialTab);
   const [chatText, setChatText] = React.useState("");
   const [messages, setMessages] = React.useState<Array<{ id: string; mine?: boolean; text: string }>>([
-    { id: "system", text: "文明游戏，轻松交流" }
+    { id: "system", text: "牌桌聊天仅在本机显示，请文明交流。" }
   ]);
   const [topup, setTopup] = React.useState(savedTopup ?? room.startingStack);
   const [topupSaved, setTopupSaved] = React.useState(Boolean(savedTopup));
   const settings = useGameStore((state) => state.settings);
   const updateSettings = useGameStore((state) => state.updateSettings);
-  const tabs: Array<[DrawerTab, string]> = [["history", "牌局回顾"], ["stats", "计分板"], ["chat", "聊天"], ["topup", "补筹码"]];
-  const titles: Record<DrawerTab, string> = { menu: "牌桌功能", chat: "牌桌聊天", topup: "补充筹码", settings: "游戏设置", history: "牌局回顾", guide: "玩法说明", stats: "本局计分板" };
-  const sendChat = (text: string) => {
-    const clean = text.trim().slice(0, 40);
+  const side = drawerSide[tab];
+  const seatedMembers = room.members.filter((member) => member.seatIndex !== null);
+  const totalPot = room.hands.reduce((sum, hand) => sum + hand.pot, 0);
+  const elapsedMinutes = Math.max(0, Math.floor(((room.endsAt ? Math.min(room.endsAt, Date.now()) : Date.now()) - (room.startedAt ?? Date.now())) / 60_000));
+  const remainingMinutes = room.endsAt ? Math.max(0, Math.ceil((room.endsAt - Date.now()) / 60_000)) : room.durationMinutes;
+
+  const switchTab = (next: DrawerTab) => setTab(next);
+  const sendChat = () => {
+    const clean = chatText.trim().slice(0, 40);
     if (!clean) return;
     setMessages((items) => [...items, { id: crypto.randomUUID(), mine: true, text: clean }]);
     setChatText("");
@@ -30,87 +45,100 @@ export function GameDrawer({ initialTab, onClose, onLeave, onTopup, room }: { in
     onTopup(topup);
     setTopupSaved(true);
   };
-  return <motion.aside className={`game-drawer table-sheet tab-${tab}`} initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}>
-    <div className="sheet-handle" />
-    <header><div><p className="eyebrow">ROOM {room.code}</p><h2>{titles[tab]}</h2></div><button className="icon-button" onClick={onClose}>×</button></header>
-    {tab !== "menu" && <nav>{tabs.map(([id, label]) => <button key={id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>{label}</button>)}</nav>}
-    <div className="drawer-content">
-      {tab === "menu" && <div className="table-function-menu">
-        <div className="function-grid">
-          <FunctionButton icon="▤" label="牌局回顾" onClick={() => setTab("history")} />
-          <FunctionButton icon="▥" label="本局计分" onClick={() => setTab("stats")} />
-          <FunctionButton icon="▰" label="牌桌聊天" onClick={() => setTab("chat")} />
-          <FunctionButton icon="＋" label="补充筹码" onClick={() => setTab("topup")} />
-          <FunctionButton icon="?" label="玩法说明" onClick={() => setTab("guide")} />
-          <FunctionButton icon="⚙" label="游戏设置" onClick={() => setTab("settings")} />
+  const initial = side === "left" ? { x: "-100%" } : side === "right" ? { x: "100%" } : side === "menu" ? { opacity: 0, scale: .92, x: -8, y: -8 } : { opacity: 0, scale: .9, y: 16 };
+  const animate = side === "left" || side === "right" ? { x: 0 } : { opacity: 1, scale: 1, x: 0, y: 0 };
+  const exit = initial;
+
+  return <motion.aside className={`game-drawer wpk-panel drawer-${side} tab-${tab}`} initial={initial} animate={animate} exit={exit} transition={{ duration: .22, ease: "easeOut" }}>
+    {tab === "menu" ? <div className="wpk-function-menu">
+      <MenuButton icon="↪" label="退出牌局" onClick={onLeave} />
+      <MenuButton icon="▣" label="牌局回顾" onClick={() => switchTab("history")} />
+      <MenuButton icon="▥" label="实时排名" onClick={() => switchTab("stats")} />
+      <MenuButton icon="♠" label="规则说明" onClick={() => switchTab("guide")} />
+      <MenuButton icon="＋" label="补充记分牌" onClick={() => switchTab("topup")} />
+      <MenuButton icon="⚙" label="桌面设置" onClick={() => switchTab("settings")} />
+    </div> : <>
+      <header className="wpk-panel-header">
+        <button className="panel-back" aria-label="返回功能菜单" onClick={() => tab === "chat" || tab === "stats" || tab === "history" ? onClose() : switchTab("menu")}>‹</button>
+        <h2>{tab === "chat" ? "牌桌聊天" : tab === "stats" ? "实时排名" : tab === "history" ? "牌局回顾" : tab === "topup" ? "补充记分牌" : tab === "settings" ? "桌面设置" : "规则说明"}</h2>
+        <button className="panel-close" aria-label="关闭" onClick={onClose}>×</button>
+      </header>
+
+      {tab === "chat" && <div className="wpk-chat-panel">
+        <div className="wpk-chat-messages">{messages.map((message) => <div className={message.mine ? "mine" : "system"} key={message.id}><i>♠</i><p>{message.text}</p></div>)}</div>
+        <form className="wpk-chat-compose" onSubmit={(event) => { event.preventDefault(); sendChat(); }}>
+          <button type="button" aria-label="添加表情" onClick={() => setChatText((value) => `${value}🙂`)}>☺</button>
+          <input aria-label="聊天内容" value={chatText} onChange={(event) => setChatText(event.target.value)} placeholder="说点什么…" maxLength={40} />
+          <button className="send" aria-label="发送" type="submit">➤</button>
+        </form>
+      </div>}
+
+      {tab === "stats" && <div className="wpk-stats-panel">
+        <div className="wpk-stats-filter"><span>桌面玩家</span><b>{seatedMembers.length} 人</b></div>
+        <div className="wpk-ranking-list">{room.scoreboard.map((entry, index) => {
+          const member = room.members.find((item) => item.seatId === entry.seatId);
+          const playerHands = room.hands.filter((hand) => hand.seats.some((seat) => seat.seatId === entry.seatId));
+          const wins = playerHands.filter((hand) => hand.seats.some((seat) => seat.seatId === entry.seatId && seat.won)).length;
+          return <article className={entry.seatId === room.mySeatId ? "me" : ""} key={entry.seatId}>
+            <span className="wpk-rank">{index + 1}</span>
+            <span className="wpk-rank-avatar"><GameAvatar seed={entry.seatId} label={entry.nickname} /></span>
+            <div><b>{entry.nickname}</b><p><span>入池 {playerHands.length ? "100" : "0"}%</span><span>胜率 {playerHands.length ? Math.round(wins / playerHands.length * 100) : 0}%</span><span>带入 {(member?.buyIn || room.startingStack).toLocaleString()}</span></p></div>
+            <PixelChip value={entry.delta} />
+          </article>;
+        })}</div>
+        <div className="wpk-activity"><span>活跃度积分</span><b>{room.hands.length} / {Math.max(1, room.hands.length)}</b></div>
+        <div className="wpk-table-metrics">
+          <Metric label="全部流水" value={totalPot.toLocaleString()} />
+          <Metric label="全部带入" value={seatedMembers.reduce((sum, item) => sum + (item.buyIn || room.startingStack), 0).toLocaleString()} />
+          <Metric label="本局手数" value={String(room.hands.length)} />
+          <Metric label="平均底池" value={room.hands.length ? Math.round(totalPot / room.hands.length).toLocaleString() : "0"} />
+          <Metric label="本局时长" value={`${elapsedMinutes}m`} />
+          <Metric label="剩余时间" value={`${remainingMinutes}m`} />
         </div>
-        <div className="room-menu-meta"><span><small>盲注</small><b>{room.smallBlind} / {room.bigBlind}</b></span><span><small>入场筹码</small><b>{room.startingStack.toLocaleString()}</b></span><span><small>牌局时长</small><b>{room.durationMinutes} 分钟</b></span></div>
-        <button className="leave-table-button" onClick={onLeave}>离开牌桌</button>
       </div>}
 
-      {tab === "chat" && <div className="table-chat">
-        <div className="quick-chat-list">{["快一点吧", "打得不错", "这手有点意思", "好运！"].map((text) => <button key={text} onClick={() => sendChat(text)}>{text}</button>)}</div>
-        <div className="chat-messages">{messages.map((message) => <p className={message.mine ? "mine" : "system"} key={message.id}>{message.text}</p>)}</div>
-        <form className="chat-compose" onSubmit={(event) => { event.preventDefault(); sendChat(chatText); }}><input aria-label="聊天内容" value={chatText} onChange={(event) => setChatText(event.target.value)} placeholder="说点什么…" maxLength={40} /><button>发送</button></form>
-      </div>}
-
-      {tab === "topup" && <div className="topup-panel">
-        <div className="topup-chip-visual"><i /><i /><i /><b>{topup.toLocaleString()}</b><small>目标筹码</small></div>
-        <div className="topup-presets">{[room.startingStack, room.startingStack * 2, room.startingStack * 3].map((amount) => <button className={topup === amount ? "active" : ""} onClick={() => { setTopup(amount); setTopupSaved(false); }} key={amount}>{amount.toLocaleString()}</button>)}</div>
-        <input aria-label="补充筹码数量" type="range" min={room.startingStack} max={room.startingStack * 3} step={room.bigBlind * 5} value={topup} onChange={(event) => { setTopup(Number(event.target.value)); setTopupSaved(false); }} />
-        <p>筹码不足目标值时，下一手开始前自动补至该数量。</p>
-        <button className="primary-button topup-confirm" onClick={saveTopup}>{topupSaved ? "已设置自动补码" : "确认补码设置"}</button>
-      </div>}
-
-      {tab === "settings" && <div className="settings-list">
-        <RangeSetting label="背景音乐" value={settings.music} onChange={(music) => updateSettings({ music })} />
-        <RangeSetting label="游戏音效" value={settings.sound} onChange={(sound) => updateSettings({ sound })} />
-        <RangeSetting label="动画速度" min={.5} max={2} step={.25} value={settings.animationSpeed} onChange={(animationSpeed) => updateSettings({ animationSpeed })} />
-        <Toggle label="高质量粒子" checked={settings.effectQuality === "high"} onChange={(checked) => updateSettings({ effectQuality: checked ? "high" : "low" })} />
-        <Toggle label="快速动画" checked={settings.fastMode} onChange={(fastMode) => updateSettings({ fastMode })} />
-        <Toggle label="新手提示" checked={settings.tutorialHints} onChange={(tutorialHints) => updateSettings({ tutorialHints })} />
-      </div>}
-
-      {tab === "history" && <div className="room-hand-history">
-        {room.hands.length === 0 && <Empty icon="▤" title="还没有战绩" body="每手结算后会记录公共牌、全桌最终手牌和筹码输赢。" />}
-        {room.hands.map((hand) => <article className="hand-record-card" key={hand.id}>
+      {tab === "history" && <div className="wpk-history-panel">
+        <div className="history-room-meta"><span>给我擦皮鞋 · 房间ID：{room.code}</span><b>▥ {seatedMembers.length}/{room.capacity}</b></div>
+        {room.hands.length === 0 ? <Empty icon="▤" title="暂时还没有牌局回顾" body="每一手结束后，会在这里展示公共牌、所有玩家最终手牌和积分变化。" /> : room.hands.map((hand) => <article className="hand-record-card" key={hand.id}>
           <header><div><span>第 {hand.handNumber} 手</span><b>{hand.winnerText}</b></div><strong>{hand.pot.toLocaleString()}</strong></header>
           <div className="record-board"><small>公共牌</small><CardStrip cards={hand.board} empty="翻牌前结束" /></div>
-          <div className="record-seats">
-            {hand.seats.map((seat) => <div className={`${seat.won ? "winner" : ""} ${seat.folded ? "folded" : ""}`} key={seat.seatId}>
-              <span className="record-avatar"><GameAvatar seed={seat.seatId} label={seat.nickname} /></span>
-              <span className="record-player"><b>{seat.nickname}</b><small>{seat.folded ? "弃牌" : seat.won ? "获胜" : "摊牌"}</small></span>
-              <CardStrip cards={seat.cards} />
-              <PixelChip value={seat.delta} compact />
-            </div>)}
-          </div>
+          <div className="record-seats">{hand.seats.map((seat) => <div className={`${seat.won ? "winner" : ""} ${seat.folded ? "folded" : ""}`} key={seat.seatId}>
+            <span className="record-avatar"><GameAvatar seed={seat.seatId} label={seat.nickname} /></span>
+            <span className="record-player"><b>{seat.nickname}</b><small>{seat.folded ? "弃牌" : seat.won ? "获胜" : "摊牌"}</small></span>
+            <CardStrip cards={seat.cards} />
+            <PixelChip value={seat.delta} compact />
+          </div>)}</div>
         </article>)}
       </div>}
 
-      {tab === "stats" && <div className="room-scoreboard">
-        <div className="score-summary"><span>本房积分榜</span><b>{room.hands.length} 手</b><small>以入场筹码 {room.startingStack.toLocaleString()} 为基准</small></div>
-        {room.scoreboard.map((entry, index) => <article className={entry.seatId === room.mySeatId ? "me" : ""} key={entry.seatId}>
-          <span className="score-rank">{index + 1}</span>
-          <span className="score-avatar"><GameAvatar seed={entry.seatId} label={entry.nickname} /><i className={entry.connected ? "online" : ""} /></span>
-          <span className="score-player"><b>{entry.nickname}</b><small>{entry.stack.toLocaleString()} 筹码</small></span>
-          <PixelChip value={entry.delta} />
-        </article>)}
+      {tab === "topup" && <div className="wpk-topup-panel">
+        <div className="wpk-topup-tabs"><span>钻石</span><b>记分牌</b></div>
+        <strong>{topup.toLocaleString()}</strong>
+        <small>({Math.round(topup / room.bigBlind)}BB)</small>
+        <p>带入记分牌</p>
+        <input aria-label="补充记分牌数量" type="range" min={room.startingStack} max={room.startingStack * 3} step={room.bigBlind} value={topup} onChange={(event) => { setTopup(Number(event.target.value)); setTopupSaved(false); }} />
+        <div className="topup-range-labels"><span>最小</span><span>最大</span></div>
+        <em>您补充的记分牌将在本手结束后带入</em>
+        <button onClick={saveTopup}>{topupSaved ? "已设置" : "带入"}</button>
       </div>}
 
-      {tab === "guide" && <div className="guide-list">
-        <Guide n="01" title="真实多人好友房">每位玩家使用自己的账号和席位，只有轮到本人时才能行动；服务端校验所有下注。</Guide>
-        <Guide n="02" title="自动续手">每手结算停留 3.5 秒供全桌看牌，随后服务端自动洗牌并开始下一手。</Guide>
-        <Guide n="03" title="房间计时">房间到时不会截断当前牌局；当前手正常结算后，房间停止发牌并锁定最终积分。</Guide>
+      {tab === "settings" && <div className="wpk-settings-panel">
+        <RangeSetting label="游戏音效" value={settings.sound} onChange={(sound) => updateSettings({ sound })} />
+        <RangeSetting label="动画速度" min={.5} max={2} step={.25} value={settings.animationSpeed} onChange={(animationSpeed) => updateSettings({ animationSpeed })} />
+      </div>}
+
+      {tab === "guide" && <div className="wpk-guide-panel">
+        <Guide n="01" title="多人好友房">每位玩家独立登录并选择座位，全部下注由服务器校验。</Guide>
+        <Guide n="02" title="自动续手">每手结算后公开全桌最终手牌，随后自动洗牌并发下一手。</Guide>
+        <Guide n="03" title="中途加入">牌局开始后仍可进入空位，落座玩家从下一手开始参与。</Guide>
         <div className="hand-order"><b>牌型顺序</b><p>皇家同花顺 → 同花顺 → 四条 → 葫芦 → 同花 → 顺子 → 三条 → 两对 → 一对 → 高牌</p></div>
       </div>}
-    </div>
+    </>}
   </motion.aside>;
 }
 
-function FunctionButton({ icon, label, onClick }: { icon: string; label: string; onClick(): void }) {
-  return <button onClick={onClick}><span>{icon}</span><b>{label}</b></button>;
-}
-
+function MenuButton({ icon, label, onClick }: { icon: string; label: string; onClick(): void }) { return <button onClick={onClick}><span>{icon}</span><b>{label}</b></button>; }
+function Metric({ label, value }: { label: string; value: string }) { return <span><small>{label}</small><b>{value}</b></span>; }
 function CardStrip({ cards, empty }: { cards: Card[]; empty?: string }) {
   if (!cards.length) return <span className="record-empty">{empty ?? "—"}</span>;
   return <span className="record-cards">{cards.map((card, index) => {
@@ -118,14 +146,7 @@ function CardStrip({ cards, empty }: { cards: Card[]; empty?: string }) {
     return <i className={red ? "red" : ""} key={`${card}-${index}`}>{card.replace("T", "10")}</i>;
   })}</span>;
 }
-
-function PixelChip({ value, compact = false }: { value: number; compact?: boolean }) {
-  return <span className={`pixel-chip ${value >= 0 ? "positive" : "negative"} ${compact ? "compact" : ""}`}><i /><b>{value >= 0 ? "+" : ""}{value.toLocaleString()}</b></span>;
-}
-
-function RangeSetting({ label, value, onChange, min = 0, max = 1, step = .05 }: { label: string; value: number; onChange(value: number): void; min?: number; max?: number; step?: number }) {
-  return <label className="drawer-setting"><span>{label}<b>{Math.round(value * (max <= 2 ? 100 : 1))}{max === 1 ? "%" : ""}</b></span><input type="range" min={min} max={max} step={step} value={value} onChange={(event) => onChange(Number(event.target.value))} /></label>;
-}
-function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange(value: boolean): void }) { return <label className="toggle-setting"><span>{label}</span><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} /><i /></label>; }
+function PixelChip({ value, compact = false }: { value: number; compact?: boolean }) { return <span className={`pixel-chip ${value >= 0 ? "positive" : "negative"} ${compact ? "compact" : ""}`}><i /><b>{value >= 0 ? "+" : ""}{value.toLocaleString()}</b></span>; }
+function RangeSetting({ label, value, onChange, min = 0, max = 1, step = .05 }: { label: string; value: number; onChange(value: number): void; min?: number; max?: number; step?: number }) { return <label className="drawer-setting"><span>{label}<b>{Math.round(value * (max <= 2 ? 100 : 1))}{max === 1 ? "%" : ""}</b></span><input type="range" min={min} max={max} step={step} value={value} onChange={(event) => onChange(Number(event.target.value))} /></label>; }
 function Empty({ icon, title, body }: { icon: string; title: string; body: string }) { return <div className="empty-state"><span>{icon}</span><b>{title}</b><p>{body}</p></div>; }
 function Guide({ n, title, children }: { n: string; title: string; children: React.ReactNode }) { return <article><span>{n}</span><div><b>{title}</b><p>{children}</p></div></article>; }

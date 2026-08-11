@@ -118,8 +118,8 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
       </div>
       <div className="table-tools">
         <button aria-label="邀请好友" onClick={copyInvite}><span>♣</span><small>邀请</small></button>
-        <button aria-label="补充筹码" onClick={() => setDrawer("topup")}><span>＋</span><small>补码</small></button>
-        <button aria-label="牌桌设置" onClick={() => setDrawer("settings")}><span>⚙</span><small>设置</small></button>
+        <button aria-label="补充记分牌" onClick={() => setDrawer("topup")}><span>🛒</span><small>补码</small></button>
+        <button aria-label="牌局回顾" onClick={() => setDrawer("history")}><span>▣</span><small>回顾</small></button>
       </div>
     </header>
 
@@ -199,8 +199,9 @@ function WaitingRoom({ room, user, connectionStatus, onSit, onStart, onTopup, on
   const seatedCount = room.members.filter((member) => member.seatIndex !== null).length;
   const slots = Array.from({ length: room.capacity }, (_, index) => room.members.find((member) => member.seatIndex === index));
   const myPosition = room.members.find((member) => member.userId === user?.id)?.seatIndex ?? 0;
+  function copyInvite() { void navigator.clipboard.writeText(`给我擦皮鞋 · 房间 ${room.code}`).catch(() => undefined); }
   return <section className="waiting-room waiting-with-tools">
-    <header><button className="icon-button" onClick={onLeave}>‹</button><span className="brand compact"><i>♠</i>给我擦皮鞋</span><span className="hand-chip">房间 {room.code} · 等待开始</span><span className={`connection-pill ${connectionStatus}`}>● {connectionStatus === "connected" ? "实时连接" : "正在重连"}</span><div className="waiting-top-tools"><button onClick={() => setDrawer("guide")}><span>?</span><small>玩法</small></button><button onClick={() => setDrawer("settings")}><span>⚙</span><small>设置</small></button></div></header>
+    <header><button className="icon-button table-menu-trigger" aria-label="牌桌功能" onClick={() => setDrawer("menu")}>☰</button><span className="hand-chip">房间 {room.code} · 等待开始</span><span className={`connection-pill ${connectionStatus}`}>● {connectionStatus === "connected" ? "实时连接" : "正在重连"}</span><div className="waiting-top-tools"><button aria-label="邀请好友" onClick={copyInvite}><span>♣</span><small>邀请</small></button><button aria-label="补充记分牌" onClick={() => setDrawer("topup")}><span>🛒</span><small>补码</small></button><button aria-label="牌局回顾" onClick={() => setDrawer("history")}><span>▣</span><small>回顾</small></button></div></header>
     <main className="waiting-table-stage">
       <div className="waiting-felt" />
       {slots.map((member, index) => {
@@ -221,10 +222,8 @@ function WaitingRoom({ room, user, connectionStatus, onSit, onStart, onTopup, on
         {isHost ? <button className="primary-button start-room-button" disabled={seatedCount < 3} onClick={onStart}>{seatedCount < 3 ? `还需 ${3 - seatedCount} 人落座` : "开始牌局 →"}</button> : <div className="guest-waiting"><span className="room-loader" /><b>{room.mySeatId ? "等待房主开始" : "请选择一个空位落座"}</b></div>}
       </motion.div>
       <nav className="waiting-bottom-tools" aria-label="牌桌功能栏">
-        <button onClick={() => setDrawer("history")}><span>▥</span><small>回顾</small></button>
-        <button onClick={() => setDrawer("stats")}><span>▤</span><small>计分板</small></button>
+        <button onClick={() => setDrawer("stats")}><span>▥</span><small>计分</small></button>
         <button onClick={() => setDrawer("chat")}><span>▰</span><small>聊天</small></button>
-        <button onClick={() => setDrawer("topup")}><span>＋</span><small>补筹码</small></button>
       </nav>
     </main>
     {drawer && <><div className="drawer-shade" onClick={() => setDrawer(null)} /><GameDrawer key={drawer} initialTab={drawer} room={room} onClose={() => setDrawer(null)} onLeave={onLeave} onTopup={onTopup} /></>}

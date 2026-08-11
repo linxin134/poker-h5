@@ -18,19 +18,26 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
     await lateGuest.request.post("http://127.0.0.1:5173/api/auth/register", { data: { email: `late-${stamp}@local.test`, password: "test-pass-123", nickname: `中途${testInfo.project.name}` } });
 
     await page.goto("/");
+    await page.screenshot({ path: testInfo.outputPath("mobile-lobby.png") });
     await page.getByRole("button", { name: "创建房间" }).click();
-    await page.getByRole("button", { name: "创建并进入" }).click();
+    await page.getByLabel("盲注级别").fill("2");
+    await page.getByRole("button", { name: "200BB" }).click();
+    await page.screenshot({ path: testInfo.outputPath("mobile-create-room.png") });
+    await page.getByRole("button", { name: "立即开局" }).click();
     await expect(page.getByText("请选择空位")).toBeVisible();
+    await expect(page.locator(".room-rules")).toContainText("5 / 10");
     await page.locator(".waiting-table-seat.empty").first().click();
     await expect(page.getByRole("navigation", { name: "牌桌功能栏" })).toBeVisible();
-    await expect(page.getByRole("button", { name: /回顾/ })).toBeVisible();
-    await expect(page.getByRole("button", { name: /计分板/ })).toBeVisible();
-    await expect(page.getByRole("button", { name: /补筹码/ })).toBeVisible();
-    await expect(page.getByRole("button", { name: /玩法/ })).toBeVisible();
-    await expect(page.getByRole("button", { name: /设置/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "牌局回顾" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "补充记分牌" })).toBeVisible();
+    await page.getByRole("button", { name: "牌桌功能" }).click();
+    await expect(page.getByRole("button", { name: "规则说明" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "桌面设置" })).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath("mobile-menu.png") });
+    await page.locator(".drawer-shade").click({ position: { x: 380, y: 400 } });
     await page.locator(".waiting-bottom-tools button", { hasText: "聊天" }).click();
     await expect(page.getByLabel("聊天内容")).toBeVisible();
-    await page.locator(".game-drawer .icon-button").click();
+    await page.locator(".game-drawer .panel-close").click();
 
     await Promise.all([guestOnePage.goto("http://127.0.0.1:5173/"), guestTwoPage.goto("http://127.0.0.1:5173/")]);
     const roomOne = guestOnePage.locator(".public-room-list article", { hasText: nickname });
@@ -60,16 +67,16 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
     await expect(guestTwoPage.locator(".game-drawer.tab-chat")).toBeVisible();
     await guestTwoPage.getByLabel("聊天内容").fill("这手有点意思");
     await guestTwoPage.getByRole("button", { name: "发送", exact: true }).click();
-    await expect(guestTwoPage.locator(".chat-messages .mine")).toHaveText("这手有点意思");
+    await expect(guestTwoPage.locator(".wpk-chat-messages .mine p")).toHaveText("这手有点意思");
     await guestTwoPage.screenshot({ path: testInfo.outputPath("mobile-chat.png") });
-    await guestTwoPage.locator(".game-drawer .icon-button").click();
+    await guestTwoPage.locator(".game-drawer .panel-close").click();
 
-    await guestTwoPage.getByRole("button", { name: "补充筹码" }).click();
-    await guestTwoPage.getByRole("button", { name: "4,000" }).click();
-    await guestTwoPage.getByRole("button", { name: "确认补码设置" }).click();
-    await expect(guestTwoPage.getByRole("button", { name: "已设置自动补码" })).toBeVisible();
+    await guestTwoPage.getByRole("button", { name: "补充记分牌" }).click();
+    await guestTwoPage.getByLabel("补充记分牌数量").fill("4000");
+    await guestTwoPage.getByRole("button", { name: "带入", exact: true }).click();
+    await expect(guestTwoPage.getByRole("button", { name: "已设置" })).toBeVisible();
     await guestTwoPage.screenshot({ path: testInfo.outputPath("mobile-topup.png") });
-    await guestTwoPage.locator(".game-drawer .icon-button").click();
+    await guestTwoPage.locator(".game-drawer .panel-close").click();
 
     await guestTwoPage.getByRole("button", { name: /与 .* 互动/ }).first().click();
     await expect(guestTwoPage.locator(".player-interaction-card")).toBeVisible();
@@ -116,7 +123,7 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
     await expect(lateGuestPage.locator(".seat .card-back")).toHaveCount(6);
 
     await guestOnePage.getByRole("button", { name: "牌桌功能" }).click();
-    await guestOnePage.getByRole("button", { name: "牌局回顾" }).click();
+    await guestOnePage.locator(".wpk-function-menu").getByRole("button", { name: /牌局回顾/ }).click();
     await expect(guestOnePage.locator(".record-seats .record-cards i")).toHaveCount(6);
   } finally {
     await guestOne.close();

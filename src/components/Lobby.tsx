@@ -6,16 +6,22 @@ import { useGameStore } from "../store/gameStore";
 import { useRoomStore } from "../store/roomStore";
 import { GameAvatar } from "./GameAvatar";
 
+const BLINDS = [[1, 2], [2, 4], [5, 10], [10, 20], [20, 40]] as const;
+const BUY_IN_BB = [50, 100, 200] as const;
+
 export function Lobby({ user, onLogin, onLogout }: { user: User | null; onLogin(): void; onLogout(): void }) {
   const setScreen = useGameStore((state) => state.setScreen);
   const connect = useRoomStore((state) => state.connect);
   const [seats, setSeats] = useState(6);
-  const [stack, setStack] = useState(2000);
+  const [blindIndex, setBlindIndex] = useState(3);
+  const [buyInBb, setBuyInBb] = useState<(typeof BUY_IN_BB)[number]>(100);
   const [durationMinutes, setDurationMinutes] = useState<RoomDurationMinutes>(30);
   const [rooms, setRooms] = useState<RoomListItem[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [smallBlind, bigBlind] = BLINDS[blindIndex];
+  const stack = bigBlind * buyInBb;
 
   useEffect(() => {
     let active = true;
@@ -29,7 +35,7 @@ export function Lobby({ user, onLogin, onLogout }: { user: User | null; onLogin(
     if (!user) { onLogin(); return; }
     setBusy(true); setError("");
     try {
-      const { code } = await api.createRoom({ durationMinutes, capacity: seats, startingStack: stack, smallBlind: 10, bigBlind: 20 });
+      const { code } = await api.createRoom({ durationMinutes, capacity: seats, startingStack: stack, smallBlind, bigBlind });
       setCreateOpen(false);
       connect(code);
       setScreen("table");
@@ -75,19 +81,31 @@ export function Lobby({ user, onLogin, onLogout }: { user: User | null; onLogin(
       <button onClick={user ? undefined : onLogin}><span>♙</span><small>我的</small></button>
     </nav>
 
-    <AnimatePresence>{createOpen && <motion.div className="room-sheet-shade" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={() => setCreateOpen(false)}>
-      <motion.section className="create-room-sheet" initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 28, stiffness: 310 }} onMouseDown={(event) => event.stopPropagation()}>
-        <div className="sheet-handle" />
-        <header><div><h2>创建好友房</h2><p>3 人落座后，房主即可开始</p></div><button className="sheet-close" aria-label="关闭" onClick={() => setCreateOpen(false)}>×</button></header>
-        <label className="setting-label"><span>人数上限</span><b>{seats} 人桌</b></label>
-        <div className="segment-control">{[3, 6, 9].map((value) => <button key={value} className={seats === value ? "active" : ""} onClick={() => setSeats(value)}>{value} 人</button>)}</div>
-        <label className="setting-label"><span>房间时长</span><b>{durationMinutes} 分钟</b></label>
-        <div className="segment-control duration-control">{[30, 60].map((value) => <button key={value} className={durationMinutes === value ? "active" : ""} onClick={() => setDurationMinutes(value as RoomDurationMinutes)}>{value} 分钟</button>)}</div>
-        <label className="setting-label"><span>入场筹码</span><b>{stack.toLocaleString()}</b></label>
-        <input className="range" aria-label="入场筹码" type="range" min="1000" max="10000" step="500" value={stack} onChange={(event) => setStack(Number(event.target.value))} />
-        <div className="sheet-summary"><span>盲注 <b>10 / 20</b></span><span>每手结束 <b>自动续局</b></span></div>
-        <button className="primary-button create-confirm" disabled={busy} onClick={() => { void createRoom(); }}>{busy ? "正在创建…" : user ? "创建并进入" : "登录后创建"}</button>
-        {error && <p className="form-error room-error">{error}</p>}
+    <AnimatePresence>{createOpen && <motion.div className="room-sheet-shade wpk-create-shade" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <motion.section className="create-room-sheet wpk-create-room" initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ duration: .24, ease: "easeOut" }}>
+        <header className="wpk-create-header"><button className="create-back" aria-label="返回" onClick={() => setCreateOpen(false)}>‹</button><h2>德州</h2><span /></header>
+        <div className="wpk-room-config">
+          <section className="config-card">
+            <div className="config-title"><span>牌桌属性</span><b>公开房</b></div>
+            <label className="config-row"><span>小盲/大盲</span><b>{smallBlind} / {bigBlind}</b></label>
+            <input aria-label="盲注级别" type="range" min="0" max={BLINDS.length - 1} step="1" value={blindIndex} onChange={(event) => setBlindIndex(Number(event.target.value))} />
+            <div className="range-ticks">{BLINDS.map(([small, big]) => <span key={small}>{small}/{big}</span>)}</div>
+
+            <label className="config-row"><span>带入筹码</span><b>{stack.toLocaleString()} <small>({buyInBb}BB)</small></b></label>
+            <div className="config-segments buyin-segments">{BUY_IN_BB.map((value) => <button key={value} className={buyInBb === value ? "active" : ""} onClick={() => setBuyInBb(value)}>{value}BB</button>)}</div>
+
+            <label className="config-row"><span>房间时长</span><b>{durationMinutes === 30 ? "0.5 小时" : "1 小时"}</b></label>
+            <div className="config-segments">{[30, 60].map((value) => <button key={value} className={durationMinutes === value ? "active" : ""} onClick={() => setDurationMinutes(value as RoomDurationMinutes)}>{value === 30 ? "0.5 小时" : "1 小时"}</button>)}</div>
+
+            <label className="config-row"><span>牌桌人数</span><b>{seats} 人</b></label>
+            <div className="config-segments">{[3, 6, 9].map((value) => <button key={value} className={seats === value ? "active" : ""} onClick={() => setSeats(value)}>{value} 人</button>)}</div>
+          </section>
+
+          <div className="public-room-note"><i>♣</i><span><b>公开好友房</b><small>房间会直接显示在大厅列表，玩家点击即可加入</small></span></div>
+          <div className="create-room-spacer" />
+          <button className="primary-button create-confirm" disabled={busy} onClick={() => { void createRoom(); }}>{busy ? "正在创建…" : user ? "立即开局" : "登录后创建"}</button>
+          {error && <p className="form-error room-error">{error}</p>}
+        </div>
       </motion.section>
     </motion.div>}</AnimatePresence>
   </section>;

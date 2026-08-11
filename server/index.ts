@@ -82,7 +82,7 @@ app.post("/api/stats", async (request) => {
 const roomOptions = z.object({
   durationMinutes: z.union([z.literal(30), z.literal(60)]),
   capacity: z.number().int().min(2).max(9),
-  startingStack: z.number().int().min(500).max(100_000),
+  startingStack: z.number().int().min(100).max(100_000),
   smallBlind: z.number().int().min(1).max(5_000),
   bigBlind: z.number().int().min(2).max(10_000)
 }).refine((value) => value.bigBlind >= value.smallBlind * 2, { message: "大盲至少是小盲的两倍" });

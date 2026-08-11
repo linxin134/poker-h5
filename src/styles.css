@@ -1300,3 +1300,132 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
 .app-shell.mode-mobile .waiting-bottom-tools button:active { color:#ffd18f; transform:scale(.96); }
 .app-shell.mode-mobile .waiting-with-tools .waiting-felt { bottom:48px; }
 .app-shell.mode-mobile .waiting-with-tools .waiting-table-seat.mine { top:80%!important; }
+
+/* Final Mobile H5 table surface and panel system, following the captured in-game hierarchy. */
+.app-shell.mode-mobile .fresh-table,.app-shell.mode-mobile .waiting-room { color:#edf5f2; background:#005846; }
+.app-shell.mode-mobile .fresh-table:before,.app-shell.mode-mobile .table-screen:before { background:radial-gradient(circle at 50% 38%,#0b9270 0,#087257 46%,#044d3b 78%,#033c2f 100%); }
+.app-shell.mode-mobile .fresh-felt,.app-shell.mode-mobile .waiting-felt {
+  left:-48%; right:-48%; top:-4%; bottom:42px;
+  border:0; border-bottom:5px solid #bcc8c3;
+  border-radius:0 0 50% 50% / 0 0 7% 7%;
+  background:radial-gradient(circle at 48% 34%,#0e9472,#087158 48%,#044d3b 82%,#033a2d);
+  box-shadow:0 6px 0 #3e4b47,0 12px 0 #151d1b,0 20px 34px #001f1875,inset 0 -42px 65px #002c2266,inset 0 13px 30px #ffffff0a;
+}
+.app-shell.mode-mobile .fresh-felt:after,.app-shell.mode-mobile .waiting-felt:after { border-color:#8ac8b31d; border-top-color:transparent; }
+.app-shell.mode-mobile .table-topbar,.app-shell.mode-mobile .waiting-room>header { color:#edf5f2; background:linear-gradient(180deg,#003b31bd,transparent); }
+.app-shell.mode-mobile .table-left .icon-button,.app-shell.mode-mobile .waiting-room>header .icon-button { color:#f2f8f5; background:#003c3290; }
+.app-shell.mode-mobile .hand-chip,.app-shell.mode-mobile .waiting-room>header .hand-chip { color:#d8e8e2; background:#003c3194; }
+.app-shell.mode-mobile .table-tools button,.app-shell.mode-mobile .waiting-top-tools button { color:#f1f7f4; }
+.app-shell.mode-mobile .table-tools button small,.app-shell.mode-mobile .waiting-top-tools button small { color:#b8cec5; }
+.app-shell.mode-mobile .fresh-table .avatar-ring,.app-shell.mode-mobile .waiting-table-seat.occupied>span { border-color:#dfe8e4; background:#173b32; box-shadow:0 5px 13px #001e1775,0 0 0 1px #00271f; }
+.app-shell.mode-mobile .fresh-table .avatar-ring,.app-shell.mode-mobile .waiting-table-seat>span { width:54px; height:58px; border-radius:12px 12px 17px 17px / 10px 10px 18px 18px; }
+.app-shell.mode-mobile .fresh-table .avatar-ring>.game-avatar,.app-shell.mode-mobile .waiting-table-seat>span>.game-avatar { border-radius:inherit; clip-path:polygon(17% 0,83% 0,100% 15%,100% 76%,72% 100%,28% 100%,0 76%,0 15%); }
+.app-shell.mode-mobile .seat-info { border-color:#ffffff16; color:#edf5f2; background:#003127dc; box-shadow:0 3px 9px #001d1760; }
+.app-shell.mode-mobile .seat-info b,.app-shell.mode-mobile .seat-info span,.app-shell.mode-mobile .waiting-table-seat b { color:#f1f6f4; }
+.app-shell.mode-mobile .waiting-table-seat small { color:#a8c3b8; }
+.app-shell.mode-mobile .waiting-table-seat.empty>span { color:#dbeae4; border-color:#dce9e46e; background:#003c3182; }
+.app-shell.mode-mobile .waiting-room .waiting-table-center { color:#e9f2ef; background:transparent; }
+.app-shell.mode-mobile .waiting-room .waiting-table-center h1 { color:#f0f7f4; }
+.app-shell.mode-mobile .waiting-room .start-room-button { color:#15352b; background:#edf5f1; }
+.app-shell.mode-mobile .table-stage:after { background:linear-gradient(180deg,#29332ff0,#101714 48%,#070b0aff); }
+.app-shell.mode-mobile .table-bottom-tools button { color:#e2ebe7; background:transparent; box-shadow:none; }
+.app-shell.mode-mobile .table-bottom-tools button small { color:#aebeb8; }
+.app-shell.mode-mobile .waiting-bottom-tools { left:8px; right:auto; width:92px; height:44px; grid-template-columns:repeat(2,42px); gap:4px; padding:2px 0 max(2px,env(safe-area-inset-bottom)); border:0; background:transparent; box-shadow:none; }
+.app-shell.mode-mobile .waiting-bottom-tools button { width:42px; }
+
+.app-shell.mode-mobile .drawer-shade { z-index:70; background:#00130ea0; backdrop-filter:blur(2px); }
+.app-shell.mode-mobile .game-drawer.wpk-panel { position:absolute; z-index:72; margin:0; border:0; border-radius:0; color:#e8eeec; background:#1d2430f8; box-shadow:18px 0 44px #0008; backdrop-filter:blur(13px); }
+.app-shell.mode-mobile .game-drawer.wpk-panel.drawer-left { left:0; right:auto; top:0; bottom:0; width:84%; height:100%; padding:max(18px,env(safe-area-inset-top)) 13px max(12px,env(safe-area-inset-bottom)); }
+.app-shell.mode-mobile .game-drawer.wpk-panel.drawer-right { left:auto; right:0; top:0; bottom:0; width:88%; height:100%; padding:max(16px,env(safe-area-inset-top)) 13px max(12px,env(safe-area-inset-bottom)); box-shadow:-18px 0 44px #0008; }
+.app-shell.mode-mobile .game-drawer.wpk-panel.drawer-modal { left:50%; right:auto; top:50%; bottom:auto; width:90%; height:auto; max-height:78%; padding:0; transform:translate(-50%,-50%); overflow:auto; border:1px solid #ffffff18; border-radius:8px; background:#0f201cf8; box-shadow:0 24px 70px #000b; }
+.app-shell.mode-mobile .game-drawer.wpk-panel.drawer-menu { left:7px; right:auto; top:max(39px,env(safe-area-inset-top)); bottom:auto; width:148px; height:auto; padding:4px 9px; border:1px solid #ffffff16; border-radius:0 0 5px 5px; background:#202632f7; box-shadow:0 14px 34px #0008; }
+.app-shell.mode-mobile .wpk-panel-header { display:grid; min-height:40px; grid-template-columns:30px 1fr 30px; align-items:center; border-bottom:1px solid #ffffff10; }
+.app-shell.mode-mobile .drawer-modal .wpk-panel-header { padding:0 8px; }
+.app-shell.mode-mobile .wpk-panel-header h2 { margin:0; color:#f2f5f4; font-size:14px; text-align:center; letter-spacing:0; }
+.app-shell.mode-mobile .wpk-panel-header button { width:28px; height:28px; border:0; color:#aebbb7; background:transparent; font-size:21px; }
+.app-shell.mode-mobile .wpk-panel-header .panel-close { justify-self:end; }
+.app-shell.mode-mobile .wpk-function-menu { display:grid; }
+.app-shell.mode-mobile .wpk-function-menu button { display:grid; height:39px; grid-template-columns:28px 1fr; align-items:center; padding:0; border:0; border-bottom:1px solid #ffffff12; color:#e9edeb; background:transparent; text-align:left; }
+.app-shell.mode-mobile .wpk-function-menu button:last-child { border-bottom:0; }
+.app-shell.mode-mobile .wpk-function-menu button span { color:#aab5b1; font-size:15px; text-align:center; }
+.app-shell.mode-mobile .wpk-function-menu button b { padding-left:6px; font-size:11px; font-weight:700; }
+
+.app-shell.mode-mobile .wpk-chat-panel { display:grid; height:calc(100% - 40px); grid-template-rows:1fr 45px; }
+.app-shell.mode-mobile .wpk-chat-messages { overflow:auto; padding:12px 2px; }
+.app-shell.mode-mobile .wpk-chat-messages>div { display:flex; align-items:flex-start; gap:7px; margin:9px 0; }
+.app-shell.mode-mobile .wpk-chat-messages>div.mine { flex-direction:row-reverse; }
+.app-shell.mode-mobile .wpk-chat-messages i { display:grid; width:26px; height:26px; flex:0 0 auto; place-items:center; border-radius:5px; color:#13211e; background:#d7e4df; font-style:normal; }
+.app-shell.mode-mobile .wpk-chat-messages p { max-width:75%; margin:0; padding:7px 9px; border-radius:3px; color:#d6dfdc; background:#2a323f; font-size:9px; line-height:1.5; }
+.app-shell.mode-mobile .wpk-chat-messages .mine p { color:#11231d; background:#17c4b8; }
+.app-shell.mode-mobile .wpk-chat-compose { display:grid; grid-template-columns:32px 1fr 36px; gap:5px; align-items:center; border-top:1px solid #ffffff12; }
+.app-shell.mode-mobile .wpk-chat-compose button { height:33px; border:0; color:#c7d1ce; background:transparent; font-size:20px; }
+.app-shell.mode-mobile .wpk-chat-compose input { min-width:0; height:33px; padding:0 8px; border:1px solid #ffffff13; border-radius:3px; color:#edf2f0; background:#111722; outline:0; font-size:10px; }
+.app-shell.mode-mobile .wpk-chat-compose .send { border-radius:4px; color:#0f2922; background:#14c7bb; font-size:15px; }
+
+.app-shell.mode-mobile .wpk-stats-panel { height:calc(100% - 40px); overflow:auto; padding-top:9px; }
+.app-shell.mode-mobile .wpk-stats-filter,.app-shell.mode-mobile .wpk-activity { display:flex; align-items:center; justify-content:space-between; padding:10px; border-radius:3px; color:#a9b5b1; background:#151c27; font-size:9px; }
+.app-shell.mode-mobile .wpk-stats-filter b,.app-shell.mode-mobile .wpk-activity b { color:#15c5b8; }
+.app-shell.mode-mobile .wpk-ranking-list { margin:8px 0 12px; }
+.app-shell.mode-mobile .wpk-ranking-list article { display:grid; grid-template-columns:20px 36px 1fr auto; gap:7px; align-items:center; min-height:56px; padding:7px 3px; border-bottom:1px solid #ffffff0d; }
+.app-shell.mode-mobile .wpk-ranking-list article.me { background:#ffffff05; }
+.app-shell.mode-mobile .wpk-rank { color:#7e8b87; font-size:10px; text-align:center; }
+.app-shell.mode-mobile .wpk-rank-avatar { width:34px; height:36px; overflow:hidden; border-radius:7px 7px 10px 10px; }
+.app-shell.mode-mobile .wpk-ranking-list article>div>b { color:#eef3f1; font-size:10px; }
+.app-shell.mode-mobile .wpk-ranking-list article p { display:flex; gap:7px; margin:3px 0 0; color:#798681; font-size:6px; }
+.app-shell.mode-mobile .wpk-ranking-list .pixel-chip { min-width:48px; justify-content:flex-end; border:0; background:transparent; }
+.app-shell.mode-mobile .wpk-table-metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; margin-top:12px; background:#ffffff0d; }
+.app-shell.mode-mobile .wpk-table-metrics>span { display:grid; min-height:50px; place-items:center; align-content:center; background:#1a212c; }
+.app-shell.mode-mobile .wpk-table-metrics small { color:#7f8c88; font-size:7px; }.app-shell.mode-mobile .wpk-table-metrics b { margin-top:3px; color:#dce4e1; font-size:11px; }
+.app-shell.mode-mobile .pixel-chip.positive { color:#eb665e; }.app-shell.mode-mobile .pixel-chip.negative { color:#49b785; }
+
+.app-shell.mode-mobile .wpk-history-panel { height:calc(100% - 40px); overflow:auto; }
+.app-shell.mode-mobile .history-room-meta { display:flex; justify-content:space-between; padding:9px 2px; color:#aeb8b5; font-size:8px; }
+.app-shell.mode-mobile .history-room-meta b { color:#e3e9e7; }
+.app-shell.mode-mobile .wpk-history-panel .empty-state { height:75%; color:#78847f; }
+.app-shell.mode-mobile .wpk-history-panel .empty-state>span { color:#5f6b68; font-size:46px; }
+.app-shell.mode-mobile .wpk-history-panel .hand-record-card { border-color:#ffffff10; color:#dfe6e3; background:#141b25; }
+.app-shell.mode-mobile .wpk-history-panel .record-board,.app-shell.mode-mobile .wpk-history-panel .record-seats>div { border-color:#ffffff0c; }
+
+.app-shell.mode-mobile .wpk-topup-panel { display:grid; place-items:center; padding:0 13px 12px; text-align:center; }
+.app-shell.mode-mobile .wpk-topup-tabs { display:grid; width:calc(100% + 26px); grid-template-columns:1fr 1fr; margin-bottom:14px; border-bottom:1px solid #ffffff14; }
+.app-shell.mode-mobile .wpk-topup-tabs span,.app-shell.mode-mobile .wpk-topup-tabs b { position:relative; padding:12px; color:#7f8c87; font-size:11px; font-weight:500; }
+.app-shell.mode-mobile .wpk-topup-tabs b { color:#16c9bc; }
+.app-shell.mode-mobile .wpk-topup-tabs b:after { content:""; position:absolute; left:25%; right:25%; bottom:0; height:2px; background:#16c9bc; }
+.app-shell.mode-mobile .wpk-topup-panel>strong { color:#13c9bd; font-size:34px; line-height:1; }
+.app-shell.mode-mobile .wpk-topup-panel>small { margin-top:4px; color:#0fa99f; font-size:12px; }.app-shell.mode-mobile .wpk-topup-panel>p { margin:5px 0 14px; color:#d4dcda; font-size:11px; }
+.app-shell.mode-mobile .wpk-topup-panel>input { width:100%; accent-color:#34a798; }
+.app-shell.mode-mobile .topup-range-labels { display:flex; width:100%; justify-content:space-between; color:#8d9a95; font-size:8px; }
+.app-shell.mode-mobile .wpk-topup-panel>em { margin:55px 0 12px; color:#78847f; font-size:8px; font-style:normal; }
+.app-shell.mode-mobile .wpk-topup-panel>button { width:100%; height:44px; border:0; border-radius:3px; color:#09312b; background:#16c9bd; font-size:12px; font-weight:800; }
+.app-shell.mode-mobile .wpk-settings-panel,.app-shell.mode-mobile .wpk-guide-panel { display:grid; gap:7px; padding:13px; }
+.app-shell.mode-mobile .wpk-settings-panel .drawer-setting { border-color:#ffffff10; color:#dbe3e0; background:#17221e; }
+.app-shell.mode-mobile .wpk-settings-panel .drawer-setting span { color:#b6c1bd; }.app-shell.mode-mobile .wpk-settings-panel .drawer-setting input { accent-color:#15c7ba; }
+.app-shell.mode-mobile .wpk-guide-panel article { display:grid; grid-template-columns:28px 1fr; gap:8px; padding:10px; border-bottom:1px solid #ffffff0d; }
+.app-shell.mode-mobile .wpk-guide-panel article>span { color:#17c7ba; font-size:9px; }.app-shell.mode-mobile .wpk-guide-panel article b { font-size:10px; }.app-shell.mode-mobile .wpk-guide-panel article p { margin:3px 0 0; color:#87948f; font-size:8px; line-height:1.6; }
+
+.app-shell.mode-mobile .interaction-popover { position:fixed; left:0; right:0; bottom:44px; width:100%; min-height:205px; padding:8px 10px max(12px,env(safe-area-inset-bottom)); border:0; border-radius:0; background:#202735f8; box-shadow:0 -13px 32px #0007; }
+.app-shell.mode-mobile .interaction-popover>header { min-height:39px; border-bottom:1px solid #ffffff10; }
+.app-shell.mode-mobile .interaction-popover>header nav button { color:#8f9b97; background:transparent; }.app-shell.mode-mobile .interaction-popover>header nav button.active { color:#edf3f1; background:#313949; }
+.app-shell.mode-mobile .emoji-targets { margin:7px 0; }.app-shell.mode-mobile .emoji-grid { grid-template-columns:repeat(8,1fr); gap:3px; }.app-shell.mode-mobile .emoji-grid button { background:transparent; font-size:22px; }
+
+/* Functional room creation: only public-room core settings. */
+.app-shell.mode-mobile .room-sheet-shade.wpk-create-shade { align-items:stretch; background:#eff3f2; backdrop-filter:none; }
+.app-shell.mode-mobile .create-room-sheet.wpk-create-room { width:100%; height:100%; max-height:none; padding:0; border-radius:0; color:#253b35; background:#f0f3f2; box-shadow:none; }
+.app-shell.mode-mobile .wpk-create-header { display:grid; height:54px; grid-template-columns:40px 1fr 40px; align-items:center; margin:0; padding:max(5px,env(safe-area-inset-top)) 7px 4px; background:linear-gradient(180deg,#dff5f2,#edf3f1); }
+.app-shell.mode-mobile .wpk-create-header h2 { margin:0; font-size:16px; text-align:center; }
+.app-shell.mode-mobile .wpk-create-header button { width:34px; height:34px; border:0; color:#28463d; background:transparent; font-size:25px; }
+.app-shell.mode-mobile .wpk-room-config { display:flex; height:calc(100% - 54px); flex-direction:column; gap:9px; overflow:auto; padding:9px 9px max(9px,env(safe-area-inset-bottom)); }
+.app-shell.mode-mobile .config-card { display:grid; gap:5px; padding:12px; border-radius:7px; background:#fff; box-shadow:0 1px 0 #315e500d; }
+.app-shell.mode-mobile .config-title { display:flex; justify-content:space-between; padding-bottom:9px; border-bottom:1px solid #315e500d; color:#7d8e88; font-size:9px; }.app-shell.mode-mobile .config-title b { color:#3f6d60; }
+.app-shell.mode-mobile .config-row { display:flex; align-items:center; justify-content:space-between; margin-top:9px; color:#71817c; font-size:9px; }.app-shell.mode-mobile .config-row b { color:#263d36; font-size:14px; }.app-shell.mode-mobile .config-row b small { color:#7c8b86; font-size:8px; }
+.app-shell.mode-mobile .config-card>input { width:100%; margin:2px 0 0; accent-color:#17bda9; }
+.app-shell.mode-mobile .range-ticks { display:flex; justify-content:space-between; color:#84938e; font-size:6px; }
+.app-shell.mode-mobile .config-segments { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; padding:3px; border-radius:6px; background:#edf2f0; }
+.app-shell.mode-mobile .config-segments:not(.buyin-segments) { grid-template-columns:repeat(3,1fr); }
+.app-shell.mode-mobile .config-row+.config-segments:not(.buyin-segments):has(button:nth-child(2):last-child) { grid-template-columns:repeat(2,1fr); }
+.app-shell.mode-mobile .config-segments button { height:34px; border:0; border-radius:5px; color:#74857f; background:transparent; font-size:9px; font-weight:800; }.app-shell.mode-mobile .config-segments button.active { color:#fff; background:#22aa94; box-shadow:0 3px 9px #258a7830; }
+.app-shell.mode-mobile .public-room-note { display:flex; align-items:center; gap:9px; padding:11px; border-radius:7px; color:#597168; background:#fff; }
+.app-shell.mode-mobile .public-room-note>i { display:grid; width:31px; height:31px; place-items:center; border-radius:7px; color:#fff; background:#31aa91; font-style:normal; }
+.app-shell.mode-mobile .public-room-note>span { display:grid; gap:2px; }.app-shell.mode-mobile .public-room-note b { font-size:10px; }.app-shell.mode-mobile .public-room-note small { color:#87958f; font-size:7px; }
+.app-shell.mode-mobile .create-room-spacer { flex:1; min-height:4px; }
+.app-shell.mode-mobile .wpk-room-config .create-confirm { flex:0 0 auto; width:100%; min-height:46px; border-radius:5px; color:#fff; background:#13b99f; }
