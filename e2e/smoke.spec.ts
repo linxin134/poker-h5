@@ -268,6 +268,13 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
 
     await guestOnePage.getByRole("button", { name: "牌桌功能" }).click();
     await guestOnePage.locator(".wpk-function-menu").getByRole("button", { name: /牌局回顾/ }).click();
+    await expect(guestOnePage.locator(".game-drawer.tab-history")).toHaveClass(/drawer-left/);
+    const historyDrawer = await guestOnePage.locator(".game-drawer.tab-history").boundingBox();
+    const historyTable = await guestOnePage.locator(".table-screen").boundingBox();
+    expect(historyDrawer).not.toBeNull();
+    expect(historyTable).not.toBeNull();
+    expect(historyDrawer!.x).toBeCloseTo(historyTable!.x, 0);
+    expect(historyDrawer!.width / historyTable!.width).toBeCloseTo(.84, 1);
     await expect(guestOnePage.locator(".history-pager")).toBeVisible();
     await expect(guestOnePage.locator(".hand-record-card")).toHaveCount(1);
     await expect(guestOnePage.locator(".record-seats .record-card-back")).toHaveCount(0);

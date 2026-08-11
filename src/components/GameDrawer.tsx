@@ -12,7 +12,7 @@ const drawerSide: Record<DrawerTab, "left" | "right" | "modal" | "menu"> = {
   menu: "menu",
   chat: "left",
   stats: "left",
-  history: "right",
+  history: "left",
   topup: "modal",
   settings: "modal",
   guide: "modal"

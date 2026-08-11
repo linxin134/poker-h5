@@ -1828,6 +1828,33 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
 .app-shell.mode-mobile .showdown-summary>small { color:#9fb7ae; font-size:7px; }
 
 /* Lightweight history: neutral rows and signed chip delta only. */
+.app-shell.mode-mobile .game-drawer.wpk-panel.drawer-left.tab-history {
+  width:84%;
+  overflow:hidden;
+  color:#e8eeec;
+  background:#1d2430f8;
+  box-shadow:18px 0 44px #0008;
+  backdrop-filter:blur(13px);
+}
+.app-shell.mode-mobile .drawer-left.tab-history .wpk-panel-header { min-height:40px; border-color:#ffffff10; }
+.app-shell.mode-mobile .drawer-left.tab-history .wpk-panel-header h2 { color:#f2f5f4; font-size:14px; }
+.app-shell.mode-mobile .drawer-left.tab-history .wpk-panel-header button { color:#aebbb7; }
+.app-shell.mode-mobile .drawer-left.tab-history .wpk-history-panel { height:calc(100% - 40px); padding:0 2px 12px; }
+.app-shell.mode-mobile .drawer-left.tab-history .history-room-meta { color:#9ba8a3; }
+.app-shell.mode-mobile .drawer-left.tab-history .history-room-meta b { color:#dce5e1; }
+.app-shell.mode-mobile .drawer-left.tab-history .history-pager { padding:0; border-radius:0; background:transparent; }
+.app-shell.mode-mobile .drawer-left.tab-history .history-pager button { border-color:#ffffff10; color:#aebbb7; background:#151c27; box-shadow:none; }
+.app-shell.mode-mobile .drawer-left.tab-history .history-pager>span { color:#dce5e1; }
+.app-shell.mode-mobile .drawer-left.tab-history .history-pager>span small { color:#7f8c88; }
+.app-shell.mode-mobile .drawer-left.tab-history .hand-record-card { color:#dfe6e3; background:#141b25; box-shadow:none; }
+.app-shell.mode-mobile .drawer-left.tab-history .hand-record-card>header { border-color:#ffffff0d; background:#18202a; }
+.app-shell.mode-mobile .drawer-left.tab-history .hand-record-card>header span,
+.app-shell.mode-mobile .drawer-left.tab-history .record-board>small,
+.app-shell.mode-mobile .drawer-left.tab-history .record-player small { color:#7f8c88; }
+.app-shell.mode-mobile .drawer-left.tab-history .hand-record-card>header b,
+.app-shell.mode-mobile .drawer-left.tab-history .record-player b { color:#dce5e1; }
+.app-shell.mode-mobile .drawer-left.tab-history .record-board { border-color:#ffffff0c; background:#171f29; }
+.app-shell.mode-mobile .drawer-left.tab-history .record-seats>div { border-color:#ffffff0c; }
 .app-shell.mode-mobile .tab-history .hand-record-card>header>strong { color:#647a72; font-size:12px; }
 .app-shell.mode-mobile .tab-history .record-seats>div { background:transparent; opacity:1; }
 .app-shell.mode-mobile .tab-history .record-card-back {
