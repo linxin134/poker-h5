@@ -883,8 +883,6 @@ html,body,#root,.app-shell { color:#203029; background:#edf4f0; }
 
 .app-shell.mode-mobile .fresh-table .board-zone { z-index:9; top:45%; gap:8px; }
 .app-shell.mode-mobile .fresh-table .board-cards { min-height:62px; gap:3px; }
-.app-shell.mode-mobile .fresh-table .board-card-slot { position:relative; display:grid; width:43px; height:61px; place-items:center; border:1px dashed #b8d8cc52; border-radius:4px; background:#003e3138; box-shadow:inset 0 0 0 1px #ffffff09; }
-.app-shell.mode-mobile .fresh-table .board-card-slot i { color:#b8d8cc28; font-size:16px; font-style:normal; }
 .app-shell.mode-mobile .fresh-table .pot-badge {
   min-width:74px;
   min-height:24px;
@@ -1365,8 +1363,8 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
 .app-shell.mode-mobile .wpk-chat-compose .send { border-radius:4px; color:#0f2922; background:#14c7bb; font-size:15px; }
 
 .app-shell.mode-mobile .wpk-stats-panel { height:calc(100% - 40px); overflow:auto; padding-top:9px; }
-.app-shell.mode-mobile .wpk-stats-filter,.app-shell.mode-mobile .wpk-activity { display:flex; align-items:center; justify-content:space-between; padding:10px; border-radius:3px; color:#a9b5b1; background:#151c27; font-size:9px; }
-.app-shell.mode-mobile .wpk-stats-filter b,.app-shell.mode-mobile .wpk-activity b { color:#15c5b8; }
+.app-shell.mode-mobile .wpk-stats-filter { display:flex; align-items:center; justify-content:space-between; padding:10px; border-radius:3px; color:#a9b5b1; background:#151c27; font-size:9px; }
+.app-shell.mode-mobile .wpk-stats-filter b { color:#15c5b8; }
 .app-shell.mode-mobile .wpk-ranking-list { margin:8px 0 12px; }
 .app-shell.mode-mobile .wpk-ranking-list article { display:grid; grid-template-columns:20px 36px 1fr auto; gap:7px; align-items:center; min-height:56px; padding:7px 3px; border-bottom:1px solid #ffffff0d; }
 .app-shell.mode-mobile .wpk-ranking-list article.me { background:#ffffff05; }
@@ -1375,6 +1373,15 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
 .app-shell.mode-mobile .wpk-ranking-list article>div>b { color:#eef3f1; font-size:10px; }
 .app-shell.mode-mobile .wpk-ranking-list article p { display:flex; gap:7px; margin:3px 0 0; color:#798681; font-size:6px; }
 .app-shell.mode-mobile .wpk-ranking-list .pixel-chip { min-width:48px; justify-content:flex-end; border:0; background:transparent; }
+.app-shell.mode-mobile .wpk-spectators { margin-top:10px; border-radius:3px; background:#151c27; }
+.app-shell.mode-mobile .wpk-spectators>header { display:flex; align-items:center; justify-content:space-between; padding:9px 10px; border-bottom:1px solid #ffffff0d; color:#a9b5b1; font-size:9px; }
+.app-shell.mode-mobile .wpk-spectators>header b { color:#dce5e1; }
+.app-shell.mode-mobile .wpk-spectators>p { margin:0; padding:15px 10px; color:#697672; font-size:8px; text-align:center; }
+.app-shell.mode-mobile .wpk-spectators>article { display:grid; min-height:43px; grid-template-columns:31px 1fr auto; gap:7px; align-items:center; padding:6px 9px; border-bottom:1px solid #ffffff09; }
+.app-shell.mode-mobile .wpk-spectators>article:last-child { border-bottom:0; }
+.app-shell.mode-mobile .wpk-spectators>article>span { width:29px; height:31px; overflow:hidden; border-radius:6px 6px 9px 9px; }
+.app-shell.mode-mobile .wpk-spectators>article>b { color:#dce5e1; font-size:9px; }
+.app-shell.mode-mobile .wpk-spectators>article>small { color:#6d7975; font-size:7px; }.app-shell.mode-mobile .wpk-spectators>article>small.online { color:#35b98d; }
 .app-shell.mode-mobile .wpk-table-metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; margin-top:12px; background:#ffffff0d; }
 .app-shell.mode-mobile .wpk-table-metrics>span { display:grid; min-height:50px; place-items:center; align-content:center; background:#1a212c; }
 .app-shell.mode-mobile .wpk-table-metrics small { color:#7f8c88; font-size:7px; }.app-shell.mode-mobile .wpk-table-metrics b { margin-top:3px; color:#dce4e1; font-size:11px; }
@@ -1388,11 +1395,7 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
 .app-shell.mode-mobile .wpk-history-panel .hand-record-card { border-color:#ffffff10; color:#dfe6e3; background:#141b25; }
 .app-shell.mode-mobile .wpk-history-panel .record-board,.app-shell.mode-mobile .wpk-history-panel .record-seats>div { border-color:#ffffff0c; }
 
-.app-shell.mode-mobile .wpk-topup-panel { display:grid; place-items:center; padding:0 13px 12px; text-align:center; }
-.app-shell.mode-mobile .wpk-topup-tabs { display:grid; width:calc(100% + 26px); grid-template-columns:1fr 1fr; margin-bottom:14px; border-bottom:1px solid #ffffff14; }
-.app-shell.mode-mobile .wpk-topup-tabs span,.app-shell.mode-mobile .wpk-topup-tabs b { position:relative; padding:12px; color:#7f8c87; font-size:11px; font-weight:500; }
-.app-shell.mode-mobile .wpk-topup-tabs b { color:#16c9bc; }
-.app-shell.mode-mobile .wpk-topup-tabs b:after { content:""; position:absolute; left:25%; right:25%; bottom:0; height:2px; background:#16c9bc; }
+.app-shell.mode-mobile .wpk-topup-panel { display:grid; place-items:center; padding:18px 13px 12px; text-align:center; }
 .app-shell.mode-mobile .wpk-topup-panel>strong { color:#13c9bd; font-size:34px; line-height:1; }
 .app-shell.mode-mobile .wpk-topup-panel>small { margin-top:4px; color:#0fa99f; font-size:12px; }.app-shell.mode-mobile .wpk-topup-panel>p { margin:5px 0 14px; color:#d4dcda; font-size:11px; }
 .app-shell.mode-mobile .wpk-topup-panel>input { width:100%; accent-color:#34a798; }
@@ -1417,6 +1420,8 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
 .app-shell.mode-mobile .wpk-create-header h2 { margin:0; font-size:16px; text-align:center; }
 .app-shell.mode-mobile .wpk-create-header button { width:34px; height:34px; border:0; color:#28463d; background:transparent; font-size:25px; }
 .app-shell.mode-mobile .wpk-room-config { display:flex; height:calc(100% - 54px); flex-direction:column; gap:9px; overflow:auto; padding:9px 9px max(9px,env(safe-area-inset-bottom)); }
+.app-shell.mode-mobile .wpk-room-config { scrollbar-width:none; -ms-overflow-style:none; }
+.app-shell.mode-mobile .wpk-room-config::-webkit-scrollbar { display:none; width:0; height:0; }
 .app-shell.mode-mobile .config-card { display:grid; gap:5px; padding:12px; border-radius:7px; background:#fff; box-shadow:0 1px 0 #315e500d; }
 .app-shell.mode-mobile .config-title { display:flex; justify-content:space-between; padding-bottom:9px; border-bottom:1px solid #315e500d; color:#7d8e88; font-size:9px; }.app-shell.mode-mobile .config-title b { color:#3f6d60; }
 .app-shell.mode-mobile .config-row { display:flex; align-items:center; justify-content:space-between; margin-top:9px; color:#71817c; font-size:9px; }.app-shell.mode-mobile .config-row b { color:#263d36; font-size:14px; }.app-shell.mode-mobile .config-row b small { color:#7c8b86; font-size:8px; }
@@ -1424,6 +1429,7 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
 .app-shell.mode-mobile .range-ticks { display:flex; justify-content:space-between; color:#84938e; font-size:6px; }
 .app-shell.mode-mobile .config-segments { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; padding:3px; border-radius:6px; background:#edf2f0; }
 .app-shell.mode-mobile .config-segments:not(.buyin-segments) { grid-template-columns:repeat(3,1fr); }
+.app-shell.mode-mobile .config-segments.player-count-segments { grid-template-columns:repeat(4,1fr); }
 .app-shell.mode-mobile .config-row+.config-segments:not(.buyin-segments):has(button:nth-child(2):last-child) { grid-template-columns:repeat(2,1fr); }
 .app-shell.mode-mobile .config-segments button { height:34px; border:0; border-radius:5px; color:#74857f; background:transparent; font-size:9px; font-weight:800; }.app-shell.mode-mobile .config-segments button.active { color:#fff; background:#22aa94; box-shadow:0 3px 9px #258a7830; }
 .app-shell.mode-mobile .public-room-note { display:flex; align-items:center; gap:9px; padding:11px; border-radius:7px; color:#597168; background:#fff; }
@@ -1431,3 +1437,45 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
 .app-shell.mode-mobile .public-room-note>span { display:grid; gap:2px; }.app-shell.mode-mobile .public-room-note b { font-size:10px; }.app-shell.mode-mobile .public-room-note small { color:#87958f; font-size:7px; }
 .app-shell.mode-mobile .create-room-spacer { flex:1; min-height:4px; }
 .app-shell.mode-mobile .wpk-room-config .create-confirm { flex:0 0 auto; width:100%; min-height:46px; border-radius:5px; color:#fff; background:#13b99f; }
+.app-shell.mode-mobile .table-screen.spectating .late-join-note { z-index:39; bottom:58px; width:max-content; max-width:calc(100% - 24px); justify-content:center; color:#edf5f2; background:#0b201bdc; border-color:#ffffff22; box-shadow:0 8px 24px #001a146e; }
+
+/* Bottom controls float independently over the felt; there is no full-width navigation slab. */
+.app-shell.mode-mobile .fresh-table,.app-shell.mode-mobile .fresh-table.my-turn,.app-shell.mode-mobile .fresh-table.waiting-turn { --dock-height:0px; }
+.app-shell.mode-mobile .fresh-table .fresh-felt,.app-shell.mode-mobile .waiting-room .waiting-felt,.app-shell.mode-mobile .waiting-with-tools .waiting-felt { bottom:0; }
+.app-shell.mode-mobile .table-stage:after { display:none; }
+.app-shell.mode-mobile .table-bottom-tools { left:9px; bottom:max(8px,env(safe-area-inset-bottom)); gap:7px; }
+.app-shell.mode-mobile .table-bottom-tools button,.app-shell.mode-mobile .waiting-bottom-tools button { width:39px; min-width:39px; height:39px; border:1px solid #ffffff1c; border-radius:9px; color:#e8efec; background:#071d18c7; box-shadow:0 6px 16px #0018126b; backdrop-filter:blur(9px); }
+.app-shell.mode-mobile .waiting-bottom-tools { left:9px; bottom:max(8px,env(safe-area-inset-bottom)); width:85px; height:39px; grid-template-columns:repeat(2,39px); gap:7px; padding:0; }
+.app-shell.mode-mobile .round-tool { width:39px; height:39px; border:1px solid #ffffff1c; border-radius:50%; color:#e8efec; background:#071d18c7; box-shadow:0 6px 16px #0018126b; backdrop-filter:blur(9px); }
+.app-shell.mode-mobile .table-shield { right:57px; bottom:max(13px,calc(env(safe-area-inset-bottom) + 5px)); width:29px; height:29px; border-radius:8px; background:#071d18ad; }
+.app-shell.mode-mobile .fresh-table .action-dock { left:8px; right:8px; bottom:52px; width:auto; border:0; border-radius:0; color:#e8f0ed; background:transparent; box-shadow:none; backdrop-filter:none; }
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn { padding:13px 0 0; }
+.app-shell.mode-mobile .fresh-table .action-dock.waiting-turn { left:auto; right:57px; bottom:54px; width:auto; height:34px; padding:0; background:transparent; }
+.app-shell.mode-mobile .fresh-table .action-dock.waiting-turn .action-waiting { display:none; }
+.app-shell.mode-mobile .fresh-table .action-dock.waiting-turn .preaction-buttons button { height:34px; border-color:#ffffff20; color:#dce6e2; background:#0b211be5; box-shadow:0 6px 16px #0018126b; backdrop-filter:blur(9px); }
+.app-shell.mode-mobile .fresh-table .action-dock .action { border-color:#ffffff18; color:#e2ebe8; background:#18302a; }
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn .action { box-shadow:0 7px 18px #00181273; backdrop-filter:blur(9px); }
+.app-shell.mode-mobile .fresh-table .fresh-felt,.app-shell.mode-mobile .waiting-room .waiting-felt,.app-shell.mode-mobile .waiting-with-tools .waiting-felt { border-bottom:0; border-radius:0; box-shadow:inset 0 -42px 65px #002c2240,inset 0 13px 30px #ffffff0a; }
+.app-shell.mode-mobile .fresh-table .fresh-felt:after,.app-shell.mode-mobile .waiting-room .waiting-felt:after { display:none; }
+.app-shell.mode-mobile .table-topbar,.app-shell.mode-mobile .waiting-room>header,.app-shell.mode-mobile .wpk-create-header { border:0!important; border-bottom:0!important; box-shadow:none; }
+.app-shell.mode-mobile .table-bottom-tools button,.app-shell.mode-mobile .waiting-bottom-tools button,.app-shell.mode-mobile .round-tool,.app-shell.mode-mobile .table-shield { border:0; background:transparent; box-shadow:none; backdrop-filter:none; }
+.app-shell.mode-mobile .table-bottom-tools button small,.app-shell.mode-mobile .waiting-bottom-tools button small { display:none; }
+.app-shell.mode-mobile .table-tools button,.app-shell.mode-mobile .waiting-top-tools button,.app-shell.mode-mobile .table-left .icon-button,.app-shell.mode-mobile .waiting-room>header .icon-button { border:0; background:transparent; box-shadow:none; filter:none; backdrop-filter:none; }
+.app-shell.mode-mobile .table-tools button small,.app-shell.mode-mobile .waiting-top-tools button small { display:none; }
+.app-shell.mode-mobile .table-tools,.app-shell.mode-mobile .waiting-top-tools { gap:7px; }
+.app-shell.mode-mobile .table-tools button,.app-shell.mode-mobile .waiting-top-tools button { display:grid; width:39px; min-width:39px; height:39px; place-items:center; align-content:center; padding:0; }
+.app-shell.mode-mobile .table-tools button span,.app-shell.mode-mobile .waiting-top-tools button span { font-size:19px; line-height:1; }
+.app-shell.mode-mobile .table-tools .invite-tool span,.app-shell.mode-mobile .waiting-top-tools .invite-tool span { font-size:21px; font-weight:400; }
+.app-shell.mode-mobile .table-left .icon-button,.app-shell.mode-mobile .waiting-room>header .icon-button { width:39px; min-width:39px; height:39px; padding:0; font-size:19px; }
+.app-shell.mode-mobile .table-bottom-tools,.app-shell.mode-mobile .waiting-bottom-tools { gap:15px; }
+.app-shell.mode-mobile .waiting-bottom-tools { width:93px; grid-template-columns:repeat(2,39px); }
+.ui-icon { display:block; width:20px; height:20px; flex:0 0 auto; }
+.app-shell.mode-mobile .table-tools .ui-icon,.app-shell.mode-mobile .waiting-top-tools .ui-icon,.app-shell.mode-mobile .table-left .ui-icon,.app-shell.mode-mobile .waiting-room>header .ui-icon { width:20px; height:20px; }
+.app-shell.mode-mobile .table-tools .invite-tool .ui-icon,.app-shell.mode-mobile .waiting-top-tools .invite-tool .ui-icon { width:21px; height:21px; }
+.app-shell.mode-mobile .table-bottom-tools .ui-icon,.app-shell.mode-mobile .waiting-bottom-tools .ui-icon,.app-shell.mode-mobile .round-tool .ui-icon { width:22px; height:22px; }
+.app-shell.mode-mobile .table-shield .ui-icon { width:19px; height:19px; }
+.app-shell.mode-mobile .wpk-function-menu .ui-icon { width:17px; height:17px; margin:auto; }
+.app-shell.mode-mobile .wpk-panel-header .ui-icon,.app-shell.mode-mobile .interaction-popover .popover-close .ui-icon { width:18px; height:18px; margin:auto; }
+.app-shell.mode-mobile .wpk-chat-compose .ui-icon { width:18px; height:18px; margin:auto; }
+.app-shell.mode-mobile .fresh-table .action-dock .action.fold { color:#ffb0a9; background:#4b2422; }
+.app-shell.mode-mobile .fresh-table .action-dock .action.raise { color:#36240d; background:linear-gradient(180deg,#ffd392,#eaa953); }

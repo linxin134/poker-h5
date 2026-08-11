@@ -61,7 +61,8 @@ export function startHand(input: PokerState, random = Math.random): PokerState {
   state.handStartStacks = Object.fromEntries(state.seats.map((seat) => [seat.id, seat.stack]));
   state.seats.forEach((seat) => Object.assign(seat, { holeCards: [], bet: 0, totalContribution: 0, folded: seat.stack <= 0, allIn: false, lastAction: undefined }));
   state.dealerIndex = nextIndex(state, state.dealerIndex, (seat) => seat.stack > 0);
-  const sb = nextIndex(state, state.dealerIndex, (seat) => seat.stack > 0);
+  const headsUp = state.seats.filter((seat) => seat.stack > 0).length === 2;
+  const sb = headsUp ? state.dealerIndex : nextIndex(state, state.dealerIndex, (seat) => seat.stack > 0);
   const bb = nextIndex(state, sb, (seat) => seat.stack > 0);
   for (let round = 0; round < 2; round += 1) {
     for (const seat of state.seats) if (!seat.folded) seat.holeCards.push(state.deck.pop()!);
@@ -73,7 +74,8 @@ export function startHand(input: PokerState, random = Math.random): PokerState {
   state.actorIndex = nextIndex(state, bb, eligible);
   record(state, `第 ${state.handNumber} 局开始`, "hand-start");
   event(state, "deal");
-  event(state, "turn", state.seats[state.actorIndex]?.id);
+  if (state.actorIndex < 0) advanceStreet(state);
+  else event(state, "turn", state.seats[state.actorIndex].id);
   return state;
 }
 
@@ -85,8 +87,9 @@ export function legalActions(state: PokerState, seatIndex = state.actorIndex): L
   if (callAmount === 0) actions.push("check"); else actions.push("call");
   const minRaiseTo = state.currentBet + state.minRaise;
   const maxRaiseTo = seat.bet + seat.stack;
-  if (maxRaiseTo > state.currentBet && maxRaiseTo >= minRaiseTo) actions.push("raise");
-  if (seat.stack > 0) actions.push("all-in");
+  const actionReopened = !state.actedThisRound.includes(seat.id);
+  if (actionReopened && maxRaiseTo > state.currentBet && maxRaiseTo >= minRaiseTo) actions.push("raise");
+  if (seat.stack > 0 && (seat.stack <= callAmount || actionReopened)) actions.push("all-in");
   return { actions, callAmount, minRaiseTo: Math.min(minRaiseTo, maxRaiseTo), maxRaiseTo };
 }
 
@@ -128,7 +131,13 @@ function showdown(state: PokerState) {
   for (const pot of buildSidePots(state.seats)) {
     const candidates = pot.eligibleSeatIds.map((id) => ({ id, score: scores.get(id)! }));
     const best = candidates.sort((a, b) => compareScores(b.score, a.score))[0].score;
-    const tied = candidates.filter((entry) => compareScores(entry.score, best) === 0);
+    const tied = candidates.filter((entry) => compareScores(entry.score, best) === 0).sort((a, b) => {
+      const distance = (id: string) => {
+        const index = state.seats.findIndex((seat) => seat.id === id);
+        return (index - state.dealerIndex + state.seats.length) % state.seats.length || state.seats.length;
+      };
+      return distance(a.id) - distance(b.id);
+    });
     const share = Math.floor(pot.amount / tied.length);
     tied.forEach((entry, index) => {
       const seat = state.seats.find((item) => item.id === entry.id)!;
@@ -150,9 +159,9 @@ function showdown(state: PokerState) {
 
 function advanceStreet(state: PokerState) {
   sweepBets(state);
-  if (state.phase === "preflop") { state.phase = "flop"; state.board.push(state.deck.pop()!, state.deck.pop()!, state.deck.pop()!); }
-  else if (state.phase === "flop") { state.phase = "turn"; state.board.push(state.deck.pop()!); }
-  else if (state.phase === "turn") { state.phase = "river"; state.board.push(state.deck.pop()!); }
+  if (state.phase === "preflop") { state.phase = "flop"; state.deck.pop(); state.board.push(state.deck.pop()!, state.deck.pop()!, state.deck.pop()!); }
+  else if (state.phase === "flop") { state.phase = "turn"; state.deck.pop(); state.board.push(state.deck.pop()!); }
+  else if (state.phase === "turn") { state.phase = "river"; state.deck.pop(); state.board.push(state.deck.pop()!); }
   else { showdown(state); return; }
   record(state, `${state.phase} 发牌`, "street");
   event(state, "street", undefined, { phase: state.phase });
@@ -171,13 +180,17 @@ export function applyAction(input: PokerState, seatId: string, action: PlayerAct
   if (action === "check") seat.lastAction = "过牌";
   if (action === "call") { const amount = commit(seat, legal.callAmount); seat.lastAction = `跟注 ${amount}`; event(state, "chips", seat.id, { amount }); }
   if (action === "raise" || action === "all-in") {
-    const target = action === "all-in" ? legal.maxRaiseTo : Math.max(legal.minRaiseTo, Math.min(raiseTo ?? legal.minRaiseTo, legal.maxRaiseTo));
+    if (action === "raise" && (!Number.isInteger(raiseTo) || raiseTo! < legal.minRaiseTo || raiseTo! > legal.maxRaiseTo)) throw new Error("加注金额不合法");
+    const target = action === "all-in" ? legal.maxRaiseTo : raiseTo!;
     const previous = state.currentBet;
     const amount = commit(seat, target - seat.bet);
     if (seat.bet > previous) {
-      state.minRaise = Math.max(state.minRaise, seat.bet - previous);
       state.currentBet = seat.bet;
-      state.actedThisRound = [];
+      const raiseSize = seat.bet - previous;
+      if (raiseSize >= state.minRaise) {
+        state.minRaise = raiseSize;
+        state.actedThisRound = [];
+      }
     }
     seat.lastAction = action === "all-in" ? `全下 ${seat.bet}` : `加注至 ${seat.bet}`;
     event(state, "chips", seat.id, { amount, allIn: action === "all-in" });

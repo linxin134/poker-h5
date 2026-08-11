@@ -246,6 +246,7 @@ function applyPendingTopUps(room: RoomRuntime) {
     const added = Math.max(0, member.topUpTarget - seat.stack);
     seat.stack += added;
     member.buyIn += added;
+    member.topUpTarget = null;
   }
 }
 
@@ -335,7 +336,7 @@ export const roomService = {
     if (!room) throw Object.assign(new Error("房间不存在或服务器已重启"), { statusCode: 404 });
     if (room.members.some((member) => member.userId === user.id)) return { code };
     if (room.status === "finished") throw Object.assign(new Error("房间已经结束"), { statusCode: 409 });
-    if (room.members.length >= room.capacity) throw Object.assign(new Error("房间已满"), { statusCode: 409 });
+    if (room.members.filter((member) => member.seatIndex !== null).length >= room.capacity) throw Object.assign(new Error("房间已满"), { statusCode: 409 });
     room.members.push(memberFor(user, room.hostUserId));
     saveRoom(room);
     broadcastRoom(room);
@@ -344,7 +345,7 @@ export const roomService = {
 
   list(): RoomListItem[] {
     return [...rooms.values()]
-      .filter((room) => room.status !== "finished" && room.members.length < room.capacity)
+      .filter((room) => room.status !== "finished" && room.members.filter((member) => member.seatIndex !== null).length < room.capacity && room.members.some((member) => member.connected))
       .sort((a, b) => b.createdAt - a.createdAt)
       .map((room) => ({
         code: room.code,

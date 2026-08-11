@@ -16,4 +16,16 @@ describe("buildSidePots", () => {
     const pots = buildSidePots([seat("a", 100, true), seat("b", 100)]);
     expect(pots[0]).toEqual({ amount: 200, eligibleSeatIds: ["b"] });
   });
+
+  it("相同投入只生成一个底池", () => {
+    expect(buildSidePots([seat("a", 250), seat("b", 250), seat("c", 250)])).toEqual([
+      { amount: 750, eligibleSeatIds: ["a", "b", "c"] }
+    ]);
+  });
+
+  it("零投入玩家不会制造空边池", () => {
+    expect(buildSidePots([seat("a", 0), seat("b", 100), seat("c", 100)])).toEqual([
+      { amount: 200, eligibleSeatIds: ["b", "c"] }
+    ]);
+  });
 });

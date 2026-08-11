@@ -29,7 +29,8 @@ export function ActionBar({ game, mySeatId, turnRemainingMs, onAct }: { game: Po
   const seconds = Math.max(0, Math.ceil(turnRemainingMs / 1000));
   const visiblePot = game.pot + game.seats.reduce((sum, seat) => sum + seat.bet, 0);
   const quickRaises = [["1/3", .33], ["1/2", .5], ["2/3", .67], ["底池", 1]] as const;
-  const quickTarget = (ratio: number) => Math.min(legal.maxRaiseTo, Math.max(legal.minRaiseTo, Math.round((visiblePot * ratio + game.currentBet) / 10) * 10));
+  const chipUnit = Math.max(1, game.smallBlind);
+  const quickTarget = (ratio: number) => Math.min(legal.maxRaiseTo, Math.max(legal.minRaiseTo, Math.round((visiblePot * ratio + game.currentBet) / chipUnit) * chipUnit));
   const commitRaise = () => {
     setRaiseOpen(false);
     if (raiseTo >= legal.maxRaiseTo) onAct("all-in");
@@ -53,7 +54,7 @@ export function ActionBar({ game, mySeatId, turnRemainingMs, onAct }: { game: Po
       {raiseOpen && <div className="raise-panel">
         <header><span>加注至</span><b>{raiseTo >= legal.maxRaiseTo ? "ALL IN" : raiseTo.toLocaleString()}</b></header>
         <div className="quick-raises">{quickRaises.map(([label, ratio]) => { const target = quickTarget(ratio); return <button className={quickPreset === label ? "active" : ""} key={label} onClick={() => { setQuickPreset(label); setRaiseTo(target); }}>{label}</button>; })}</div>
-        <input aria-label="加注金额" type="range" min={legal.minRaiseTo} max={Math.max(legal.minRaiseTo, legal.maxRaiseTo)} step={10} value={Math.min(raiseTo, legal.maxRaiseTo)} onChange={(event) => { setQuickPreset(null); setRaiseTo(Number(event.target.value)); }} />
+        <input aria-label="加注金额" type="range" min={legal.minRaiseTo} max={Math.max(legal.minRaiseTo, legal.maxRaiseTo)} step={chipUnit} value={Math.min(raiseTo, legal.maxRaiseTo)} onChange={(event) => { setQuickPreset(null); setRaiseTo(Number(event.target.value)); }} />
         <button className="raise-confirm" onClick={commitRaise}>{raiseTo >= legal.maxRaiseTo ? "确认全下" : `确认加注 ${raiseTo.toLocaleString()}`}</button>
       </div>}
     </div>

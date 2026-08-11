@@ -4,6 +4,7 @@ import type { Card } from "../game/types";
 import type { RoomView } from "../multiplayer/types";
 import { useGameStore } from "../store/gameStore";
 import { GameAvatar } from "./GameAvatar";
+import { UiIcon, type UiIconName } from "./UiIcon";
 
 export type DrawerTab = "menu" | "chat" | "topup" | "settings" | "history" | "guide" | "stats";
 
@@ -30,6 +31,7 @@ export function GameDrawer({ initialTab, onClose, onLeave, onTopup, room }: { in
   const updateSettings = useGameStore((state) => state.updateSettings);
   const side = drawerSide[tab];
   const seatedMembers = room.members.filter((member) => member.seatIndex !== null);
+  const spectators = room.members.filter((member) => member.seatIndex === null);
   const totalPot = room.hands.reduce((sum, hand) => sum + hand.pot, 0);
   const elapsedMinutes = Math.max(0, Math.floor(((room.endsAt ? Math.min(room.endsAt, Date.now()) : Date.now()) - (room.startedAt ?? Date.now())) / 60_000));
   const remainingMinutes = room.endsAt ? Math.max(0, Math.ceil((room.endsAt - Date.now()) / 60_000)) : room.durationMinutes;
@@ -45,31 +47,31 @@ export function GameDrawer({ initialTab, onClose, onLeave, onTopup, room }: { in
     onTopup(topup);
     setTopupSaved(true);
   };
-  const initial = side === "left" ? { x: "-100%" } : side === "right" ? { x: "100%" } : side === "menu" ? { opacity: 0, scale: .92, x: -8, y: -8 } : { opacity: 0, scale: .9, y: 16 };
-  const animate = side === "left" || side === "right" ? { x: 0 } : { opacity: 1, scale: 1, x: 0, y: 0 };
+  const initial = side === "left" ? { x: "-100%" } : side === "right" ? { x: "100%" } : side === "menu" ? { opacity: 0, scale: .92, x: -8, y: -8 } : { opacity: 0 };
+  const animate = side === "left" || side === "right" ? { x: 0 } : side === "menu" ? { opacity: 1, scale: 1, x: 0, y: 0 } : { opacity: 1 };
   const exit = initial;
 
   return <motion.aside className={`game-drawer wpk-panel drawer-${side} tab-${tab}`} initial={initial} animate={animate} exit={exit} transition={{ duration: .22, ease: "easeOut" }}>
     {tab === "menu" ? <div className="wpk-function-menu">
-      <MenuButton icon="↪" label="退出牌局" onClick={onLeave} />
-      <MenuButton icon="▣" label="牌局回顾" onClick={() => switchTab("history")} />
-      <MenuButton icon="▥" label="实时排名" onClick={() => switchTab("stats")} />
-      <MenuButton icon="♠" label="规则说明" onClick={() => switchTab("guide")} />
-      <MenuButton icon="＋" label="补充记分牌" onClick={() => switchTab("topup")} />
-      <MenuButton icon="⚙" label="桌面设置" onClick={() => switchTab("settings")} />
+      <MenuButton icon="leave" label="退出牌局" onClick={onLeave} />
+      <MenuButton icon="history" label="牌局回顾" onClick={() => switchTab("history")} />
+      <MenuButton icon="stats" label="实时排名" onClick={() => switchTab("stats")} />
+      <MenuButton icon="rules" label="规则说明" onClick={() => switchTab("guide")} />
+      <MenuButton icon="chips" label="补充记分牌" onClick={() => switchTab("topup")} />
+      <MenuButton icon="settings" label="桌面设置" onClick={() => switchTab("settings")} />
     </div> : <>
       <header className="wpk-panel-header">
-        <button className="panel-back" aria-label="返回功能菜单" onClick={() => tab === "chat" || tab === "stats" || tab === "history" ? onClose() : switchTab("menu")}>‹</button>
+        <button className="panel-back" aria-label="返回功能菜单" onClick={() => tab === "chat" || tab === "stats" || tab === "history" ? onClose() : switchTab("menu")}><UiIcon name="back" /></button>
         <h2>{tab === "chat" ? "牌桌聊天" : tab === "stats" ? "实时排名" : tab === "history" ? "牌局回顾" : tab === "topup" ? "补充记分牌" : tab === "settings" ? "桌面设置" : "规则说明"}</h2>
-        <button className="panel-close" aria-label="关闭" onClick={onClose}>×</button>
+        <button className="panel-close" aria-label="关闭" onClick={onClose}><UiIcon name="close" /></button>
       </header>
 
       {tab === "chat" && <div className="wpk-chat-panel">
         <div className="wpk-chat-messages">{messages.map((message) => <div className={message.mine ? "mine" : "system"} key={message.id}><i>♠</i><p>{message.text}</p></div>)}</div>
         <form className="wpk-chat-compose" onSubmit={(event) => { event.preventDefault(); sendChat(); }}>
-          <button type="button" aria-label="添加表情" onClick={() => setChatText((value) => `${value}🙂`)}>☺</button>
+          <button type="button" aria-label="添加表情" onClick={() => setChatText((value) => `${value}🙂`)}><UiIcon name="smile" /></button>
           <input aria-label="聊天内容" value={chatText} onChange={(event) => setChatText(event.target.value)} placeholder="说点什么…" maxLength={40} />
-          <button className="send" aria-label="发送" type="submit">➤</button>
+          <button className="send" aria-label="发送" type="submit"><UiIcon name="send" /></button>
         </form>
       </div>}
 
@@ -86,7 +88,14 @@ export function GameDrawer({ initialTab, onClose, onLeave, onTopup, room }: { in
             <PixelChip value={entry.delta} />
           </article>;
         })}</div>
-        <div className="wpk-activity"><span>活跃度积分</span><b>{room.hands.length} / {Math.max(1, room.hands.length)}</b></div>
+        <section className="wpk-spectators">
+          <header><span>旁观人员</span><b>{spectators.length} 人</b></header>
+          {spectators.length === 0 ? <p>暂无旁观人员</p> : spectators.map((member) => <article key={member.userId}>
+            <span><GameAvatar seed={member.userId} label={member.nickname} /></span>
+            <b>{member.nickname}</b>
+            <small className={member.connected ? "online" : ""}>{member.connected ? "在线旁观" : "已离线"}</small>
+          </article>)}
+        </section>
         <div className="wpk-table-metrics">
           <Metric label="全部流水" value={totalPot.toLocaleString()} />
           <Metric label="全部带入" value={seatedMembers.reduce((sum, item) => sum + (item.buyIn || room.startingStack), 0).toLocaleString()} />
@@ -112,7 +121,6 @@ export function GameDrawer({ initialTab, onClose, onLeave, onTopup, room }: { in
       </div>}
 
       {tab === "topup" && <div className="wpk-topup-panel">
-        <div className="wpk-topup-tabs"><span>钻石</span><b>记分牌</b></div>
         <strong>{topup.toLocaleString()}</strong>
         <small>({Math.round(topup / room.bigBlind)}BB)</small>
         <p>带入记分牌</p>
@@ -137,7 +145,7 @@ export function GameDrawer({ initialTab, onClose, onLeave, onTopup, room }: { in
   </motion.aside>;
 }
 
-function MenuButton({ icon, label, onClick }: { icon: string; label: string; onClick(): void }) { return <button onClick={onClick}><span>{icon}</span><b>{label}</b></button>; }
+function MenuButton({ icon, label, onClick }: { icon: UiIconName; label: string; onClick(): void }) { return <button onClick={onClick}><span><UiIcon name={icon} /></span><b>{label}</b></button>; }
 function Metric({ label, value }: { label: string; value: string }) { return <span><small>{label}</small><b>{value}</b></span>; }
 function CardStrip({ cards, empty }: { cards: Card[]; empty?: string }) {
   if (!cards.length) return <span className="record-empty">{empty ?? "—"}</span>;

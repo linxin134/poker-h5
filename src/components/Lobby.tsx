@@ -5,6 +5,7 @@ import { api, type User } from "../services/api";
 import { useGameStore } from "../store/gameStore";
 import { useRoomStore } from "../store/roomStore";
 import { GameAvatar } from "./GameAvatar";
+import { UiIcon } from "./UiIcon";
 
 const BLINDS = [[1, 2], [2, 4], [5, 10], [10, 20], [20, 40]] as const;
 const BUY_IN_BB = [50, 100, 200] as const;
@@ -12,8 +13,8 @@ const BUY_IN_BB = [50, 100, 200] as const;
 export function Lobby({ user, onLogin, onLogout }: { user: User | null; onLogin(): void; onLogout(): void }) {
   const setScreen = useGameStore((state) => state.setScreen);
   const connect = useRoomStore((state) => state.connect);
-  const [seats, setSeats] = useState(6);
-  const [blindIndex, setBlindIndex] = useState(3);
+  const [seats, setSeats] = useState(8);
+  const [blindIndex, setBlindIndex] = useState(0);
   const [buyInBb, setBuyInBb] = useState<(typeof BUY_IN_BB)[number]>(100);
   const [durationMinutes, setDurationMinutes] = useState<RoomDurationMinutes>(30);
   const [rooms, setRooms] = useState<RoomListItem[]>([]);
@@ -58,7 +59,7 @@ export function Lobby({ user, onLogin, onLogout }: { user: User | null; onLogin(
     <header className="mobile-lobby-header">
       <a className="brand" href="#"><span className="brand-mark">♠</span><span>给我擦皮鞋</span></a>
       <div className="profile-actions">
-        {user ? <><span className="profile-chip"><GameAvatar seed={user.id} label={user.nickname} /><b>{user.nickname}</b></span><button className="lobby-icon-button" aria-label="退出登录" onClick={onLogout}>↗</button></> : <button className="login-pill" onClick={onLogin}>登录</button>}
+        {user ? <><span className="profile-chip"><GameAvatar seed={user.id} label={user.nickname} /><b>{user.nickname}</b></span><button className="lobby-icon-button" aria-label="退出登录" onClick={onLogout}><UiIcon name="leave" /></button></> : <button className="login-pill" onClick={onLogin}>登录</button>}
       </div>
     </header>
 
@@ -76,14 +77,14 @@ export function Lobby({ user, onLogin, onLogout }: { user: User | null; onLogin(
     </main>
 
     <nav className="mobile-lobby-nav" aria-label="大厅导航">
-      <button className="active"><span>▥</span><small>牌桌</small></button>
-      <button className="create-room-trigger" onClick={() => setCreateOpen(true)}><span>＋</span><small>创建房间</small></button>
-      <button onClick={user ? undefined : onLogin}><span>♙</span><small>我的</small></button>
+      <button className="active"><span><UiIcon name="cards" /></span><small>牌桌</small></button>
+      <button className="create-room-trigger" onClick={() => setCreateOpen(true)}><span><UiIcon name="plus" /></span><small>创建房间</small></button>
+      <button onClick={user ? undefined : onLogin}><span><UiIcon name="user" /></span><small>我的</small></button>
     </nav>
 
     <AnimatePresence>{createOpen && <motion.div className="room-sheet-shade wpk-create-shade" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <motion.section className="create-room-sheet wpk-create-room" initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ duration: .24, ease: "easeOut" }}>
-        <header className="wpk-create-header"><button className="create-back" aria-label="返回" onClick={() => setCreateOpen(false)}>‹</button><h2>德州</h2><span /></header>
+        <header className="wpk-create-header"><button className="create-back" aria-label="返回" onClick={() => setCreateOpen(false)}><UiIcon name="back" /></button><h2>德州</h2><span /></header>
         <div className="wpk-room-config">
           <section className="config-card">
             <div className="config-title"><span>牌桌属性</span><b>公开房</b></div>
@@ -98,7 +99,7 @@ export function Lobby({ user, onLogin, onLogout }: { user: User | null; onLogin(
             <div className="config-segments">{[30, 60].map((value) => <button key={value} className={durationMinutes === value ? "active" : ""} onClick={() => setDurationMinutes(value as RoomDurationMinutes)}>{value === 30 ? "0.5 小时" : "1 小时"}</button>)}</div>
 
             <label className="config-row"><span>牌桌人数</span><b>{seats} 人</b></label>
-            <div className="config-segments">{[3, 6, 9].map((value) => <button key={value} className={seats === value ? "active" : ""} onClick={() => setSeats(value)}>{value} 人</button>)}</div>
+            <div className="config-segments player-count-segments">{[3, 6, 8, 9].map((value) => <button key={value} className={seats === value ? "active" : ""} onClick={() => setSeats(value)}>{value} 人</button>)}</div>
           </section>
 
           <div className="public-room-note"><i>♣</i><span><b>公开好友房</b><small>房间会直接显示在大厅列表，玩家点击即可加入</small></span></div>

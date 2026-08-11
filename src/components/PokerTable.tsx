@@ -10,6 +10,7 @@ import { PlayingCard } from "./PlayingCard";
 import { EffectsLayer } from "../pixi/EffectsLayer";
 import { playSound } from "../services/audio";
 import { GameAvatar } from "./GameAvatar";
+import { UiIcon } from "./UiIcon";
 
 const phaseLabels = { idle: "等待", preflop: "翻牌前", flop: "翻牌", turn: "转牌", river: "河牌", showdown: "摊牌", complete: "本手结束" };
 
@@ -110,16 +111,16 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
 
   return <section data-drawer={drawer ?? ""} className={`table-screen fresh-table ${game.phase === "complete" ? "settled" : ""} ${!mySeat ? "spectating" : ""} ${actorSeatId === room.mySeatId ? "my-turn" : "waiting-turn"}`} style={{ "--animation-speed": `${1 / settings.animationSpeed}s` } as CSSProperties}>
     <header className="table-topbar wpk-table-bar">
-      <div className="table-left"><button className="icon-button table-menu-trigger" aria-label="牌桌功能" onClick={() => setDrawer("menu")}>☰</button><span className="hand-chip">第 {game.handNumber} 手 · {phaseLabels[game.phase]}</span></div>
+      <div className="table-left"><button className="icon-button table-menu-trigger" aria-label="牌桌功能" onClick={() => setDrawer("menu")}><UiIcon name="menu" /></button><span className="hand-chip">第 {game.handNumber} 手 · {phaseLabels[game.phase]}</span></div>
       <div className="table-status-hud">
         <span><small>底池</small><b>{visiblePot.toLocaleString()}</b></span>
         <i />
         <span className={roomRemaining <= 0 ? "expired" : ""}><small>{roomRemaining <= 0 ? "本手后结束" : "房间剩余"}</small><b>{formatClock(roomRemaining)}</b></span>
       </div>
       <div className="table-tools">
-        <button aria-label="邀请好友" onClick={copyInvite}><span>♣</span><small>邀请</small></button>
-        <button aria-label="补充记分牌" onClick={() => setDrawer("topup")}><span>🛒</span><small>补码</small></button>
-        <button aria-label="牌局回顾" onClick={() => setDrawer("history")}><span>▣</span><small>回顾</small></button>
+        <button className="invite-tool" aria-label="邀请好友" onClick={copyInvite}><UiIcon name="plus" /></button>
+        <button aria-label="补充记分牌" onClick={() => setDrawer("topup")}><UiIcon name="chips" /></button>
+        <button aria-label="牌局回顾" onClick={() => setDrawer("history")}><UiIcon name="history" /></button>
       </div>
     </header>
 
@@ -129,7 +130,7 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
         <div className="board-cards">
           {Array.from({ length: 5 }, (_, index) => game.board[index]
             ? <PlayingCard key={`${game.handId}-${index}-${game.board[index]}`} card={game.board[index]} delay={index * .08} />
-            : <span className="card-slot board-card-slot" aria-label={`公共牌位 ${index + 1}`} key={`${game.handId}-slot-${index}`}><i>♠</i></span>)}
+            : <PlayingCard key={`${game.handId}-slot-${index}`} hidden delay={index * .05} />)}
         </div>
         <div className="pot-badge"><i>●</i><span>{visiblePot.toLocaleString()}</span></div>
       </div>
@@ -159,18 +160,18 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
         <span>＋</span><b>空位</b><small>点击落座</small>
       </motion.button>)}
 
-      {!mySeat && <div className={`late-join-note ${canChooseLateSeat ? "choosing" : "ready"}`}><i />{canChooseLateSeat ? "选择一个空位，下一手参与" : "已落座，下一手自动参与"}</div>}
+      {!mySeat && <div className={`late-join-note ${canChooseLateSeat ? "choosing" : "ready"}`}><i />{canChooseLateSeat ? "选择空位落座，下一手发两张底牌" : "已落座，下一手自动发两张底牌"}</div>}
 
       <AnimatePresence>{interactionSeat && <motion.div className="player-interaction-card" initial={{ opacity: 0, scale: .86, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: .9 }}>
-        <header><span><GameAvatar seed={interactionSeat.userId ?? interactionSeat.id} label={interactionSeat.name} /></span><div><small>与玩家互动</small><b>{interactionSeat.name}</b></div><button onClick={() => setInteractionSeatId(null)}>×</button></header>
+        <header><span><GameAvatar seed={interactionSeat.userId ?? interactionSeat.id} label={interactionSeat.name} /></span><div><small>与玩家互动</small><b>{interactionSeat.name}</b></div><button aria-label="关闭玩家互动" onClick={() => setInteractionSeatId(null)}><UiIcon name="close" /></button></header>
         <div>{[["👏", "点赞"], ["🍺", "干杯"], ["🌹", "送花"], ["🍅", "番茄"]].map(([emoji, label]) => <button key={label} onClick={() => { playInteraction(emoji, interactionSeat.id); setInteractionSeatId(null); }}><span>{emoji}</span><small>{label}</small></button>)}</div>
       </motion.div>}</AnimatePresence>
 
       <div className="table-bottom-tools">
-        <button onClick={() => setDrawer("stats")}><span>▥</span><small>计分</small></button>
-        <button onClick={() => setDrawer("chat")}><span>▰</span><small>聊天</small></button>
+        <button aria-label="计分" onClick={() => setDrawer("stats")}><UiIcon name="stats" /></button>
+        <button aria-label="聊天" onClick={() => setDrawer("chat")}><UiIcon name="chat" /></button>
       </div>
-      <button className="table-shield" aria-label="牌局由服务端校验" onClick={() => showNotice("牌局操作由服务端校验")}>◆</button>
+      <button className="table-shield" aria-label="牌局由服务端校验" onClick={() => showNotice("牌局操作由服务端校验")}><UiIcon name="shield" /></button>
       <EmojiTray targetSeatId={targetSeatId} targets={interactionTargets} onSend={playInteraction} />
       <EffectsLayer seatPositions={effectSeatPositions} />
       <AnimatePresence>
@@ -197,13 +198,22 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
 
 function WaitingRoom({ room, user, connectionStatus, onSit, onStart, onTopup, onLeave }: { room: NonNullable<ReturnType<typeof useRoomStore.getState>["room"]>; user: User | null; connectionStatus: string; onSit(seatIndex: number): void; onStart(): void; onTopup(targetStack: number): void; onLeave(): void }) {
   const [drawer, setDrawer] = useState<DrawerTab | null>(null);
+  const receiveEmoji = useGameStore((state) => state.receiveEmoji);
   const isHost = room.hostUserId === user?.id;
   const seatedCount = room.members.filter((member) => member.seatIndex !== null).length;
   const slots = Array.from({ length: room.capacity }, (_, index) => room.members.find((member) => member.seatIndex === index));
   const myPosition = room.members.find((member) => member.userId === user?.id)?.seatIndex ?? 0;
+  const emojiTargets = room.members.filter((member) => member.seatIndex !== null && member.userId !== user?.id).map((member) => ({ id: member.seatId, name: member.nickname }));
+  const emojiTarget = emojiTargets[0]?.id ?? room.mySeatId ?? "waiting-table";
+  const waitingEffectPositions = Object.fromEntries(room.members.flatMap((member) => {
+    if (member.seatIndex === null) return [];
+    const relativePosition = (member.seatIndex - myPosition + room.capacity) % room.capacity;
+    const angle = (Math.PI / 180) * (90 + relativePosition * 360 / room.capacity);
+    return [[member.seatId, { x: (50 + Math.cos(angle) * 42) / 100, y: (47 + Math.sin(angle) * 35) / 100 }]];
+  }));
   function copyInvite() { void navigator.clipboard.writeText(`给我擦皮鞋 · 房间 ${room.code}`).catch(() => undefined); }
   return <section className="waiting-room waiting-with-tools">
-    <header><button className="icon-button table-menu-trigger" aria-label="牌桌功能" onClick={() => setDrawer("menu")}>☰</button><span className="hand-chip">房间 {room.code} · 等待开始</span><span className={`connection-pill ${connectionStatus}`}>● {connectionStatus === "connected" ? "实时连接" : "正在重连"}</span><div className="waiting-top-tools"><button aria-label="邀请好友" onClick={copyInvite}><span>♣</span><small>邀请</small></button><button aria-label="补充记分牌" onClick={() => setDrawer("topup")}><span>🛒</span><small>补码</small></button><button aria-label="牌局回顾" onClick={() => setDrawer("history")}><span>▣</span><small>回顾</small></button></div></header>
+    <header><button className="icon-button table-menu-trigger" aria-label="牌桌功能" onClick={() => setDrawer("menu")}><UiIcon name="menu" /></button><span className="hand-chip">房间 {room.code} · 等待开始</span><span className={`connection-pill ${connectionStatus}`}>● {connectionStatus === "connected" ? "实时连接" : "正在重连"}</span><div className="waiting-top-tools"><button className="invite-tool" aria-label="邀请好友" onClick={copyInvite}><UiIcon name="plus" /></button><button aria-label="补充记分牌" onClick={() => setDrawer("topup")}><UiIcon name="chips" /></button><button aria-label="牌局回顾" onClick={() => setDrawer("history")}><UiIcon name="history" /></button></div></header>
     <main className="waiting-table-stage">
       <div className="waiting-felt" />
       {slots.map((member, index) => {
@@ -224,9 +234,11 @@ function WaitingRoom({ room, user, connectionStatus, onSit, onStart, onTopup, on
         {isHost ? <button className="primary-button start-room-button" disabled={seatedCount < 3} onClick={onStart}>{seatedCount < 3 ? `还需 ${3 - seatedCount} 人落座` : "开始牌局 →"}</button> : <div className="guest-waiting"><span className="room-loader" /><b>{room.mySeatId ? "等待房主开始" : "请选择一个空位落座"}</b></div>}
       </motion.div>
       <nav className="waiting-bottom-tools" aria-label="牌桌功能栏">
-        <button onClick={() => setDrawer("stats")}><span>▥</span><small>计分</small></button>
-        <button onClick={() => setDrawer("chat")}><span>▰</span><small>聊天</small></button>
+        <button aria-label="计分" onClick={() => setDrawer("stats")}><UiIcon name="stats" /></button>
+        <button aria-label="聊天" onClick={() => setDrawer("chat")}><UiIcon name="chat" /></button>
       </nav>
+      <EmojiTray targetSeatId={emojiTarget} targets={emojiTargets} onSend={(emoji, target) => receiveEmoji(crypto.randomUUID(), emoji, room.mySeatId || "waiting-self", target)} />
+      <EffectsLayer seatPositions={waitingEffectPositions} />
     </main>
     {drawer && <><div className="drawer-shade" onClick={() => setDrawer(null)} /><GameDrawer key={drawer} initialTab={drawer} room={room} onClose={() => setDrawer(null)} onLeave={onLeave} onTopup={onTopup} /></>}
   </section>;

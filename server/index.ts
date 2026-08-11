@@ -14,6 +14,13 @@ await app.register(websocket);
 const secure = process.env.COOKIE_SECURE === "true";
 const cookieOptions = { httpOnly: true, sameSite: "lax" as const, secure, path: "/", maxAge: sessionMaxAge };
 
+app.setErrorHandler((error, _request, reply) => {
+  const validationError = error instanceof z.ZodError || (error as { name?: string }).name === "ZodError";
+  const statusCode = validationError ? 400 : (error as { statusCode?: number }).statusCode ?? 500;
+  const message = error instanceof Error ? error.message : "请求参数错误";
+  reply.code(statusCode).send({ message: statusCode === 500 ? "服务器开小差了" : message });
+});
+
 const credentials = z.object({ email: z.string().email().max(160), password: z.string().min(8).max(128) });
 const registerBody = credentials.extend({ nickname: z.string().trim().min(2).max(20) });
 const requireUser = (request: { cookies: Record<string, string | undefined> }) => {
@@ -81,7 +88,7 @@ app.post("/api/stats", async (request) => {
 
 const roomOptions = z.object({
   durationMinutes: z.union([z.literal(30), z.literal(60)]),
-  capacity: z.number().int().min(2).max(9),
+  capacity: z.number().int().min(3).max(9),
   startingStack: z.number().int().min(100).max(100_000),
   smallBlind: z.number().int().min(1).max(5_000),
   bigBlind: z.number().int().min(2).max(10_000)
@@ -128,12 +135,6 @@ await app.register(staticPlugin, { root: resolve("dist"), wildcard: false });
 app.setNotFoundHandler((request, reply) => {
   if (request.url.startsWith("/api/")) return reply.code(404).send({ message: "接口不存在" });
   return reply.sendFile("index.html");
-});
-
-app.setErrorHandler((error, _request, reply) => {
-  const statusCode = (error as { statusCode?: number }).statusCode ?? (error instanceof z.ZodError ? 400 : 500);
-  const message = error instanceof Error ? error.message : "请求参数错误";
-  reply.code(statusCode).send({ message: statusCode === 500 ? "服务器开小差了" : message });
 });
 
 await app.listen({ host: "0.0.0.0", port: Number(process.env.PORT ?? 8787) });

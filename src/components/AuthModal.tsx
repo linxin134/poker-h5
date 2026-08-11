@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { motion } from "motion/react";
 import { api, type User } from "../services/api";
+import { UiIcon } from "./UiIcon";
 
 export function AuthModal({ onClose, onAuthenticated }: { onClose(): void; onAuthenticated(user: User): void }) {
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -26,7 +27,7 @@ export function AuthModal({ onClose, onAuthenticated }: { onClose(): void; onAut
   return (
     <motion.div className="modal-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={onClose}>
       <motion.section className="modal auth-modal" initial={{ y: 30, scale: .96 }} animate={{ y: 0, scale: 1 }} exit={{ y: 20, opacity: 0 }} onMouseDown={(event) => event.stopPropagation()}>
-        <button className="icon-button modal-close" onClick={onClose} aria-label="关闭">×</button>
+        <button className="icon-button modal-close" onClick={onClose} aria-label="关闭"><UiIcon name="close" /></button>
         <p className="eyebrow">CLOUD PROFILE</p>
         <h2>{mode === "login" ? "欢迎回到牌桌" : "创建你的牌手档案"}</h2>
         <p className="muted">登录后可跨设备同步存档、战绩与个性设置。</p>
