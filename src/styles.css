@@ -1743,7 +1743,9 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
 .app-shell.mode-mobile .fresh-table .seat.folded.hero-seat { opacity:1; filter:none; }
 .app-shell.mode-mobile .fresh-table .seat.winner-seat .avatar-ring { box-shadow:0 0 0 3px #ffc56c40,0 0 24px #ffc56c8c; }
 .app-shell.mode-mobile .fresh-table .seat-bet { left:calc(100% + 3px); top:45%; transform:translateY(-50%); }
+.app-shell.mode-mobile .fresh-table .seat.seat-right .seat-bet { right:calc(100% + 3px); left:auto; }
 .app-shell.mode-mobile .fresh-table .dealer-button { left:calc(50% + 31px); top:62px; bottom:auto; width:16px; height:16px; border:1px solid #dfe9e4; font-size:8px; }
+.app-shell.mode-mobile .fresh-table .seat.seat-right .dealer-button { right:calc(50% + 31px); left:auto; }
 .app-shell.mode-mobile .fresh-table .action-bubble { top:calc(100% + 76px); margin-top:0; }
 .app-shell.mode-mobile .reveal-hole-card {
   position:relative;

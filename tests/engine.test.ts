@@ -21,8 +21,22 @@ describe("game engine", () => {
     state = applyAction(state, state.seats[state.actorIndex].id, "fold");
     expect(state.phase).toBe("complete");
     expect(state.winnerText).toContain("赢得");
-    expect(state.result?.pot).toBe(30);
+    expect(state.result?.pot).toBe(20);
     expect(state.result?.winnerSeatIds).toHaveLength(1);
+  });
+
+  it("退回无人跟注的加注部分且底池只记录实际争夺筹码", () => {
+    let state = setup();
+    state = applyAction(state, "a", "raise", 100);
+    state = applyAction(state, "b", "fold");
+    state = applyAction(state, "c", "fold");
+    expect(state.phase).toBe("complete");
+    expect(state.result?.pot).toBe(50);
+    expect(state.seats[0].stack).toBe(1030);
+    expect(state.seats.reduce((sum, seat) => sum + seat.stack, 0)).toBe(3000);
+    expect(state.history).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: "uncalled-return", seatId: "a", amount: 80 })
+    ]));
   });
 
   it("三人桌正确轮转庄位、盲注和翻牌前行动位", () => {
@@ -75,7 +89,7 @@ describe("game engine", () => {
     expect(state.phase).toBe("complete");
     expect(state.actorIndex).toBe(-1);
     expect(state.board).toHaveLength(5);
-    expect(state.result?.pot).toBe(15);
+    expect(state.result?.pot).toBe(10);
     expect(state.seats.reduce((sum, seat) => sum + seat.stack, 0)).toBe(15);
   });
 

@@ -135,9 +135,11 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
       {displaySeats.filter((seat) => !seat.standing).map((seat) => {
         const isActor = seat.id === actorSeatId;
         const isMe = seat.id === room.mySeatId;
+        const seatPoint = positionPoint(seat.position ?? 0);
+        const sideClass = seatPoint.x > 50 ? "seat-right" : seatPoint.x < 50 ? "seat-left" : "seat-center";
         const displayHoleCards = seat.holeCards.length ? seat.holeCards : (seat.shownHoleCards ?? []);
         const cardCount = Math.max(displayHoleCards.length, seat.holeCardCount || 0);
-        return <motion.div role={isMe ? undefined : "button"} tabIndex={isMe ? undefined : 0} aria-label={isMe ? undefined : `与 ${seat.name} 互动`} onClick={() => !isMe && setInteractionSeatId(seat.id)} className={`seat ${isActor ? "active" : ""} ${seat.folded ? "folded" : ""} ${winners.some((winner) => winner.id === seat.id) ? "winner-seat" : ""} ${isMe ? "hero-seat" : ""} ${seat.connected === false ? "offline" : ""} ${!isMe ? "interactable-seat" : ""}`} style={positionStyle(seat.position ?? 0)} key={seat.id} layout>
+        return <motion.div role={isMe ? undefined : "button"} tabIndex={isMe ? undefined : 0} aria-label={isMe ? undefined : `与 ${seat.name} 互动`} onClick={() => !isMe && setInteractionSeatId(seat.id)} className={`seat ${sideClass} ${isActor ? "active" : ""} ${seat.folded ? "folded" : ""} ${winners.some((winner) => winner.id === seat.id) ? "winner-seat" : ""} ${isMe ? "hero-seat" : ""} ${seat.connected === false ? "offline" : ""} ${!isMe ? "interactable-seat" : ""}`} style={positionStyle(seat.position ?? 0)} key={seat.id} layout>
           <div className="seat-cards">
             {Array.from({ length: cardCount }, (_, cardIndex) => {
               const card = displayHoleCards[cardIndex] ?? undefined;

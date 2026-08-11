@@ -100,6 +100,22 @@ function bettingRoundComplete(state: PokerState): boolean {
 }
 
 function sweepBets(state: PokerState) {
+  const rankedBets = state.seats
+    .map((seat) => ({ seat, amount: seat.bet }))
+    .filter((entry) => entry.amount > 0)
+    .sort((a, b) => b.amount - a.amount);
+  if (rankedBets.length > 0) {
+    const highest = rankedBets[0];
+    const secondHighest = rankedBets[1]?.amount ?? 0;
+    if (highest.amount > secondHighest) {
+      const uncalled = highest.amount - secondHighest;
+      highest.seat.bet -= uncalled;
+      highest.seat.totalContribution -= uncalled;
+      highest.seat.stack += uncalled;
+      highest.seat.allIn = highest.seat.stack === 0;
+      record(state, `退回未跟注筹码 ${uncalled}`, "uncalled-return", highest.seat.id, uncalled);
+    }
+  }
   const amount = state.seats.reduce((sum, seat) => sum + seat.bet, 0);
   state.pot += amount;
   state.seats.forEach((seat) => { seat.bet = 0; });
@@ -166,7 +182,7 @@ function advanceStreet(state: PokerState) {
   record(state, `${state.phase} 发牌`, "street");
   event(state, "street", undefined, { phase: state.phase });
   state.actorIndex = nextIndex(state, state.dealerIndex, eligible);
-  if (state.actorIndex < 0) advanceStreet(state);
+  if (state.seats.filter(eligible).length <= 1) advanceStreet(state);
   else event(state, "turn", state.seats[state.actorIndex].id);
 }
 
