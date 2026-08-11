@@ -3,6 +3,7 @@ import { applyAction, createInitialState, legalActions, startHand } from "../src
 import type { PokerState } from "../src/game/types";
 import type {
   RoomClientMessage,
+  RoomChatMessage,
   RoomDurationMinutes,
   RoomHandRecord,
   RoomListItem,
@@ -35,6 +36,7 @@ interface RoomRuntime {
   members: RoomMember[];
   game: PokerState | null;
   hands: RoomHandRecord[];
+  chatMessages: RoomChatMessage[];
   clients: Map<string, Set<RoomSocket>>;
   turnTimer?: NodeJS.Timeout;
   nextHandTimer?: NodeJS.Timeout;
@@ -67,7 +69,10 @@ function memberFor(user: SafeUser, hostUserId: string): RoomMember {
     connected: false,
     isHost: user.id === hostUserId,
     buyIn: 0,
-    topUpTarget: null
+    topUpTarget: null,
+    standAfterHand: false,
+    standingNow: false,
+    savedStack: null
   };
 }
 
@@ -127,7 +132,8 @@ function viewFor(room: RoomRuntime, userId: string): RoomView {
     members: room.members.map((entry) => ({ ...entry })),
     game: publicGame(room, userId),
     hands: [...room.hands].reverse(),
-    scoreboard: scoreboard(room)
+    scoreboard: scoreboard(room),
+    chatMessages: room.chatMessages.map((message) => ({ ...message }))
   };
 }
 
@@ -229,12 +235,32 @@ function syncPendingSeats(room: RoomRuntime) {
       isHuman: true,
       connected: member.connected
     });
+    room.game.seats.at(-1)!.stack = member.savedStack ?? room.startingStack;
+    member.savedStack = null;
   }
 
   if (pendingMembers.length > 0) {
     room.game.seats.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     room.game.dealerIndex = dealerSeatId ? room.game.seats.findIndex((seat) => seat.id === dealerSeatId) : -1;
   }
+}
+
+function applyPendingStands(room: RoomRuntime) {
+  if (!room.game) return;
+  const standingUserIds = new Set(room.members.filter((member) => member.standAfterHand).map((member) => member.userId));
+  if (!standingUserIds.size) return;
+  for (const member of room.members) {
+    if (!standingUserIds.has(member.userId)) continue;
+    const seat = room.game.seats.find((entry) => entry.userId === member.userId);
+    member.savedStack = seat?.stack ?? member.savedStack;
+    member.seatIndex = null;
+    member.seatId = "";
+    member.standAfterHand = false;
+    member.standingNow = false;
+    member.topUpTarget = null;
+  }
+  room.game.seats = room.game.seats.filter((seat) => !standingUserIds.has(seat.userId ?? ""));
+  room.game.dealerIndex = Math.min(room.game.dealerIndex, room.game.seats.length - 1);
 }
 
 function applyPendingTopUps(room: RoomRuntime) {
@@ -253,6 +279,7 @@ function applyPendingTopUps(room: RoomRuntime) {
 function dealNextHand(room: RoomRuntime) {
   if (!room.game) return;
   const expired = room.endsAt !== null && Date.now() >= room.endsAt;
+  applyPendingStands(room);
   syncPendingSeats(room);
   applyPendingTopUps(room);
   const activePlayers = room.game.seats.filter((seat) => seat.stack > 0).length;
@@ -323,6 +350,7 @@ export const roomService = {
       members: [memberFor(user, user.id)],
       game: null,
       hands: [],
+      chatMessages: [],
       clients: new Map()
     };
     rooms.set(code, room);
@@ -345,7 +373,7 @@ export const roomService = {
 
   list(): RoomListItem[] {
     return [...rooms.values()]
-      .filter((room) => room.status !== "finished" && room.members.filter((member) => member.seatIndex !== null).length < room.capacity && room.members.some((member) => member.connected))
+      .filter((room) => room.status !== "finished" && room.members.filter((member) => member.seatIndex !== null).length < room.capacity)
       .sort((a, b) => b.createdAt - a.createdAt)
       .map((room) => ({
         code: room.code,
@@ -394,6 +422,17 @@ export const roomService = {
             startRoom(room);
             return;
           }
+          if (message.type === "dissolve") {
+            if (room.hostUserId !== user.id) throw new Error("只有房主可以解散房间");
+            room.status = "finished";
+            if (room.turnTimer) clearTimeout(room.turnTimer);
+            if (room.nextHandTimer) clearTimeout(room.nextHandTimer);
+            saveRoom(room);
+            rooms.delete(room.code);
+            const payload: RoomServerMessage = { type: "dissolved", message: "房间已由房主解散" };
+            for (const sockets of room.clients.values()) for (const target of sockets) send(target, payload);
+            return;
+          }
           if (message.type === "sit") {
             if (room.status === "finished") throw new Error("房间已经结束");
             const alreadyPlaying = room.game?.seats.some((seat) => seat.userId === user.id) ?? false;
@@ -403,7 +442,35 @@ export const roomService = {
             if (occupied) throw new Error("这个座位已经有人了");
             member.seatIndex = message.seatIndex;
             member.seatId = `seat-${message.seatIndex}`;
+            member.standAfterHand = false;
+            member.standingNow = false;
             if (member.buyIn === 0) member.buyIn = room.startingStack;
+            saveRoom(room);
+            broadcastRoom(room);
+            return;
+          }
+          if (message.type === "stand") {
+            if (member.seatIndex === null) throw new Error("你当前正在旁观");
+            const currentSeat = room.game?.seats.find((seat) => seat.userId === user.id);
+            const inCurrentHand = room.status === "playing" && room.game?.phase !== "complete" && Boolean(currentSeat);
+            if (inCurrentHand) {
+              if (currentSeat!.folded) {
+                member.standAfterHand = true;
+                member.standingNow = true;
+                currentSeat!.standing = true;
+              } else {
+                member.standAfterHand = !member.standAfterHand;
+              }
+            } else {
+              const seat = room.game?.seats.find((entry) => entry.userId === user.id);
+              member.savedStack = seat?.stack ?? member.savedStack;
+              if (room.game) room.game.seats = room.game.seats.filter((entry) => entry.userId !== user.id);
+              member.seatIndex = null;
+              member.seatId = "";
+              member.standAfterHand = false;
+              member.standingNow = false;
+              member.topUpTarget = null;
+            }
             saveRoom(room);
             broadcastRoom(room);
             return;
@@ -422,11 +489,34 @@ export const roomService = {
             for (const sockets of room.clients.values()) for (const target of sockets) send(target, payload);
             return;
           }
+          if (message.type === "chat") {
+            if (typeof message.text !== "string") throw new Error("聊天内容格式错误");
+            const text = message.text.trim();
+            if (!text) throw new Error("聊天内容不能为空");
+            if (text.length > 80) throw new Error("聊天内容不能超过 80 个字符");
+            room.chatMessages.push({
+              id: crypto.randomUUID(),
+              userId: member.userId,
+              seatId: member.seatId,
+              nickname: member.nickname,
+              avatar: member.avatar,
+              text,
+              createdAt: Date.now()
+            });
+            if (room.chatMessages.length > 100) room.chatMessages.splice(0, room.chatMessages.length - 100);
+            broadcastRoom(room);
+            return;
+          }
           if (message.type === "action") {
             if (!room.game || room.status !== "playing") throw new Error("牌局尚未开始");
             const actor = room.game.seats[room.game.actorIndex];
             if (!actor || actor.userId !== user.id) throw new Error("还没轮到你");
             room.game = applyAction(room.game, actor.id, message.action, message.raiseTo);
+            if (message.action === "fold" && member.standAfterHand) {
+              const foldedSeat = room.game.seats.find((seat) => seat.userId === user.id);
+              if (foldedSeat) foldedSeat.standing = true;
+              member.standingNow = true;
+            }
             if (room.game.phase === "complete") completeHand(room);
             else {
               scheduleTurn(room);

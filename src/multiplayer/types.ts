@@ -13,6 +13,9 @@ export interface RoomMember {
   isHost: boolean;
   buyIn: number;
   topUpTarget: number | null;
+  standAfterHand: boolean;
+  standingNow: boolean;
+  savedStack: number | null;
 }
 
 export interface RoomHandSeatResult {
@@ -45,6 +48,16 @@ export interface RoomScoreEntry {
   connected: boolean;
 }
 
+export interface RoomChatMessage {
+  id: string;
+  userId: string;
+  seatId: string;
+  nickname: string;
+  avatar: string;
+  text: string;
+  createdAt: number;
+}
+
 export interface RoomView {
   code: string;
   hostUserId: string;
@@ -63,6 +76,7 @@ export interface RoomView {
   game: PokerState | null;
   hands: RoomHandRecord[];
   scoreboard: RoomScoreEntry[];
+  chatMessages: RoomChatMessage[];
 }
 
 export interface RoomListItem {
@@ -82,14 +96,18 @@ export interface RoomListItem {
 
 export type RoomClientMessage =
   | { type: "start" }
+  | { type: "dissolve" }
   | { type: "sit"; seatIndex: number }
+  | { type: "stand" }
   | { type: "action"; action: PlayerAction; raiseTo?: number }
   | { type: "emoji"; emoji: string; targetSeatId: string }
+  | { type: "chat"; text: string }
   | { type: "topup"; targetStack: number }
   | { type: "ping" };
 
 export type RoomServerMessage =
   | { type: "room"; room: RoomView }
+  | { type: "dissolved"; message: string }
   | { type: "emoji"; id: string; emoji: string; fromSeatId: string; targetSeatId: string }
   | { type: "error"; message: string }
   | { type: "pong"; at: number };

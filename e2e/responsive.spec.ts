@@ -10,7 +10,7 @@ test("常见手机比例下大厅、建房和登录弹层不横向溢出", async
   for (const size of mobileSizes) {
     await page.setViewportSize(size);
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "好友牌桌" })).toBeVisible();
+    await expect(page.getByLabel("房间列表")).toBeVisible();
     await expect(page.getByRole("navigation", { name: "大厅导航" })).toBeVisible();
     expect(await horizontalOverflow(page)).toBeLessThanOrEqual(1);
 

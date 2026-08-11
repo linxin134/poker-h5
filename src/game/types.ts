@@ -18,6 +18,7 @@ export interface Seat {
   allIn: boolean;
   isHuman: boolean;
   connected?: boolean;
+  standing?: boolean;
   holeCardCount?: number;
   lastAction?: string;
 }

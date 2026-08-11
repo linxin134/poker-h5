@@ -51,3 +51,38 @@ test("旁观成员不占用可落座容量", async ({ page, browser }, testInfo)
     await Promise.all(contexts.slice(1).map((context) => context.close()));
   }
 });
+
+test("普通退出保留房间，只有房主解散后才从大厅移除", async ({ page }, testInfo) => {
+  const stamp = `${Date.now()}-${testInfo.project.name}`;
+  const email = `lifecycle-${stamp}@local.test`;
+  const password = "test-pass-123";
+  const api = page.context().request;
+
+  expect((await api.post("/api/auth/register", { data: { email, password, nickname: "生命周期房主" } })).ok()).toBe(true);
+  const created = await api.post("/api/rooms", { data: { durationMinutes: 30, capacity: 6, startingStack: 200, smallBlind: 1, bigBlind: 2 } });
+  const { code } = await created.json() as { code: string };
+  expect((await api.post("/api/auth/logout")).ok()).toBe(true);
+
+  const afterLeave = await (await api.get("/api/rooms")).json() as { rooms: Array<{ code: string }> };
+  expect(afterLeave.rooms.some((room) => room.code === code)).toBe(true);
+
+  expect((await api.post("/api/auth/login", { data: { email, password } })).ok()).toBe(true);
+  await page.goto("/");
+  const message = await page.evaluate((roomCode) => new Promise<string>((resolve, reject) => {
+    const socket = new WebSocket(`${location.origin.replace(/^http/, "ws")}/api/rooms/${roomCode}/socket`);
+    const timeout = window.setTimeout(() => reject(new Error("dissolve timeout")), 3_000);
+    socket.onmessage = (event) => {
+      const payload = JSON.parse(String(event.data)) as { type: string; message?: string };
+      if (payload.type === "room") socket.send(JSON.stringify({ type: "dissolve" }));
+      if (payload.type === "dissolved") {
+        window.clearTimeout(timeout);
+        socket.close();
+        resolve(payload.message ?? "");
+      }
+    };
+  }), code);
+  expect(message).toContain("解散");
+
+  const afterDissolve = await (await api.get("/api/rooms")).json() as { rooms: Array<{ code: string }> };
+  expect(afterDissolve.rooms.some((room) => room.code === code)).toBe(false);
+});

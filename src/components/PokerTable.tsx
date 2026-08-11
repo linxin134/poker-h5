@@ -11,6 +11,7 @@ import { EffectsLayer } from "../pixi/EffectsLayer";
 import { playSound } from "../services/audio";
 import { GameAvatar } from "./GameAvatar";
 import { UiIcon } from "./UiIcon";
+import { anchoredSeatPoint } from "../game/tableLayout";
 
 const phaseLabels = { idle: "等待", preflop: "翻牌前", flop: "翻牌", turn: "转牌", river: "河牌", showdown: "摊牌", complete: "本手结束" };
 
@@ -65,7 +66,7 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
   const targetSeatId = game.seats.find((seat) => seat.id !== room.mySeatId && !seat.folded)?.id ?? game.seats.find((seat) => seat.id !== room.mySeatId)?.id ?? room.mySeatId;
   const winners = game.seats.filter((seat) => game.result?.winnerSeatIds.includes(seat.id));
   const myMember = room.members.find((member) => member.userId === user?.id);
-  const mySeat = game.seats.find((seat) => seat.id === room.mySeatId);
+  const mySeat = game.seats.find((seat) => seat.id === room.mySeatId && !seat.standing);
   const anchorPosition = mySeat?.position ?? myMember?.seatIndex ?? game.seats[0]?.position ?? 0;
   const actorSeatId = game.seats[game.actorIndex]?.id;
   const dealerSeatId = game.seats[game.dealerIndex]?.id;
@@ -78,8 +79,7 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
 
   function positionPoint(position: number) {
     const relativePosition = (position - anchorPosition + tableCapacity) % tableCapacity;
-    const angle = (Math.PI / 180) * (90 + relativePosition * 360 / tableCapacity);
-    return { x: 50 + Math.cos(angle) * (tableCapacity > 6 ? 44 : 42), y: 47 + Math.sin(angle) * (tableCapacity > 6 ? 37 : 35) };
+    return anchoredSeatPoint(relativePosition, tableCapacity);
   }
 
   function positionStyle(position: number) {
@@ -93,16 +93,11 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
   }));
   const interactionSeat = game.seats.find((seat) => seat.id === interactionSeatId);
   const interactionTargets = game.seats.filter((seat) => seat.id !== room.mySeatId).map((seat) => ({ id: seat.id, name: seat.name }));
-  const roomCode = room.code;
   const myRoomSeatId = room.mySeatId;
 
   function showNotice(message: string) {
     setNotice(message);
     window.setTimeout(() => setNotice(null), 1_800);
-  }
-
-  function copyInvite() {
-    void navigator.clipboard.writeText(`给我擦皮鞋 · 房间 ${roomCode}`).then(() => showNotice("房间信息已复制")).catch(() => showNotice(`房间号 ${roomCode}`));
   }
 
   function playInteraction(emoji: string, target: string) {
@@ -118,7 +113,6 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
         <span className={roomRemaining <= 0 ? "expired" : ""}><small>{roomRemaining <= 0 ? "本手后结束" : "房间剩余"}</small><b>{formatClock(roomRemaining)}</b></span>
       </div>
       <div className="table-tools">
-        <button className="invite-tool" aria-label="邀请好友" onClick={copyInvite}><UiIcon name="plus" /></button>
         <button aria-label="补充记分牌" onClick={() => setDrawer("topup")}><UiIcon name="chips" /></button>
         <button aria-label="牌局回顾" onClick={() => setDrawer("history")}><UiIcon name="history" /></button>
       </div>
@@ -127,15 +121,16 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
     <div className="table-stage">
       <div className="fresh-felt" />
       <div className="board-zone">
+        <div className={`board-room-countdown ${roomRemaining <= 0 ? "expired" : ""}`}>{roomRemaining <= 0 ? "本手后结束" : formatClock(roomRemaining)}</div>
         <div className="board-cards">
           {Array.from({ length: 5 }, (_, index) => game.board[index]
             ? <PlayingCard key={`${game.handId}-${index}-${game.board[index]}`} card={game.board[index]} delay={index * .08} />
             : <PlayingCard key={`${game.handId}-slot-${index}`} hidden delay={index * .05} />)}
         </div>
-        <div className="pot-badge"><i>●</i><span>{visiblePot.toLocaleString()}</span></div>
+        <div className="pot-badge" aria-label={`总底池 ${visiblePot.toLocaleString()}`}><i aria-hidden="true" /><small>总底池</small><span>{visiblePot.toLocaleString()}</span></div>
       </div>
 
-      {displaySeats.map((seat) => {
+      {displaySeats.filter((seat) => !seat.standing).map((seat) => {
         const isActor = seat.id === actorSeatId;
         const isMe = seat.id === room.mySeatId;
         const cardCount = seat.holeCards.length || seat.holeCardCount || 0;
@@ -159,8 +154,6 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
       {canChooseLateSeat && Array.from({ length: room.capacity }, (_, position) => !occupiedPositions.has(position) && <motion.button type="button" className="waiting-table-seat empty late-seat-choice" style={positionStyle(position)} onClick={() => send({ type: "sit", seatIndex: position })} key={`late-${position}`} initial={{ opacity: 0, scale: .75 }} animate={{ opacity: 1, scale: 1 }}>
         <span>＋</span><b>空位</b><small>点击落座</small>
       </motion.button>)}
-
-      {!mySeat && <div className={`late-join-note ${canChooseLateSeat ? "choosing" : "ready"}`}><i />{canChooseLateSeat ? "选择空位落座，下一手发两张底牌" : "已落座，下一手自动发两张底牌"}</div>}
 
       <AnimatePresence>{interactionSeat && <motion.div className="player-interaction-card" initial={{ opacity: 0, scale: .86, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: .9 }}>
         <header><span><GameAvatar seed={interactionSeat.userId ?? interactionSeat.id} label={interactionSeat.name} /></span><div><small>与玩家互动</small><b>{interactionSeat.name}</b></div><button aria-label="关闭玩家互动" onClick={() => setInteractionSeatId(null)}><UiIcon name="close" /></button></header>
@@ -192,7 +185,7 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
 
     {room.status === "playing" && mySeat && <ActionBar game={game} mySeatId={room.mySeatId} turnRemainingMs={turnRemaining} onAct={(action, raiseTo) => send({ type: "action", action, raiseTo })} />}
     {(roomError || notice) && <div className="room-toast">{roomError ?? notice}</div>}
-    {drawer && <><div className="drawer-shade" onClick={() => setDrawer(null)} /><GameDrawer key={drawer} initialTab={drawer} room={room} onClose={() => setDrawer(null)} onLeave={leaveRoom} onTopup={(targetStack) => send({ type: "topup", targetStack })} /></>}
+    {drawer && <><div className="drawer-shade" onClick={() => setDrawer(null)} /><GameDrawer key={drawer} initialTab={drawer} room={room} currentUserId={user?.id ?? ""} onClose={() => setDrawer(null)} onLeave={leaveRoom} onDissolve={() => send({ type: "dissolve" })} onStand={() => send({ type: "stand" })} onTopup={(targetStack) => send({ type: "topup", targetStack })} onChat={(text) => send({ type: "chat", text })} /></>}
   </section>;
 }
 
@@ -208,19 +201,16 @@ function WaitingRoom({ room, user, connectionStatus, onSit, onStart, onTopup, on
   const waitingEffectPositions = Object.fromEntries(room.members.flatMap((member) => {
     if (member.seatIndex === null) return [];
     const relativePosition = (member.seatIndex - myPosition + room.capacity) % room.capacity;
-    const angle = (Math.PI / 180) * (90 + relativePosition * 360 / room.capacity);
-    return [[member.seatId, { x: (50 + Math.cos(angle) * 42) / 100, y: (47 + Math.sin(angle) * 35) / 100 }]];
+    const point = anchoredSeatPoint(relativePosition, room.capacity);
+    return [[member.seatId, { x: point.x / 100, y: point.y / 100 }]];
   }));
-  function copyInvite() { void navigator.clipboard.writeText(`给我擦皮鞋 · 房间 ${room.code}`).catch(() => undefined); }
   return <section className="waiting-room waiting-with-tools">
-    <header><button className="icon-button table-menu-trigger" aria-label="牌桌功能" onClick={() => setDrawer("menu")}><UiIcon name="menu" /></button><span className="hand-chip">房间 {room.code} · 等待开始</span><span className={`connection-pill ${connectionStatus}`}>● {connectionStatus === "connected" ? "实时连接" : "正在重连"}</span><div className="waiting-top-tools"><button className="invite-tool" aria-label="邀请好友" onClick={copyInvite}><UiIcon name="plus" /></button><button aria-label="补充记分牌" onClick={() => setDrawer("topup")}><UiIcon name="chips" /></button><button aria-label="牌局回顾" onClick={() => setDrawer("history")}><UiIcon name="history" /></button></div></header>
+    <header><button className="icon-button table-menu-trigger" aria-label="牌桌功能" onClick={() => setDrawer("menu")}><UiIcon name="menu" /></button><span className="hand-chip">房间 {room.code} · 等待开始</span><span className={`connection-pill ${connectionStatus}`}>● {connectionStatus === "connected" ? "实时连接" : "正在重连"}</span><div className="waiting-top-tools"><button aria-label="补充记分牌" onClick={() => setDrawer("topup")}><UiIcon name="chips" /></button><button aria-label="牌局回顾" onClick={() => setDrawer("history")}><UiIcon name="history" /></button></div></header>
     <main className="waiting-table-stage">
       <div className="waiting-felt" />
       {slots.map((member, index) => {
         const relativePosition = (index - myPosition + room.capacity) % room.capacity;
-        const angle = (Math.PI / 180) * (90 + relativePosition * 360 / room.capacity);
-        const x = 50 + Math.cos(angle) * 42;
-        const y = 47 + Math.sin(angle) * 35;
+        const { x, y } = anchoredSeatPoint(relativePosition, room.capacity);
         const canChoose = !member || member.userId === user?.id;
         return <motion.button disabled={!canChoose} onClick={() => onSit(index)} className={`waiting-table-seat ${member ? "occupied" : "empty"} ${member?.userId === user?.id ? "mine" : ""}`} style={{ "--seat-x": `${x}%`, "--seat-y": `${y}%` } as CSSProperties} initial={{ opacity: 0, scale: .8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay:index * .04 }} key={member?.userId ?? index}>
           <span>{member ? <GameAvatar seed={member.userId} label={member.nickname} /> : "＋"}{member && <i className={member.connected ? "online" : ""} />}</span>
@@ -240,6 +230,6 @@ function WaitingRoom({ room, user, connectionStatus, onSit, onStart, onTopup, on
       <EmojiTray targetSeatId={emojiTarget} targets={emojiTargets} onSend={(emoji, target) => receiveEmoji(crypto.randomUUID(), emoji, room.mySeatId || "waiting-self", target)} />
       <EffectsLayer seatPositions={waitingEffectPositions} />
     </main>
-    {drawer && <><div className="drawer-shade" onClick={() => setDrawer(null)} /><GameDrawer key={drawer} initialTab={drawer} room={room} onClose={() => setDrawer(null)} onLeave={onLeave} onTopup={onTopup} /></>}
+    {drawer && <><div className="drawer-shade" onClick={() => setDrawer(null)} /><GameDrawer key={drawer} initialTab={drawer} room={room} currentUserId={user?.id ?? ""} onClose={() => setDrawer(null)} onLeave={onLeave} onDissolve={() => useRoomStore.getState().send({ type: "dissolve" })} onStand={() => useRoomStore.getState().send({ type: "stand" })} onTopup={onTopup} onChat={(text) => useRoomStore.getState().send({ type: "chat", text })} /></>}
   </section>;
 }

@@ -50,6 +50,15 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
         useGameStore.getState().receiveEmoji(message.id, message.emoji, message.fromSeatId, message.targetSeatId);
         return;
       }
+      if (message.type === "dissolved") {
+        manualClose = true;
+        activeCode = "";
+        window.sessionStorage.removeItem("poker-active-room");
+        set({ room: null, connectionStatus: "idle", error: message.message });
+        useGameStore.getState().setScreen("lobby");
+        socket?.close();
+        return;
+      }
       if (message.type === "error") {
         const terminal = message.message.includes("房间不存在") || message.message.includes("不在这个房间") || message.message.includes("请先登录");
         if (terminal) {

@@ -1,5 +1,5 @@
 import React from "react";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import type { Card } from "../game/types";
 import type { RoomView } from "../multiplayer/types";
 import { useGameStore } from "../store/gameStore";
@@ -18,35 +18,52 @@ const drawerSide: Record<DrawerTab, "left" | "right" | "modal" | "menu"> = {
   guide: "modal"
 };
 
-export function GameDrawer({ initialTab, onClose, onLeave, onTopup, room }: { initialTab: DrawerTab; onClose(): void; onLeave(): void; onTopup(targetStack: number): void; room: RoomView }) {
+export function GameDrawer({ initialTab, onClose, onLeave, onDissolve, onStand, onTopup, onChat, currentUserId, room }: { initialTab: DrawerTab; onClose(): void; onLeave(): void; onDissolve(): void; onStand(): void; onTopup(targetStack: number): void; onChat(text: string): void; currentUserId: string; room: RoomView }) {
   const savedTopup = room.members.find((member) => member.seatId === room.mySeatId)?.topUpTarget;
+  const currentMember = room.members.find((member) => member.userId === currentUserId);
   const [tab, setTab] = React.useState(initialTab);
   const [chatText, setChatText] = React.useState("");
-  const [messages, setMessages] = React.useState<Array<{ id: string; mine?: boolean; text: string }>>([
-    { id: "system", text: "牌桌聊天仅在本机显示，请文明交流。" }
-  ]);
+  const chatListRef = React.useRef<HTMLDivElement>(null);
+  const [historyIndex, setHistoryIndex] = React.useState(0);
+  const [historyDirection, setHistoryDirection] = React.useState(1);
   const [topup, setTopup] = React.useState(savedTopup ?? room.startingStack);
   const [topupSaved, setTopupSaved] = React.useState(Boolean(savedTopup));
   const settings = useGameStore((state) => state.settings);
   const updateSettings = useGameStore((state) => state.updateSettings);
   const side = drawerSide[tab];
-  const seatedMembers = room.members.filter((member) => member.seatIndex !== null);
-  const spectators = room.members.filter((member) => member.seatIndex === null);
+  const seatedMembers = room.members.filter((member) => member.seatIndex !== null && !member.standingNow);
+  const spectators = room.members.filter((member) => member.seatIndex === null || member.standingNow);
   const totalPot = room.hands.reduce((sum, hand) => sum + hand.pot, 0);
   const elapsedMinutes = Math.max(0, Math.floor(((room.endsAt ? Math.min(room.endsAt, Date.now()) : Date.now()) - (room.startedAt ?? Date.now())) / 60_000));
   const remainingMinutes = room.endsAt ? Math.max(0, Math.ceil((room.endsAt - Date.now()) / 60_000)) : room.durationMinutes;
 
+  React.useEffect(() => {
+    const list = chatListRef.current;
+    if (tab === "chat" && list) list.scrollTop = list.scrollHeight;
+  }, [room.chatMessages.length, tab]);
+
+  React.useEffect(() => {
+    setHistoryIndex((index) => Math.min(index, Math.max(0, room.hands.length - 1)));
+  }, [room.hands.length]);
+
   const switchTab = (next: DrawerTab) => setTab(next);
   const sendChat = () => {
-    const clean = chatText.trim().slice(0, 40);
+    const clean = chatText.trim().slice(0, 80);
     if (!clean) return;
-    setMessages((items) => [...items, { id: crypto.randomUUID(), mine: true, text: clean }]);
+    onChat(clean);
     setChatText("");
   };
   const saveTopup = () => {
     onTopup(topup);
     setTopupSaved(true);
   };
+  const moveHistory = (nextIndex: number) => {
+    const clamped = Math.max(0, Math.min(room.hands.length - 1, nextIndex));
+    if (clamped === historyIndex) return;
+    setHistoryDirection(clamped > historyIndex ? 1 : -1);
+    setHistoryIndex(clamped);
+  };
+  const visibleHand = room.hands[historyIndex];
   const initial = side === "left" ? { x: "-100%" } : side === "right" ? { x: "100%" } : side === "menu" ? { opacity: 0, scale: .92, x: -8, y: -8 } : { opacity: 0 };
   const animate = side === "left" || side === "right" ? { x: 0 } : side === "menu" ? { opacity: 1, scale: 1, x: 0, y: 0 } : { opacity: 1 };
   const exit = initial;
@@ -54,6 +71,8 @@ export function GameDrawer({ initialTab, onClose, onLeave, onTopup, room }: { in
   return <motion.aside className={`game-drawer wpk-panel drawer-${side} tab-${tab}`} initial={initial} animate={animate} exit={exit} transition={{ duration: .22, ease: "easeOut" }}>
     {tab === "menu" ? <div className="wpk-function-menu">
       <MenuButton icon="leave" label="退出牌局" onClick={onLeave} />
+      {currentMember?.seatIndex !== null && !currentMember?.standingNow && <MenuButton icon="user" label={currentMember?.standAfterHand ? "取消本手后旁观" : "站起旁观"} onClick={onStand} />}
+      {room.hostUserId === currentUserId && <MenuButton icon="close" label="解散房间" onClick={onDissolve} />}
       <MenuButton icon="history" label="牌局回顾" onClick={() => switchTab("history")} />
       <MenuButton icon="stats" label="实时排名" onClick={() => switchTab("stats")} />
       <MenuButton icon="rules" label="规则说明" onClick={() => switchTab("guide")} />
@@ -67,10 +86,15 @@ export function GameDrawer({ initialTab, onClose, onLeave, onTopup, room }: { in
       </header>
 
       {tab === "chat" && <div className="wpk-chat-panel">
-        <div className="wpk-chat-messages">{messages.map((message) => <div className={message.mine ? "mine" : "system"} key={message.id}><i>♠</i><p>{message.text}</p></div>)}</div>
+        <div className="wpk-chat-messages" ref={chatListRef}>{room.chatMessages.length === 0
+          ? <div className="chat-empty"><p>还没有消息，和牌友打个招呼吧</p></div>
+          : room.chatMessages.map((message) => <div className={message.userId === currentUserId ? "mine" : "other"} key={message.id}>
+            <i><GameAvatar seed={message.userId} label={message.nickname} /></i>
+            <span><small>{message.nickname}</small><p>{message.text}</p></span>
+          </div>)}</div>
         <form className="wpk-chat-compose" onSubmit={(event) => { event.preventDefault(); sendChat(); }}>
           <button type="button" aria-label="添加表情" onClick={() => setChatText((value) => `${value}🙂`)}><UiIcon name="smile" /></button>
-          <input aria-label="聊天内容" value={chatText} onChange={(event) => setChatText(event.target.value)} placeholder="说点什么…" maxLength={40} />
+          <input aria-label="聊天内容" value={chatText} onChange={(event) => setChatText(event.target.value)} placeholder="说点什么…" maxLength={80} />
           <button className="send" aria-label="发送" type="submit"><UiIcon name="send" /></button>
         </form>
       </div>}
@@ -108,16 +132,40 @@ export function GameDrawer({ initialTab, onClose, onLeave, onTopup, room }: { in
 
       {tab === "history" && <div className="wpk-history-panel">
         <div className="history-room-meta"><span>给我擦皮鞋 · 房间ID：{room.code}</span><b>▥ {seatedMembers.length}/{room.capacity}</b></div>
-        {room.hands.length === 0 ? <Empty icon="▤" title="暂时还没有牌局回顾" body="每一手结束后，会在这里展示公共牌、所有玩家最终手牌和积分变化。" /> : room.hands.map((hand) => <article className="hand-record-card" key={hand.id}>
-          <header><div><span>第 {hand.handNumber} 手</span><b>{hand.winnerText}</b></div><strong>{hand.pot.toLocaleString()}</strong></header>
-          <div className="record-board"><small>公共牌</small><CardStrip cards={hand.board} empty="翻牌前结束" /></div>
-          <div className="record-seats">{hand.seats.map((seat) => <div className={`${seat.won ? "winner" : ""} ${seat.folded ? "folded" : ""}`} key={seat.seatId}>
-            <span className="record-avatar"><GameAvatar seed={seat.seatId} label={seat.nickname} /></span>
-            <span className="record-player"><b>{seat.nickname}</b><small>{seat.folded ? "弃牌" : seat.won ? "获胜" : "摊牌"}</small></span>
-            <CardStrip cards={seat.cards} />
-            <PixelChip value={seat.delta} compact />
-          </div>)}</div>
-        </article>)}
+        {room.hands.length === 0 ? <Empty icon="▤" title="暂时还没有牌局回顾" body="每一手结束后，会在这里展示公共牌、所有玩家最终手牌和积分变化。" /> : <>
+          <nav className="history-pager" aria-label="牌局回顾翻页">
+            <button aria-label="更早一手" disabled={historyIndex >= room.hands.length - 1} onClick={() => moveHistory(historyIndex + 1)}><UiIcon name="back" /></button>
+            <span><b>第 {visibleHand.handNumber} 手</b><small>{historyIndex + 1} / {room.hands.length}</small></span>
+            <button className="newer" aria-label="更新一手" disabled={historyIndex <= 0} onClick={() => moveHistory(historyIndex - 1)}><UiIcon name="back" /></button>
+          </nav>
+          <AnimatePresence mode="wait" initial={false} custom={historyDirection}>
+            <motion.article
+              className="hand-record-card history-page"
+              key={visibleHand.id}
+              custom={historyDirection}
+              initial={{ opacity: 0, x: historyDirection > 0 ? 28 : -28 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: historyDirection > 0 ? -28 : 28 }}
+              transition={{ duration: .18, ease: "easeOut" }}
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={.12}
+              onDragEnd={(_, info) => {
+                if (info.offset.x < -45) moveHistory(historyIndex + 1);
+                if (info.offset.x > 45) moveHistory(historyIndex - 1);
+              }}
+            >
+              <header><div><span>第 {visibleHand.handNumber} 手</span><b>{visibleHand.winnerText}</b></div><strong>{visibleHand.pot.toLocaleString()}</strong></header>
+              <div className="record-board"><small>公共牌</small><CardStrip cards={visibleHand.board} empty="翻牌前结束" /></div>
+              <div className="record-seats">{visibleHand.seats.map((seat) => <div className={`${seat.won ? "winner" : ""} ${seat.folded ? "folded" : ""}`} key={seat.seatId}>
+                <span className="record-avatar"><GameAvatar seed={seat.seatId} label={seat.nickname} /></span>
+                <span className="record-player"><b>{seat.nickname}</b><small>{seat.folded ? "弃牌" : seat.won ? "获胜" : "摊牌"}</small></span>
+                <CardStrip cards={seat.cards} />
+                <PixelChip value={seat.delta} compact />
+              </div>)}</div>
+            </motion.article>
+          </AnimatePresence>
+        </>}
       </div>}
 
       {tab === "topup" && <div className="wpk-topup-panel">

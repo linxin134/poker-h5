@@ -64,13 +64,12 @@ export function Lobby({ user, onLogin, onLogout }: { user: User | null; onLogin(
     </header>
 
     <main className="mobile-lobby-main">
-      <motion.section className="room-browser mobile-room-browser" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <header><div><h1>好友牌桌</h1><p>选择一个未满房间直接加入</p></div><span><i />{rooms.length} 桌</span></header>
+      <motion.section className="room-browser mobile-room-browser" aria-label="房间列表" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         {rooms.length === 0 ? <button className="room-list-empty" onClick={() => setCreateOpen(true)}><span>♧</span><b>还没有牌桌</b><p>点击这里创建第一间好友房</p></button> : <div className="public-room-list">{rooms.map((room) => <article key={room.code}>
           <div className="room-host"><span><GameAvatar seed={room.hostNickname} label={room.hostNickname} /></span><div><small className={`room-state-badge ${room.status}`}>{room.status === "playing" ? `第 ${room.handNumber} 手 · 进行中` : "等待开局"}</small><b>{room.hostNickname} 的牌桌</b></div></div>
           <strong className="room-occupancy">{room.memberCount}<small>/{room.capacity}</small></strong>
           <div className="room-meta"><span><small>时长</small><b>{room.durationMinutes} 分钟</b></span><span><small>盲注</small><b>{room.smallBlind} / {room.bigBlind}</b></span><span><small>筹码</small><b>{room.startingStack.toLocaleString()}</b></span></div>
-          <button disabled={busy} aria-label={`${room.status === "playing" ? "加入牌局" : "加入"} ${room.hostNickname} 的牌桌`} onClick={() => { void joinRoom(room.code); }}>{room.status === "playing" ? "加入牌局" : "加入"}<span>›</span></button>
+          <button disabled={busy} aria-label={`加入 ${room.hostNickname} 的牌桌`} onClick={() => { void joinRoom(room.code); }}>加入<span>›</span></button>
         </article>)}</div>}
       </motion.section>
       {error && <p className="form-error lobby-error-toast">{error}</p>}
@@ -102,7 +101,6 @@ export function Lobby({ user, onLogin, onLogout }: { user: User | null; onLogin(
             <div className="config-segments player-count-segments">{[3, 6, 8, 9].map((value) => <button key={value} className={seats === value ? "active" : ""} onClick={() => setSeats(value)}>{value} 人</button>)}</div>
           </section>
 
-          <div className="public-room-note"><i>♣</i><span><b>公开好友房</b><small>房间会直接显示在大厅列表，玩家点击即可加入</small></span></div>
           <div className="create-room-spacer" />
           <button className="primary-button create-confirm" disabled={busy} onClick={() => { void createRoom(); }}>{busy ? "正在创建…" : user ? "立即开局" : "登录后创建"}</button>
           {error && <p className="form-error room-error">{error}</p>}
