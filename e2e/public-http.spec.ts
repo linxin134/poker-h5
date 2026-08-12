@@ -11,5 +11,12 @@ test("public HTTP deployment boots without secure-context API crashes", async ({
 
   await expect(page.locator("#root > *")).toBeVisible();
   await expect(page.locator(".app-shell")).toBeVisible();
+  const version = await page.request.get(`${publicOrigin}/api/version`);
+  expect(version.headers()["cache-control"]).toContain("no-store");
+  const release = (await version.json() as { release: string }).release;
+  expect(release).not.toBe("dev");
+  await expect(page.locator("html")).toHaveAttribute("data-release", release);
+  const entryResource = await page.evaluate(() => performance.getEntriesByType("resource").map((entry) => entry.name).find((name) => /\/assets\/index-.*\.js/.test(name)));
+  expect(entryResource).toContain(release);
   expect(pageErrors).toEqual([]);
 });

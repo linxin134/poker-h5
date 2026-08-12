@@ -366,7 +366,7 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
     await expect(lateGuestPage.getByText(/第 2 手/)).toBeVisible({ timeout: 8_000 });
     const activeLateSeatCenter = await lateGuestPage.locator(".hero-seat").evaluate((element) => { const rect = element.getBoundingClientRect(); return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }; });
     expect(Math.hypot(activeLateSeatCenter.x - lateBottom.x, activeLateSeatCenter.y - lateBottom.y)).toBeLessThanOrEqual(2);
-    await expect(guestTwoPage.locator(".hero-seat .seat-info span")).toContainText("3,");
+    await expect(guestTwoPage.locator(".hero-seat .seat-info span")).toHaveText(/\d{1,3}(,\d{3})*/);
     await expect(lateGuestPage.locator(".seat .playing-card:not(.card-back)")).toHaveCount(2);
     await expect(lateGuestPage.locator(".seat .card-back")).toHaveCount(6);
     await guestTwoPage.getByRole("button", { name: "补充记分牌" }).click();

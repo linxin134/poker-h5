@@ -1,4 +1,6 @@
 FROM node:22-bookworm-slim AS build
+ARG APP_RELEASE=dev
+ENV APP_RELEASE=$APP_RELEASE
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@10.14.0 --activate
 COPY package.json pnpm-lock.yaml ./
@@ -7,6 +9,8 @@ COPY . .
 RUN pnpm run check
 
 FROM node:22-bookworm-slim AS runtime
+ARG APP_RELEASE=dev
+ENV APP_RELEASE=$APP_RELEASE
 WORKDIR /app
 ENV NODE_ENV=production PORT=8787 DATABASE_PATH=/data/poker.db COOKIE_SECURE=true
 RUN corepack enable && corepack prepare pnpm@10.14.0 --activate

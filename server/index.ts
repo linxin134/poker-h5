@@ -13,6 +13,7 @@ await app.register(cookie);
 await app.register(websocket);
 const secure = process.env.COOKIE_SECURE === "true";
 const cookieOptions = { httpOnly: true, sameSite: "lax" as const, secure, path: "/", maxAge: sessionMaxAge };
+const release = process.env.APP_RELEASE ?? "dev";
 
 app.setErrorHandler((error, _request, reply) => {
   const validationError = error instanceof z.ZodError || (error as { name?: string }).name === "ZodError";
@@ -29,7 +30,11 @@ const requireUser = (request: { cookies: Record<string, string | undefined> }) =
   return user;
 };
 
-app.get("/api/health", async () => ({ ok: true, time: Date.now() }));
+app.get("/api/health", async () => ({ ok: true, time: Date.now(), release }));
+app.get("/api/version", async (_request, reply) => {
+  reply.header("Cache-Control", "no-store, no-cache, must-revalidate");
+  return { release };
+});
 app.get("/api/auth/me", async (request) => ({ user: userForSession(request.cookies.poker_session) }));
 app.post("/api/auth/register", async (request, reply) => {
   const body = registerBody.parse(request.body);
@@ -182,9 +187,17 @@ app.get("/api/rooms/:code/socket", { websocket: true }, (socket, request) => {
   }
 });
 
-await app.register(staticPlugin, { root: resolve("dist"), wildcard: false });
+await app.register(staticPlugin, {
+  root: resolve("dist"),
+  wildcard: false,
+  setHeaders(response, path) {
+    if (path.endsWith("index.html")) response.header("Cache-Control", "no-store, no-cache, must-revalidate");
+    else if (/[\\/]assets[\\/]/.test(path)) response.header("Cache-Control", "public, max-age=31536000, immutable");
+  }
+});
 app.setNotFoundHandler((request, reply) => {
   if (request.url.startsWith("/api/")) return reply.code(404).send({ message: "接口不存在" });
+  reply.header("Cache-Control", "no-store, no-cache, must-revalidate");
   return reply.sendFile("index.html");
 });
 
