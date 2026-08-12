@@ -285,7 +285,7 @@ function WaitingRoom({ room, user, connectionStatus, onSit, onStart, onTopup, on
       <motion.div className="waiting-table-center" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <span className="waiting-state">{room.mySeatId ? "等待开局" : "请选择空位"}</span><h1>{seatedCount} / {room.capacity} 已入座</h1>
         <div className="room-rules"><span><small>时长</small><b>{room.durationMinutes} 分钟</b></span><span><small>盲注</small><b>{room.smallBlind} / {room.bigBlind}</b></span><span><small>筹码</small><b>{room.startingStack.toLocaleString()}</b></span></div>
-        {isHost ? <button className="primary-button start-room-button" disabled={seatedCount < 3} onClick={onStart}>{seatedCount < 3 ? `还需 ${3 - seatedCount} 人落座` : "开始牌局 →"}</button> : <div className="guest-waiting"><span className="room-loader" /><b>{room.mySeatId ? "等待房主开始" : "请选择一个空位落座"}</b></div>}
+        {isHost ? <button className="primary-button start-room-button" disabled={seatedCount < 2} onClick={onStart}>{seatedCount < 2 ? `还需 ${2 - seatedCount} 人落座` : "开始牌局 →"}</button> : <div className="guest-waiting"><span className="room-loader" /><b>{room.mySeatId ? "等待房主开始" : "请选择一个空位落座"}</b></div>}
       </motion.div>
       <nav className="waiting-bottom-tools" aria-label="牌桌功能栏">
         <button aria-label="计分" onClick={() => setDrawer("stats")}><UiIcon name="stats" /></button>

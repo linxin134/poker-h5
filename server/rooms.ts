@@ -341,7 +341,7 @@ function completeHand(room: RoomRuntime) {
 
 function startRoom(room: RoomRuntime) {
   const seatedMembers = room.members.filter((member) => member.seatIndex !== null).sort((a, b) => a.seatIndex! - b.seatIndex!);
-  if (seatedMembers.length < 3) throw new Error("至少需要三名已落座玩家才能开始");
+  if (seatedMembers.length < 2) throw new Error("至少需要两名已落座玩家才能开始");
   const now = Date.now();
   room.status = "playing";
   room.startedAt = now;
