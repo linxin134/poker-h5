@@ -9,27 +9,26 @@ export function relativeSeatPosition(position: number, anchorPosition: number, c
 }
 
 /**
- * Anchors the local player at the bottom and keeps every side seat on one of
- * two vertical rails. This leaves the board and action area unobstructed.
+ * Anchors the local player at the bottom and distributes every side seat on
+ * two mirrored vertical rails. The top and bottom anchors intentionally use
+ * the same inset so every player's chosen seat rotates into one stable,
+ * symmetrical perspective.
  */
 export function anchoredSeatPoint(relativePosition: number, capacity: number): TableSeatPoint {
   const normalizedCapacity = Math.max(3, Math.round(capacity));
   const relative = ((Math.round(relativePosition) % normalizedCapacity) + normalizedCapacity) % normalizedCapacity;
-  // Reserve the bottom safe area for hole cards, showdown labels and browser
-  // controls. Waiting and active tables both consume this same coordinate.
-  if (relative === 0) return { x: 50, y: 78 };
+  const edgeInset = 14 * (2 / 3);
+  const bottomInset = 100 - edgeInset;
+  if (relative === 0) return { x: 50, y: bottomInset };
 
   const hasTopSeat = normalizedCapacity % 2 === 0;
   const sideCount = hasTopSeat ? (normalizedCapacity - 2) / 2 : (normalizedCapacity - 1) / 2;
   const topPosition = hasTopSeat ? normalizedCapacity / 2 : -1;
-  if (relative === topPosition) return { x: 50, y: 14 };
+  if (relative === topPosition) return { x: 50, y: edgeInset };
 
   const isLeft = relative <= sideCount;
   const railIndex = isLeft ? relative - 1 : normalizedCapacity - relative - 1;
-  const topY = 19;
-  // Keep the lowest side rail clear of the enlarged local action controls.
-  // The local seat remains anchored at 78%; only adjacent opponents move up.
-  const bottomY = 52;
-  const y = sideCount <= 1 ? 45 : bottomY - railIndex * ((bottomY - topY) / (sideCount - 1));
+  const railStep = (bottomInset - edgeInset) / (sideCount + 1);
+  const y = bottomInset - railStep * (railIndex + 1);
   return { x: isLeft ? 12 : 88, y };
 }

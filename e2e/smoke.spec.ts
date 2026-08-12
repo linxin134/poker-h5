@@ -120,13 +120,20 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
     await page.getByRole("button", { name: "站起旁观" }).click();
     await expect(page.locator(".waiting-table-seat.occupied")).toHaveCount(0);
     await page.locator(".drawer-shade").click({ position: { x: 380, y: 400 } });
-    const waitingBottom = await page.locator(".waiting-table-stage").evaluate((element) => { const rect = element.getBoundingClientRect(); return { x: rect.left + rect.width * .5, y: rect.top + rect.height * .78 }; });
     const hostSeatChoice = page.locator(".waiting-table-seat.empty").nth(3);
     const hostSeatCenter = await hostSeatChoice.evaluate((element) => { const rect = element.getBoundingClientRect(); return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }; });
     await hostSeatChoice.click();
     await expect(page.locator(".waiting-table-seat.occupied")).toHaveCount(1);
-    const hostOccupiedCenter = await page.locator(".waiting-table-seat.mine").evaluate((element) => { const rect = element.getBoundingClientRect(); return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }; });
-    expect(Math.hypot(hostOccupiedCenter.x - waitingBottom.x, hostOccupiedCenter.y - waitingBottom.y)).toBeLessThanOrEqual(2);
+    const hostOccupiedGeometry = await page.locator(".waiting-table-seat.mine").evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const stage = document.querySelector(".waiting-table-stage")!.getBoundingClientRect();
+      return {
+        center:{ x:rect.left + rect.width / 2, y:rect.top + rect.height / 2 },
+        anchor:{ x:stage.left + stage.width * .5, y:stage.top + stage.height * (1 - (14 * 2 / 3) / 100) }
+      };
+    });
+    const hostOccupiedCenter = hostOccupiedGeometry.center;
+    expect(Math.hypot(hostOccupiedCenter.x - hostOccupiedGeometry.anchor.x, hostOccupiedCenter.y - hostOccupiedGeometry.anchor.y)).toBeLessThanOrEqual(2);
     expect(Math.hypot(hostOccupiedCenter.x - hostSeatCenter.x, hostOccupiedCenter.y - hostSeatCenter.y)).toBeGreaterThan(50);
     await page.locator(".waiting-bottom-tools").getByRole("button", { name: "聊天" }).click();
     await expect(page.getByLabel("聊天内容")).toBeVisible();
@@ -143,7 +150,7 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
       const ownSeatAlignment = await playerPage.evaluate(() => {
         const stage = document.querySelector(".waiting-table-stage")!.getBoundingClientRect();
         const seat = document.querySelector(".waiting-table-seat.mine")!.getBoundingClientRect();
-        return Math.hypot(seat.left + seat.width / 2 - (stage.left + stage.width * .5), seat.top + seat.height / 2 - (stage.top + stage.height * .78));
+        return Math.hypot(seat.left + seat.width / 2 - (stage.left + stage.width * .5), seat.top + seat.height / 2 - (stage.top + stage.height * (1 - (14 * 2 / 3) / 100)));
       });
       expect(ownSeatAlignment).toBeLessThanOrEqual(2);
     }
@@ -158,7 +165,7 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
       const heroAlignment = await playerPage.evaluate(() => {
         const stage = document.querySelector(".table-stage")!.getBoundingClientRect();
         const seat = document.querySelector(".hero-seat")!.getBoundingClientRect();
-        return Math.hypot(seat.left + seat.width / 2 - (stage.left + stage.width * .5), seat.top + seat.height / 2 - (stage.top + stage.height * .78));
+        return Math.hypot(seat.left + seat.width / 2 - (stage.left + stage.width * .5), seat.top + seat.height / 2 - (stage.top + stage.height * (1 - (14 * 2 / 3) / 100)));
       });
       expect(heroAlignment).toBeLessThanOrEqual(2);
       await expect(playerPage.locator(".board-cards > *")).toHaveCount(5);
@@ -205,6 +212,35 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
     await expect(guestTwoPage.locator(".table-tools .ui-icon")).toHaveCount(2);
     await expect(guestTwoPage.locator(".table-bottom-tools .ui-icon")).toHaveCount(2);
     await expect(guestTwoPage.locator(".round-tool .ui-icon")).toHaveCount(1);
+    const edgeControlGeometry = await guestTwoPage.evaluate(() => {
+      const rect = (selector: string) => {
+        const bounds = document.querySelector<HTMLElement>(selector)!.getBoundingClientRect();
+        return { width: bounds.width, height: bounds.height, left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom };
+      };
+      return {
+        menu: rect(".table-menu-trigger"),
+        top: rect(".table-tools button"),
+        bottom: rect(".table-bottom-tools button"),
+        emoji: rect(".round-tool"),
+        shield: rect(".table-shield")
+      };
+    });
+    expect(edgeControlGeometry.menu.width).toBeCloseTo(40, 0);
+    expect(edgeControlGeometry.menu.height).toBeCloseTo(40, 0);
+    expect(edgeControlGeometry.top.width).toBeCloseTo(52, 0);
+    expect(edgeControlGeometry.top.height).toBeCloseTo(52, 0);
+    expect(edgeControlGeometry.bottom.width).toBeCloseTo(52, 0);
+    expect(edgeControlGeometry.bottom.height).toBeCloseTo(52, 0);
+    expect(edgeControlGeometry.emoji.width).toBeCloseTo(52, 0);
+    expect(edgeControlGeometry.emoji.height).toBeCloseTo(52, 0);
+    expect(edgeControlGeometry.shield.width).toBeCloseTo(39, 0);
+    expect(edgeControlGeometry.shield.height).toBeCloseTo(39, 0);
+    for (const control of Object.values(edgeControlGeometry)) {
+      expect(control.left).toBeGreaterThanOrEqual(0);
+      expect(control.right).toBeLessThanOrEqual(390);
+      expect(control.top).toBeGreaterThanOrEqual(0);
+      expect(control.bottom).toBeLessThanOrEqual(660);
+    }
     const tableGeometry = await guestTwoPage.evaluate(() => {
       const cardRects = [...document.querySelectorAll(".board-cards > .playing-card")].map((element) => element.getBoundingClientRect());
       const board = {
@@ -219,7 +255,7 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
       const avatarStyle = getComputedStyle(avatar);
       return { collisions, avatarSquare: Math.abs(avatar.offsetWidth - avatar.offsetHeight), avatarRadius: avatarStyle.borderRadius };
     });
-    expect(tableGeometry).toEqual({ collisions: 0, avatarSquare: 0, avatarRadius: "12px" });
+    expect(tableGeometry).toEqual({ collisions: 0, avatarSquare: 0, avatarRadius: "15px" });
     await guestTwoPage.screenshot({ path: testInfo.outputPath("mobile-table.png") });
 
     await guestTwoPage.locator(".table-bottom-tools").getByRole("button", { name: "聊天" }).click();

@@ -2616,3 +2616,129 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
 .app-shell.mode-mobile .fresh-table .action-submitting {
   top:max(47px,calc(var(--hero-y) - 75px));
 }
+
+/* Issue #7: a single symmetric mobile seat coordinate system. The avatar is
+   enlarged without scaling its parent so labels and cards stay crisp. */
+.app-shell.mode-mobile .fresh-table .table-stage,
+.app-shell.mode-mobile .waiting-with-tools>main.waiting-table-stage {
+  bottom:100px;
+  overflow:visible;
+}
+.app-shell.mode-mobile .fresh-table .fresh-felt,
+.app-shell.mode-mobile .waiting-with-tools .waiting-felt { bottom:-100px; }
+.app-shell.mode-mobile .fresh-table .seat {
+  width:70px;
+  min-width:70px;
+  min-height:55px;
+}
+.app-shell.mode-mobile .fresh-table .seat .avatar-ring {
+  width:55px;
+  height:55px;
+  border-radius:15px;
+}
+.app-shell.mode-mobile .fresh-table .seat .avatar-ring>.game-avatar { border-radius:12px; }
+.app-shell.mode-mobile .waiting-table-seat.occupied {
+  min-width:82px;
+}
+.app-shell.mode-mobile .waiting-table-seat.occupied>span {
+  width:65px;
+  height:65px;
+  border-radius:16px;
+}
+.app-shell.mode-mobile .waiting-table-seat.occupied>span>.game-avatar { border-radius:13px; }
+.app-shell.mode-mobile .fresh-table .timer-ring { border-radius:18px; }
+.app-shell.mode-mobile .fresh-table .seat-countdown {
+  right:-9px;
+  top:-9px;
+  min-width:24px;
+  height:24px;
+}
+.app-shell.mode-mobile .fresh-table .seat-info b { bottom:calc(100% + 5px); }
+.app-shell.mode-mobile .fresh-table .seat-info span { top:calc(100% + 5px); }
+.app-shell.mode-mobile .fresh-table .seat-cards { top:calc(100% + 32px); }
+.app-shell.mode-mobile .fresh-table .dealer-button {
+  top:72px;
+  left:calc(50% + 36px);
+}
+.app-shell.mode-mobile .fresh-table .seat.seat-right .dealer-button {
+  right:calc(50% + 36px);
+  left:auto;
+}
+
+/* Issue #8: enlarge every table-edge control and its real hit target by one
+   third while keeping icons, gaps and safe-area placement proportional. */
+.app-shell.mode-mobile .wpk-table-bar,
+.app-shell.mode-mobile .waiting-room>header { height:60px; }
+.app-shell.mode-mobile .wpk-table-bar .table-menu-trigger,
+.app-shell.mode-mobile .waiting-room>header .table-menu-trigger {
+  width:40px;
+  height:40px;
+  padding:0;
+  border-radius:11px;
+}
+.app-shell.mode-mobile .wpk-table-bar .hand-chip,
+.app-shell.mode-mobile .waiting-room>header .hand-chip { max-width:80px; }
+.app-shell.mode-mobile .table-tools,
+.app-shell.mode-mobile .waiting-top-tools { gap:9px; }
+.app-shell.mode-mobile .table-tools button,
+.app-shell.mode-mobile .waiting-top-tools button {
+  width:52px;
+  min-width:52px;
+  height:52px;
+  padding:0;
+  border-radius:12px;
+}
+.app-shell.mode-mobile .table-tools .ui-icon,
+.app-shell.mode-mobile .waiting-top-tools .ui-icon,
+.app-shell.mode-mobile .table-left .ui-icon,
+.app-shell.mode-mobile .waiting-room>header .ui-icon {
+  width:27px;
+  height:27px;
+}
+.app-shell.mode-mobile .table-bottom-tools,
+.app-shell.mode-mobile .waiting-bottom-tools { gap:10px; }
+.app-shell.mode-mobile .table-bottom-tools button,
+.app-shell.mode-mobile .waiting-bottom-tools button {
+  width:52px;
+  min-width:52px;
+  height:52px;
+  padding:0;
+  border-radius:12px;
+}
+.app-shell.mode-mobile .table-bottom-tools .ui-icon,
+.app-shell.mode-mobile .waiting-bottom-tools .ui-icon,
+.app-shell.mode-mobile .round-tool .ui-icon {
+  width:29px;
+  height:29px;
+}
+.app-shell.mode-mobile .waiting-bottom-tools {
+  width:114px;
+  height:52px;
+  grid-template-columns:repeat(2,52px);
+}
+.app-shell.mode-mobile .round-tool {
+  width:52px;
+  height:52px;
+}
+.app-shell.mode-mobile .table-shield {
+  right:68px;
+  bottom:max(7px,env(safe-area-inset-bottom));
+  width:39px;
+  height:39px;
+  border-radius:10px;
+}
+.app-shell.mode-mobile .table-shield .ui-icon {
+  width:25px;
+  height:25px;
+}
+.app-shell.mode-mobile .fresh-table .table-bottom-tools,
+.app-shell.mode-mobile .waiting-with-tools .waiting-bottom-tools {
+  bottom:calc(-99px + env(safe-area-inset-bottom));
+}
+.app-shell.mode-mobile .fresh-table .emoji-tray,
+.app-shell.mode-mobile .waiting-with-tools .emoji-tray {
+  bottom:calc(-99px + env(safe-area-inset-bottom));
+}
+.app-shell.mode-mobile .fresh-table .table-shield {
+  bottom:calc(-93px + env(safe-area-inset-bottom));
+}

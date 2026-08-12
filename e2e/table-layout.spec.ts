@@ -1,0 +1,85 @@
+import { expect, test } from "@playwright/test";
+
+test("390x660 牌桌保持对称座位、大头像和放大工具按钮", async ({ page, browser }, testInfo) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width:390, height:660 });
+  const stamp = Date.now().toString(36);
+  const nickname = `布局${stamp.slice(-5)}`;
+  const guest = await browser.newContext({ viewport:{ width:390, height:660 } });
+  const guestPage = await guest.newPage();
+
+  try {
+    await page.context().request.post("/api/auth/register", { data:{ email:`layout-host-${stamp}@local.test`, password:"test-pass-123", nickname } });
+    await guest.request.post("http://127.0.0.1:5173/api/auth/register", { data:{ email:`layout-guest-${stamp}@local.test`, password:"test-pass-123", nickname:`客人${stamp.slice(-4)}` } });
+
+    await page.goto("/");
+    await page.getByRole("button", { name:"创建房间" }).click();
+    await page.getByRole("button", { name:"立即开局" }).click();
+    await page.locator(".waiting-table-seat.empty").first().click();
+
+    const waitingLayout = await page.locator(".waiting-table-stage").evaluate((stageElement) => {
+      const stage = stageElement.getBoundingClientRect();
+      const points = [...stageElement.querySelectorAll<HTMLElement>(".waiting-table-seat")].map((seat) => {
+        const rect = seat.getBoundingClientRect();
+        return { x:(rect.left + rect.width / 2 - stage.left) / stage.width * 100, y:(rect.top + rect.height / 2 - stage.top) / stage.height * 100 };
+      });
+      return { points, width:stage.width, height:stage.height };
+    });
+    expect(waitingLayout.width).toBe(390);
+    expect(waitingLayout.height).toBe(560);
+    expect(waitingLayout.points.some(({ x, y }) => Math.abs(x - 50) < .2 && Math.abs(y - 14 * 2 / 3) < .2)).toBe(true);
+    expect(waitingLayout.points.some(({ x, y }) => Math.abs(x - 50) < .2 && Math.abs(y - (100 - 14 * 2 / 3)) < .2)).toBe(true);
+    const leftRail = waitingLayout.points.filter(({ x }) => x < 40).sort((a, b) => a.y - b.y);
+    const rightRail = waitingLayout.points.filter(({ x }) => x > 60).sort((a, b) => a.y - b.y);
+    leftRail.forEach((point, index) => expect(point.y).toBeCloseTo(rightRail[index].y, 1));
+    await page.screenshot({ path:testInfo.outputPath("waiting-8-seat-390x660.png") });
+
+    await guestPage.goto("http://127.0.0.1:5173/");
+    const room = guestPage.locator(".public-room-list article", { hasText:nickname });
+    await room.getByRole("button", { name:/加入/ }).click();
+    await guestPage.locator(".waiting-table-seat.empty").first().click();
+    await expect(page.locator(".waiting-table-seat.occupied")).toHaveCount(2);
+    await page.getByRole("button", { name:/开始牌局/ }).click();
+    await expect(page.locator(".fresh-table")).toBeVisible();
+    await expect(guestPage.locator(".fresh-table")).toBeVisible();
+
+    for (const playerPage of [page, guestPage]) {
+      const geometry = await playerPage.evaluate(() => {
+        const stage = document.querySelector(".table-stage")!.getBoundingClientRect();
+        const hero = document.querySelector(".hero-seat")!.getBoundingClientRect();
+        const avatar = document.querySelector<HTMLElement>(".hero-seat .avatar-ring")!.getBoundingClientRect();
+        const rect = (selector:string) => {
+          const box = document.querySelector<HTMLElement>(selector)!.getBoundingClientRect();
+          return { width:box.width, height:box.height, left:box.left, right:box.right, top:box.top, bottom:box.bottom };
+        };
+        const board = rect(".board-cards");
+        const occupied = [...document.querySelectorAll<HTMLElement>(".seat .avatar-ring")].map((element) => element.getBoundingClientRect());
+        const controls = {
+          menu:rect(".table-menu-trigger"), top:rect(".table-tools button"), bottom:rect(".table-bottom-tools button"),
+          emoji:rect(".round-tool"), shield:rect(".table-shield")
+        };
+        const collision = (a:DOMRect | ReturnType<typeof rect>, b:DOMRect | ReturnType<typeof rect>) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+        return {
+          heroOffset:Math.hypot(hero.left + hero.width / 2 - (stage.left + stage.width / 2), hero.top + hero.height / 2 - (stage.top + stage.height * (1 - (14 * 2 / 3) / 100))),
+          avatar:{ width:avatar.width, height:avatar.height }, controls,
+          avatarBoardCollisions:occupied.filter((item) => collision(item, board)).length,
+          clipped:Object.values(controls).some((item) => item.left < 0 || item.right > innerWidth || item.top < 0 || item.bottom > innerHeight),
+          controlSeatCollisions:Object.values(controls).flatMap((control) => occupied.filter((item) => collision(control, item))).length
+        };
+      });
+      expect(geometry.heroOffset).toBeLessThanOrEqual(2);
+      expect(geometry.avatar).toEqual({ width:55, height:55 });
+      expect(geometry.controls.menu.width).toBeCloseTo(40, 0);
+      expect(geometry.controls.top.width).toBeCloseTo(52, 0);
+      expect(geometry.controls.bottom.width).toBeCloseTo(52, 0);
+      expect(geometry.controls.emoji.width).toBeCloseTo(52, 0);
+      expect(geometry.controls.shield.width).toBeCloseTo(39, 0);
+      expect(geometry.avatarBoardCollisions).toBe(0);
+      expect(geometry.clipped).toBe(false);
+      expect(geometry.controlSeatCollisions).toBe(0);
+    }
+    await page.screenshot({ path:testInfo.outputPath("active-2-player-390x660.png") });
+  } finally {
+    await guest.close();
+  }
+});
