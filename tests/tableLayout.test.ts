@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { anchoredSeatPoint, relativeSeatPosition } from "../src/game/tableLayout";
+import { anchoredSeatPoint, MOBILE_SEAT_EDGE_INSET, relativeSeatPosition } from "../src/game/tableLayout";
 
 describe("mobile table seat layout", () => {
-  const edgeInset = 14 * (2 / 3);
+  const edgeInset = MOBILE_SEAT_EDGE_INSET;
   const bottomInset = 100 - edgeInset;
 
   it.each([3, 6, 8, 9])("anchors the local player and aligns side seats for %i seats", (capacity) => {
@@ -26,6 +26,10 @@ describe("mobile table seat layout", () => {
     const railWithEdges = [edgeInset, ...left, bottomInset];
     const gaps = railWithEdges.slice(1).map((value, index) => value - railWithEdges[index]);
     gaps.forEach((gap) => expect(gap).toBeCloseTo(gaps[0], 8));
+    if (hasTopSeat) {
+      const allY = Array.from({ length: capacity }, (_, index) => anchoredSeatPoint(index, capacity).y);
+      expect(Math.min(...allY) + Math.max(...allY)).toBeCloseTo(100, 8);
+    }
   });
 
   it.each([3, 6, 8, 9])("rotates every possible chosen seat to the bottom anchor for %i seats", (capacity) => {

@@ -3,6 +3,11 @@ export interface TableSeatPoint {
   y: number;
 }
 
+// These are centers inside the full visual viewport, not inside a stage with
+// an asymmetric bottom reservation. 18% leaves equal room for the enlarged
+// avatar stack and the edge toolbars at both ends of a 390 x 660 browser.
+export const MOBILE_SEAT_EDGE_INSET = 18;
+
 export function relativeSeatPosition(position: number, anchorPosition: number, capacity: number) {
   const normalizedCapacity = Math.max(3, Math.round(capacity));
   return ((Math.round(position) - Math.round(anchorPosition)) % normalizedCapacity + normalizedCapacity) % normalizedCapacity;
@@ -17,7 +22,7 @@ export function relativeSeatPosition(position: number, anchorPosition: number, c
 export function anchoredSeatPoint(relativePosition: number, capacity: number): TableSeatPoint {
   const normalizedCapacity = Math.max(3, Math.round(capacity));
   const relative = ((Math.round(relativePosition) % normalizedCapacity) + normalizedCapacity) % normalizedCapacity;
-  const edgeInset = 14 * (2 / 3);
+  const edgeInset = MOBILE_SEAT_EDGE_INSET;
   const bottomInset = 100 - edgeInset;
   if (relative === 0) return { x: 50, y: bottomInset };
 

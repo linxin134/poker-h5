@@ -26,12 +26,13 @@ test("390x660 牌桌保持对称座位、大头像和放大工具按钮", async 
       return { points, width:stage.width, height:stage.height };
     });
     expect(waitingLayout.width).toBe(390);
-    expect(waitingLayout.height).toBe(560);
-    expect(waitingLayout.points.some(({ x, y }) => Math.abs(x - 50) < .2 && Math.abs(y - 14 * 2 / 3) < .2)).toBe(true);
-    expect(waitingLayout.points.some(({ x, y }) => Math.abs(x - 50) < .2 && Math.abs(y - (100 - 14 * 2 / 3)) < .2)).toBe(true);
+    expect(waitingLayout.height).toBe(660);
+    expect(waitingLayout.points.some(({ x, y }) => Math.abs(x - 50) < .2 && Math.abs(y - 18) < .2)).toBe(true);
+    expect(waitingLayout.points.some(({ x, y }) => Math.abs(x - 50) < .2 && Math.abs(y - 82) < .2)).toBe(true);
     const leftRail = waitingLayout.points.filter(({ x }) => x < 40).sort((a, b) => a.y - b.y);
     const rightRail = waitingLayout.points.filter(({ x }) => x > 60).sort((a, b) => a.y - b.y);
     leftRail.forEach((point, index) => expect(point.y).toBeCloseTo(rightRail[index].y, 1));
+    expect(Math.min(...waitingLayout.points.map(({ y }) => y)) + Math.max(...waitingLayout.points.map(({ y }) => y))).toBeCloseTo(100, 1);
     await page.screenshot({ path:testInfo.outputPath("waiting-8-seat-390x660.png") });
 
     await guestPage.goto("http://127.0.0.1:5173/");
@@ -60,7 +61,8 @@ test("390x660 牌桌保持对称座位、大头像和放大工具按钮", async 
         };
         const collision = (a:DOMRect | ReturnType<typeof rect>, b:DOMRect | ReturnType<typeof rect>) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
         return {
-          heroOffset:Math.hypot(hero.left + hero.width / 2 - (stage.left + stage.width / 2), hero.top + hero.height / 2 - (stage.top + stage.height * (1 - (14 * 2 / 3) / 100))),
+          heroOffset:Math.hypot(hero.left + hero.width / 2 - (stage.left + stage.width / 2), hero.top + hero.height / 2 - (stage.top + stage.height * .82)),
+          stage:{ top:stage.top, bottom:stage.bottom, height:stage.height },
           avatar:{ width:avatar.width, height:avatar.height }, controls,
           avatarBoardCollisions:occupied.filter((item) => collision(item, board)).length,
           clipped:Object.values(controls).some((item) => item.left < 0 || item.right > innerWidth || item.top < 0 || item.bottom > innerHeight),
@@ -68,6 +70,7 @@ test("390x660 牌桌保持对称座位、大头像和放大工具按钮", async 
         };
       });
       expect(geometry.heroOffset).toBeLessThanOrEqual(2);
+      expect(geometry.stage).toEqual({ top:0, bottom:660, height:660 });
       expect(geometry.avatar).toEqual({ width:55, height:55 });
       expect(geometry.controls.menu.width).toBeCloseTo(40, 0);
       expect(geometry.controls.top.width).toBeCloseTo(52, 0);
