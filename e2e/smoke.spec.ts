@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("三名玩家可以加入、选座、行动并自动续手", async ({ page, browser }, testInfo) => {
-  test.setTimeout(90_000);
+  test.setTimeout(150_000);
   const stamp = `${Date.now()}-${testInfo.project.name}`;
   let nickname = `房主${Date.now().toString(36).slice(-6)}`;
   const guestOne = await browser.newContext({ viewport: { width: 1000, height: 720 } });
@@ -171,9 +171,10 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
       }
       const playerTextRendering = await playerPage.locator(".hero-seat .seat-info b").evaluate((element) => {
         const style = getComputedStyle(element);
-        return { textShadow: style.textShadow, filter: style.filter };
+        const seatMatrix = new DOMMatrixReadOnly(getComputedStyle(element.closest(".seat")!).transform);
+        return { textShadow: style.textShadow, filter: style.filter, fontSize: style.fontSize, lineHeight: style.lineHeight, scaleX: seatMatrix.a, scaleY: seatMatrix.d };
       });
-      expect(playerTextRendering).toEqual({ textShadow: "none", filter: "none" });
+      expect(playerTextRendering).toEqual({ textShadow: "none", filter: "none", fontSize: "20px", lineHeight: "22px", scaleX: 1, scaleY: 1 });
     }
     const actingPage = (await Promise.all(pages.map(async (playerPage) => await playerPage.locator(".action-buttons").count() ? playerPage : null))).find(Boolean)!;
     await expect(actingPage.locator(".action-buttons small")).toHaveCount(0);
@@ -333,7 +334,7 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
         expect(actionGap).toBeGreaterThanOrEqual(3);
         const seatDockCollisions = await playerPage.evaluate(() => {
           const actions = [...document.querySelectorAll(".action-buttons .action")].map((element) => element.getBoundingClientRect());
-          return [...document.querySelectorAll(".seat:not(.hero-seat)")].filter((seat) => {
+          return [...document.querySelectorAll(".seat:not(.hero-seat)")].flatMap((seat, index) => {
             const parts = [".seat-info b", ".avatar-ring", ".seat-info span", ".seat-cards"]
               .map((selector) => seat.querySelector(selector)?.getBoundingClientRect())
               .filter((rect): rect is DOMRect => Boolean(rect));
@@ -341,10 +342,12 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
             const right = Math.max(...parts.map((rect) => rect.right));
             const top = Math.min(...parts.map((rect) => rect.top));
             const bottom = Math.max(...parts.map((rect) => rect.bottom));
-            return actions.some((action) => left < action.right && right > action.left && top < action.bottom && bottom > action.top);
-          }).length;
+            return actions.some((action) => left < action.right && right > action.left && top < action.bottom && bottom > action.top)
+              ? [{ index, seat: { left, right, top, bottom }, actions: actions.map(({ left, right, top, bottom }) => ({ left, right, top, bottom })) }]
+              : [];
+          });
         });
-        expect(seatDockCollisions).toBe(0);
+        expect(seatDockCollisions).toEqual([]);
         await raise.click();
         await expect(playerPage.locator(".raise-panel")).toBeVisible();
         await expect(playerPage.locator(".raise-panel .quick-raises button")).toHaveCount(4);

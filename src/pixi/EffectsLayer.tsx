@@ -34,7 +34,7 @@ export function EffectsLayer({ seatPositions = {} }: { seatPositions?: Record<st
     if (!current) return;
     const pending = bursts[bursts.length - 1];
     if (!pending) return;
-    const glyph = new Text({ text: pending.emoji, style: { fontSize: 52, dropShadow: { alpha: .55, blur: 6, distance: 3 } } });
+    const glyph = new Text({ text: pending.emoji, style: { fontSize: 104, dropShadow: { alpha: .55, blur: 6, distance: 3 } } });
     glyph.anchor.set(.5);
     const from = seatPositions[pending.from] ?? { x: .5, y: .82 };
     const to = seatPositions[pending.to] ?? { x: .78, y: .3 };

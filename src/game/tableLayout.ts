@@ -27,7 +27,9 @@ export function anchoredSeatPoint(relativePosition: number, capacity: number): T
   const isLeft = relative <= sideCount;
   const railIndex = isLeft ? relative - 1 : normalizedCapacity - relative - 1;
   const topY = 19;
-  const bottomY = 71;
+  // Keep the lowest side rail clear of the enlarged local action controls.
+  // The local seat remains anchored at 78%; only adjacent opponents move up.
+  const bottomY = 52;
   const y = sideCount <= 1 ? 45 : bottomY - railIndex * ((bottomY - topY) / (sideCount - 1));
   return { x: isLeft ? 12 : 88, y };
 }

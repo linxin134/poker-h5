@@ -190,8 +190,10 @@ test("six-player authoritative battle keeps perspectives, side pots and cumulati
     const uiPage = await contexts[liveActorIndex].newPage();
     try {
       await uiPage.goto(origin);
-      const roomCard = uiPage.locator(".public-room-list article", { hasText: users[0].nickname }).first();
-      await roomCard.getByRole("button", { name: /加入/ }).click();
+      // Use the production reconnect path. The actor already belongs to the
+      // room and a second join click can race the harness socket's turn timer.
+      await uiPage.evaluate((roomCode) => sessionStorage.setItem("poker-active-room", roomCode), code);
+      await uiPage.reload();
       await expect(uiPage.locator(".table-screen")).toBeVisible();
       await expect(uiPage.locator(".hero-seat .seat-cards .playing-card:not(.card-back)")).toHaveCount(2);
       await expect(uiPage.locator(".action-dock.my-turn")).toBeVisible();
