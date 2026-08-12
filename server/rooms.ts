@@ -68,6 +68,7 @@ function memberFor(user: SafeUser, hostUserId: string): RoomMember {
     nickname: user.nickname,
     avatar: user.avatar,
     connected: false,
+    left: false,
     isHost: user.id === hostUserId,
     buyIn: 0,
     topUpTarget: null,
@@ -121,7 +122,7 @@ function scoreboard(room: RoomRuntime) {
 }
 
 function viewFor(room: RoomRuntime, userId: string): RoomView {
-  const member = room.members.find((entry) => entry.userId === userId);
+  const member = room.members.find((entry) => entry.userId === userId && !entry.left);
   if (!member) throw Object.assign(new Error("你不在这个房间"), { statusCode: 403 });
   return {
     code: room.code,
@@ -137,7 +138,7 @@ function viewFor(room: RoomRuntime, userId: string): RoomView {
     turnEndsAt: room.turnEndsAt,
     nextHandAt: room.nextHandAt,
     mySeatId: member.seatId,
-    members: room.members.map((entry) => ({ ...entry })),
+    members: room.members.filter((entry) => !entry.left).map((entry) => ({ ...entry })),
     game: publicGame(room, userId),
     hands: [...room.hands].reverse(),
     scoreboard: scoreboard(room),
@@ -150,7 +151,7 @@ function send(socket: RoomSocket, message: RoomServerMessage) {
 }
 
 function broadcastRoom(room: RoomRuntime) {
-  for (const member of room.members) {
+  for (const member of room.members.filter((entry) => !entry.left)) {
     const message: RoomServerMessage = { type: "room", room: viewFor(room, member.userId) };
     for (const socket of room.clients.get(member.userId) ?? []) send(socket, message);
   }
@@ -310,6 +311,9 @@ function applyPendingTopUps(room: RoomRuntime) {
 function dealNextHand(room: RoomRuntime) {
   if (!room.game) return;
   const expired = room.endsAt !== null && Date.now() >= room.endsAt;
+  for (const member of room.members) {
+    if (member.seatIndex !== null && (!member.connected || member.left)) member.standAfterHand = true;
+  }
   applyPendingStands(room);
   syncPendingSeats(room);
   applyPendingTopUps(room);
@@ -408,10 +412,25 @@ export const roomService = {
     const code = codeInput.trim().toUpperCase();
     const room = rooms.get(code);
     if (!room) throw Object.assign(new Error("房间不存在或服务器已重启"), { statusCode: 404 });
-    if (room.members.some((member) => member.userId === user.id)) return { code };
+    const existing = room.members.find((member) => member.userId === user.id);
+    if (existing) {
+      const stillInCurrentHand = room.game?.seats.some((seat) => seat.userId === user.id) ?? false;
+      existing.left = false;
+      existing.connected = false;
+      existing.seatIndex = null;
+      existing.seatId = "";
+      existing.standAfterHand = stillInCurrentHand;
+      existing.standingNow = false;
+      existing.isHost = existing.userId === room.hostUserId;
+      saveRoom(room);
+      broadcastRoom(room);
+      return { code };
+    }
     if (room.status === "finished") throw Object.assign(new Error("房间已经结束"), { statusCode: 409 });
-    if (room.members.filter((member) => member.seatIndex !== null).length >= room.capacity) throw Object.assign(new Error("房间已满"), { statusCode: 409 });
+    if (room.members.filter((member) => !member.left && member.seatIndex !== null).length >= room.capacity) throw Object.assign(new Error("房间已满"), { statusCode: 409 });
+    if (!room.members.some((member) => !member.left)) room.hostUserId = user.id;
     room.members.push(memberFor(user, room.hostUserId));
+    for (const member of room.members) member.isHost = !member.left && member.userId === room.hostUserId;
     saveRoom(room);
     broadcastRoom(room);
     return { code };
@@ -419,17 +438,17 @@ export const roomService = {
 
   list(): RoomListItem[] {
     return [...rooms.values()]
-      .filter((room) => room.status !== "finished" && room.members.filter((member) => member.seatIndex !== null).length < room.capacity)
+      .filter((room) => room.status !== "finished" && room.members.filter((member) => !member.left && member.seatIndex !== null).length < room.capacity)
       .sort((a, b) => b.createdAt - a.createdAt)
       .map((room) => ({
         code: room.code,
-        hostNickname: room.members[0]?.nickname ?? "房主",
-        hostAvatar: room.members[0]?.avatar ?? "♠",
+        hostNickname: room.members.find((member) => !member.left && member.userId === room.hostUserId)?.nickname ?? room.members.find((member) => !member.left)?.nickname ?? "房主",
+        hostAvatar: room.members.find((member) => !member.left && member.userId === room.hostUserId)?.avatar ?? room.members.find((member) => !member.left)?.avatar ?? "♠",
         status: room.status,
         handNumber: room.game?.handNumber ?? 0,
         durationMinutes: room.durationMinutes,
         capacity: room.capacity,
-        memberCount: room.members.filter((member) => member.seatIndex !== null).length,
+        memberCount: room.members.filter((member) => !member.left && member.seatIndex !== null).length,
         startingStack: room.startingStack,
         smallBlind: room.smallBlind,
         bigBlind: room.bigBlind,
@@ -447,7 +466,7 @@ export const roomService = {
     const code = codeInput.trim().toUpperCase();
     const room = rooms.get(code);
     if (!room) throw new Error("房间不存在或服务器已重启");
-    const member = room.members.find((entry) => entry.userId === user.id);
+    const member = room.members.find((entry) => entry.userId === user.id && !entry.left);
     if (!member) throw new Error("请先加入房间");
     const sockets = room.clients.get(user.id) ?? new Set<RoomSocket>();
     sockets.add(socket);
@@ -478,6 +497,36 @@ export const roomService = {
             rooms.delete(room.code);
             const payload: RoomServerMessage = { type: "dissolved", message: "房间已由房主解散" };
             for (const sockets of room.clients.values()) for (const target of sockets) send(target, payload);
+            return;
+          }
+          if (message.type === "leave") {
+            const currentSeat = room.game?.seats.find((seat) => seat.userId === user.id);
+            member.connected = false;
+            member.left = true;
+            member.topUpTarget = null;
+            if (room.status === "playing" && currentSeat) {
+              member.standAfterHand = true;
+              member.standingNow = currentSeat.folded;
+              member.seatIndex = null;
+            } else {
+              member.savedStack = currentSeat?.stack ?? member.savedStack;
+              if (room.game) room.game.seats = room.game.seats.filter((seat) => seat.userId !== user.id);
+              member.seatIndex = null;
+              member.seatId = "";
+              member.standAfterHand = false;
+              member.standingNow = false;
+            }
+            const activeMembers = room.members.filter((entry) => !entry.left);
+            if (room.hostUserId === user.id && activeMembers.length > 0) room.hostUserId = activeMembers[0].userId;
+            for (const entry of room.members) entry.isHost = !entry.left && entry.userId === room.hostUserId;
+            const activeHands = new Set(room.hands.flatMap((hand) => hand.seats.flatMap((seat) => seat.userId ? [seat.userId] : [])));
+            room.members = room.members.filter((entry) => !entry.left || activeHands.has(entry.userId) || room.game?.seats.some((seat) => seat.userId === entry.userId));
+            const userSockets = room.clients.get(user.id) ?? new Set<RoomSocket>();
+            for (const target of userSockets) send(target, { type: "left" });
+            room.clients.delete(user.id);
+            ensureRoomProgress(room);
+            saveRoom(room);
+            broadcastRoom(room);
             return;
           }
           if (message.type === "sit") {
@@ -597,6 +646,7 @@ export const roomService = {
         if (!current?.size) {
           room.clients.delete(user.id);
           member.connected = false;
+          if (member.left) return;
           ensureRoomProgress(room);
           broadcastRoom(room);
         }

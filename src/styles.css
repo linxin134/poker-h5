@@ -983,30 +983,6 @@ html,body,#root,.app-shell { color:#203029; background:#edf4f0; }
 }
 .app-shell.mode-mobile .emoji-tray { z-index:46; right:9px; bottom:max(4px,env(safe-area-inset-bottom)); }
 .app-shell.mode-mobile .round-tool { width:36px; height:36px; border:0; color:#dfe9e5; background:transparent; box-shadow:none; font-size:24px; }
-.app-shell.mode-mobile .interaction-popover {
-  position:absolute;
-  right:-1px;
-  bottom:44px;
-  width:342px;
-  display:block;
-  padding:12px;
-  border:1px solid #ffffff22;
-  border-radius:15px;
-  color:#edf5f2;
-  background:#0d201ced;
-  box-shadow:0 16px 45px #00130ecc;
-  backdrop-filter:blur(16px);
-}
-.app-shell.mode-mobile .interaction-popover>header { display:flex; align-items:center; justify-content:space-between; }
-.app-shell.mode-mobile .interaction-popover>header nav { display:flex; gap:5px; }
-.app-shell.mode-mobile .interaction-popover>header nav button { height:28px; padding:0 15px; border:0; border-radius:8px; color:#9eb0aa; background:#ffffff0c; font-size:9px; font-weight:800; }
-.app-shell.mode-mobile .interaction-popover>header nav button.active { color:#173128; background:#dce9e4; }
-.app-shell.mode-mobile .interaction-popover .popover-close { width:26px; height:26px; border:0; color:#b9c7c2; background:transparent; font-size:19px; }
-.app-shell.mode-mobile .emoji-targets { display:flex; gap:5px; margin:10px 0 8px; overflow:auto; }
-.app-shell.mode-mobile .emoji-targets button { flex:0 0 auto; height:24px; padding:0 9px; border:1px solid #ffffff15; border-radius:99px; color:#9fb0aa; background:#ffffff09; font-size:8px; }
-.app-shell.mode-mobile .emoji-targets button.active { border-color:#e9b76f; color:#ffe0a8; background:#e9b76f1c; }
-.app-shell.mode-mobile .emoji-grid { display:grid; grid-template-columns:repeat(8,1fr); gap:4px; }
-.app-shell.mode-mobile .emoji-grid button { height:39px; border:0; border-radius:8px; background:#ffffff08; font-size:21px; }
 
 .app-shell.mode-mobile .player-interaction-card {
   position:absolute;
@@ -1387,7 +1363,6 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
 .app-shell.mode-mobile .game-drawer.wpk-panel { position:absolute; z-index:72; margin:0; border:0; border-radius:0; color:#e8eeec; background:#1d2430f8; box-shadow:18px 0 44px #0008; backdrop-filter:blur(13px); }
 .app-shell.mode-mobile .game-drawer.wpk-panel.drawer-left { left:0; right:auto; top:0; bottom:0; width:84%; height:100%; padding:max(18px,env(safe-area-inset-top)) 13px max(12px,env(safe-area-inset-bottom)); }
 .app-shell.mode-mobile .game-drawer.wpk-panel.drawer-right { left:auto; right:0; top:0; bottom:0; width:88%; height:100%; padding:max(16px,env(safe-area-inset-top)) 13px max(12px,env(safe-area-inset-bottom)); box-shadow:-18px 0 44px #0008; }
-.app-shell.mode-mobile .game-drawer.wpk-panel.drawer-modal { left:50%; right:auto; top:50%; bottom:auto; width:90%; height:auto; max-height:78%; padding:0; transform:translate(-50%,-50%); overflow:auto; border:1px solid #ffffff18; border-radius:8px; background:#0f201cf8; box-shadow:0 24px 70px #000b; }
 .app-shell.mode-mobile .game-drawer.wpk-panel.drawer-menu { left:7px; right:auto; top:max(39px,env(safe-area-inset-top)); bottom:auto; width:148px; height:auto; padding:4px 9px; border:1px solid #ffffff16; border-radius:0 0 5px 5px; background:#202632f7; box-shadow:0 14px 34px #0008; }
 .app-shell.mode-mobile .wpk-panel-header { display:grid; min-height:40px; grid-template-columns:30px 1fr 30px; align-items:center; border-bottom:1px solid #ffffff10; }
 .app-shell.mode-mobile .drawer-modal .wpk-panel-header { padding:0 8px; }
@@ -1458,10 +1433,6 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
 .app-shell.mode-mobile .wpk-guide-panel article { display:grid; grid-template-columns:28px 1fr; gap:8px; padding:10px; border-bottom:1px solid #ffffff0d; }
 .app-shell.mode-mobile .wpk-guide-panel article>span { color:#17c7ba; font-size:9px; }.app-shell.mode-mobile .wpk-guide-panel article b { font-size:10px; }.app-shell.mode-mobile .wpk-guide-panel article p { margin:3px 0 0; color:#87948f; font-size:8px; line-height:1.6; }
 
-.app-shell.mode-mobile .interaction-popover { position:absolute; left:0; right:0; bottom:44px; width:100%; min-height:205px; padding:8px 10px max(12px,env(safe-area-inset-bottom)); border:0; border-radius:0; background:#202735f8; box-shadow:0 -13px 32px #0007; }
-.app-shell.mode-mobile .interaction-popover>header { min-height:39px; border-bottom:1px solid #ffffff10; }
-.app-shell.mode-mobile .interaction-popover>header nav button { color:#8f9b97; background:transparent; }.app-shell.mode-mobile .interaction-popover>header nav button.active { color:#edf3f1; background:#313949; }
-.app-shell.mode-mobile .emoji-targets { margin:7px 0; }.app-shell.mode-mobile .emoji-grid { grid-template-columns:repeat(8,1fr); gap:3px; }.app-shell.mode-mobile .emoji-grid button { background:transparent; font-size:22px; }
 
 /* Functional room creation: only public-room core settings. */
 .app-shell.mode-mobile .room-sheet-shade.wpk-create-shade { align-items:stretch; background:#eff3f2; backdrop-filter:none; }
@@ -2050,22 +2021,6 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
   overflow-y:auto;
   transform-origin:top left;
 }
-.app-shell.mode-mobile .game-drawer.wpk-panel.drawer-modal {
-  top:50%;
-  right:auto;
-  bottom:auto;
-  left:50%;
-  display:flex;
-  width:calc(100% - 32px);
-  height:auto;
-  max-height:calc(100% - 96px);
-  flex-direction:column;
-  overflow:hidden;
-  translate:-50% -50%;
-  transform:none;
-  transform-origin:center;
-  border-radius:12px;
-}
 .app-shell.mode-mobile .game-drawer.wpk-panel>.wpk-panel-header { flex:0 0 42px; box-sizing:border-box; }
 .app-shell.mode-mobile .game-drawer.wpk-panel.drawer-left>.wpk-panel-header,
 .app-shell.mode-mobile .game-drawer.wpk-panel.drawer-right>.wpk-panel-header { width:100%; }
@@ -2454,3 +2409,88 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
   bottom:auto;
   transform:translateX(-50%);
 }
+
+/* Mobile H5 is the only layout target. These final rules deliberately own
+   card readability and all overlay coordinates. */
+.app-shell.mode-mobile button,
+.app-shell.mode-mobile input { font-family:inherit; }
+
+/* Compact cards still need a readable suit below two-character ranks. */
+.app-shell.mode-mobile .playing-card.small .card-corner { line-height:.76; }
+.app-shell.mode-mobile .playing-card.small .card-corner b { font-size:9px; }
+.app-shell.mode-mobile .playing-card.small .card-corner i {
+  display:block;
+  margin-top:2px;
+  font-size:7px;
+  line-height:1;
+}
+.app-shell.mode-mobile .playing-card.face-card .card-suit { display:none; }
+.app-shell.mode-mobile .fresh-table .board-cards .card-corner b { font-size:13px; }
+.app-shell.mode-mobile .fresh-table .board-cards .card-corner i { font-size:9px; }
+
+/* A single CSS positioning system for modal drawers. Motion only fades them. */
+.app-shell.mode-mobile .game-drawer.wpk-panel.drawer-modal {
+  position:absolute;
+  inset:50% auto auto 50%;
+  width:calc(100% - 28px);
+  max-width:362px;
+  max-height:calc(100% - 48px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  translate:-50% -50%;
+  transform:none!important;
+  border-radius:14px;
+}
+.app-shell.mode-mobile .wpk-topup-panel>em { margin-top:28px; line-height:1.55; }
+
+/* Emoji sheet is a sibling of the trigger and uses the whole table viewport. */
+.app-shell.mode-mobile .interaction-popover {
+  position:absolute;
+  z-index:74;
+  inset:auto 8px max(48px,calc(env(safe-area-inset-bottom) + 4px)) 8px;
+  display:block;
+  width:auto;
+  min-height:0;
+  box-sizing:border-box;
+  padding:10px 12px max(12px,env(safe-area-inset-bottom));
+  border:0;
+  border-radius:14px;
+  transform:none!important;
+  color:#edf5f2;
+  background:#202735f8;
+  box-shadow:0 -13px 32px #0007;
+}
+.app-shell.mode-mobile .interaction-popover>header { min-height:42px; }
+.app-shell.mode-mobile .interaction-popover>header nav button { height:31px; padding:0 17px; font-size:9px; }
+.app-shell.mode-mobile .emoji-targets { margin:9px 0; scrollbar-width:none; }
+.app-shell.mode-mobile .emoji-targets::-webkit-scrollbar { display:none; }
+.app-shell.mode-mobile .emoji-targets button { height:28px; padding:0 11px; font-size:8px; }
+.app-shell.mode-mobile .emoji-grid { grid-template-columns:repeat(4,1fr); gap:5px; }
+.app-shell.mode-mobile .emoji-grid button { height:42px; font-size:22px; }
+
+/* Enlarge only information needed to play a hand; secondary copy keeps its
+   original scale so the 390 x 660 table remains calm and uncluttered. */
+.app-shell.mode-mobile .wpk-table-bar .hand-chip { font-size:10px; }
+.app-shell.mode-mobile .board-room-countdown { font-size:9px; }
+.app-shell.mode-mobile .fresh-table .seat-info b { font-size:10px; line-height:14px; }
+.app-shell.mode-mobile .fresh-table .seat-info span { min-width:56px; height:20px; font-size:10px; line-height:14px; }
+.app-shell.mode-mobile .fresh-table .seat-bet { font-size:9px; }
+.app-shell.mode-mobile .seat-countdown { font-size:9px; }
+.app-shell.mode-mobile .fresh-table .pot-badge { font-size:11px; }
+.app-shell.mode-mobile .fresh-table .pot-badge small { font-size:9px; }
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn .action,
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn .action.fold,
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn .action.raise,
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn .action.allin,
+.app-shell.mode-mobile .fresh-table .action-dock.my-turn .raise-box>.action { min-height:22px; padding:0 5px; font-size:8px; }
+
+/* Keep player labels crisp on physical mobile pixels. */
+.app-shell.mode-mobile .fresh-table .seat-info b,
+.app-shell.mode-mobile .fresh-table .seat-info span,
+.app-shell.mode-mobile .fresh-table .seat-bet,
+.app-shell.mode-mobile .fresh-table .action-bubble {
+  text-shadow:none!important;
+  filter:none!important;
+  -webkit-font-smoothing:antialiased;
+  backface-visibility:hidden;
+}
+.app-shell.mode-mobile .fresh-table .seat-info b { transform:translateX(-50%); }
+.app-shell.mode-mobile .fresh-table .seat-info span { transform:translateX(-50%); }

@@ -68,6 +68,21 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
     await expect(page.getByRole("button", { name: "发送互动表情" })).toBeVisible();
     await page.getByRole("button", { name: "发送互动表情" }).click();
     await expect(page.locator(".interaction-popover")).toBeVisible();
+    const emojiGeometry = await page.locator(".interaction-popover").evaluate((element) => {
+      const panel = element.getBoundingClientRect();
+      const table = document.querySelector(".waiting-room")!.getBoundingClientRect();
+      return {
+        left: panel.left - table.left,
+        right: table.right - panel.right,
+        bottom: table.bottom - panel.bottom,
+        widthDelta: Math.abs(panel.width - table.width)
+      };
+    });
+    expect(emojiGeometry.left).toBeCloseTo(8, 0);
+    expect(emojiGeometry.right).toBeCloseTo(8, 0);
+    expect(emojiGeometry.bottom).toBeGreaterThanOrEqual(0);
+    expect(emojiGeometry.widthDelta).toBeCloseTo(16, 0);
+    await expect(page.locator(".interaction-popover")).toHaveCSS("border-radius", "14px");
     await page.locator(".popover-close").click();
     await page.getByRole("button", { name: "牌桌功能" }).click();
     await expect(page.getByRole("button", { name: "规则说明" })).toBeVisible();
@@ -98,6 +113,7 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
       expect(modalGeometry.centerX).toBeLessThan(2);
       expect(modalGeometry.centerY).toBeLessThan(2);
       expect(modalGeometry.inside).toBe(true);
+      await expect(page.locator(".game-drawer.drawer-modal")).toHaveCSS("transform", "none");
       await page.getByRole("button", { name: "返回功能菜单" }).click();
     }
     await page.screenshot({ path: testInfo.outputPath("mobile-menu.png") });
@@ -149,6 +165,15 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
       await expect(playerPage.locator(".board-cards .card-back")).toHaveCount(5);
       await expect(playerPage.locator(".seat .playing-card:not(.card-back)")).toHaveCount(2);
       await expect(playerPage.locator(".seat .card-back")).toHaveCount(4);
+      await expect(playerPage.locator(".hero-seat .playing-card:not(.card-back) .card-corner-top i")).toHaveCount(2);
+      for (const suit of await playerPage.locator(".hero-seat .playing-card:not(.card-back) .card-corner-top i").allTextContents()) {
+        expect(suit).toMatch(/[♠♥♦♣]/);
+      }
+      const playerTextRendering = await playerPage.locator(".hero-seat .seat-info b").evaluate((element) => {
+        const style = getComputedStyle(element);
+        return { textShadow: style.textShadow, filter: style.filter };
+      });
+      expect(playerTextRendering).toEqual({ textShadow: "none", filter: "none" });
     }
     const actingPage = (await Promise.all(pages.map(async (playerPage) => await playerPage.locator(".action-buttons").count() ? playerPage : null))).find(Boolean)!;
     await expect(actingPage.locator(".action-buttons small")).toHaveCount(0);

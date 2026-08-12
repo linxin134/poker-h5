@@ -10,6 +10,7 @@ interface RoomStore {
   error: string | null;
   connect(code: string): void;
   disconnect(): void;
+  leave(): void;
   send(message: RoomClientMessage): void;
   clearError(): void;
 }
@@ -48,6 +49,11 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
       }
       if (message.type === "emoji") {
         useGameStore.getState().receiveEmoji(message.id, message.emoji, message.fromSeatId, message.targetSeatId);
+        return;
+      }
+      if (message.type === "left") {
+        get().disconnect();
+        useGameStore.getState().setScreen("lobby");
         return;
       }
       if (message.type === "dissolved") {
@@ -93,6 +99,15 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
     activeCode = "";
     window.sessionStorage.removeItem("poker-active-room");
     set({ room: null, connectionStatus: "idle", error: null });
+  },
+
+  leave: () => {
+    if (socket?.readyState !== WebSocket.OPEN) {
+      get().disconnect();
+      useGameStore.getState().setScreen("lobby");
+      return;
+    }
+    socket.send(JSON.stringify({ type: "leave" } satisfies RoomClientMessage));
   },
 
   send: (message) => {

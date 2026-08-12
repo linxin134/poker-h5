@@ -26,8 +26,7 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
   const connectionStatus = useRoomStore((state) => state.connectionStatus);
   const roomError = useRoomStore((state) => state.error);
   const send = useRoomStore((state) => state.send);
-  const disconnect = useRoomStore((state) => state.disconnect);
-  const setScreen = useGameStore((state) => state.setScreen);
+  const leave = useRoomStore((state) => state.leave);
   const settings = useGameStore((state) => state.settings);
   const receiveEmoji = useGameStore((state) => state.receiveEmoji);
   const [drawer, setDrawer] = useState<DrawerTab | null>(null);
@@ -82,8 +81,7 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
   }, [activeGame?.handId, activeGame?.phase, activeGame?.result?.pot, settings.sound]);
 
   function leaveRoom() {
-    disconnect();
-    setScreen("lobby");
+    leave();
   }
 
   if (!room) return <section className="room-loading"><span className="room-loader" /><b>{connectionStatus === "error" ? "连接失败" : "正在进入好友房"}</b><p>{roomError ?? "正在建立实时连接…"}</p><button className="ghost-button" onClick={leaveRoom}>返回大厅</button></section>;
@@ -173,7 +171,7 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
         const rowClass = seatPoint.y >= 64 ? "seat-lower" : seatPoint.y <= 25 ? "seat-upper" : "seat-middle";
         const displayHoleCards = seat.holeCards.length ? seat.holeCards : (seat.shownHoleCards ?? []);
         const cardCount = Math.max(displayHoleCards.length, seat.holeCardCount || 0);
-        return <motion.div role={isMe ? undefined : "button"} tabIndex={isMe ? undefined : 0} aria-label={isMe ? undefined : `与 ${seat.name} 互动`} onClick={() => !isMe && setInteractionSeatId(seat.id)} className={`seat ${sideClass} ${rowClass} ${isActor ? "active" : ""} ${seat.folded ? "folded" : ""} ${winners.some((winner) => winner.id === seat.id) ? "winner-seat" : ""} ${isMe ? "hero-seat" : ""} ${seat.connected === false ? "offline" : ""} ${!isMe ? "interactable-seat" : ""}`} style={positionStyle(seat.position ?? 0)} key={seat.id} layout>
+        return <motion.div role={isMe ? undefined : "button"} tabIndex={isMe ? undefined : 0} aria-label={isMe ? undefined : `与 ${seat.name} 互动`} onClick={() => !isMe && setInteractionSeatId(seat.id)} className={`seat ${sideClass} ${rowClass} ${isActor ? "active" : ""} ${seat.folded ? "folded" : ""} ${winners.some((winner) => winner.id === seat.id) ? "winner-seat" : ""} ${isMe ? "hero-seat" : ""} ${seat.connected === false ? "offline" : ""} ${!isMe ? "interactable-seat" : ""}`} style={positionStyle(seat.position ?? 0)} key={seat.id}>
           <div className="seat-cards">
             {Array.from({ length: cardCount }, (_, cardIndex) => {
               const card = displayHoleCards[cardIndex] ?? undefined;

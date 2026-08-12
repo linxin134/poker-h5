@@ -64,9 +64,9 @@ export function GameDrawer({ initialTab, onClose, onLeave, onDissolve, onStand, 
     setHistoryIndex(clamped);
   };
   const visibleHand = room.hands[historyIndex];
-  const initial = side === "left" ? { x: "-100%" } : side === "right" ? { x: "100%" } : side === "menu" ? { opacity: 0, scale: .94, x: -6, y: -6 } : { opacity: 0, scale: .96, x: 0, y: 0 };
-  const animate = side === "left" || side === "right" ? { x: 0 } : side === "menu" ? { opacity: 1, scale: 1, x: 0, y: 0 } : { opacity: 1, scale: 1, x: 0, y: 0 };
-  const exit = side === "modal" ? { opacity: 0, scale: .96, x: 0, y: 0 } : initial;
+  const initial = side === "left" ? { x: "-100%" } : side === "right" ? { x: "100%" } : side === "menu" ? { opacity: 0, scale: .94, x: -6, y: -6 } : { opacity: 0 };
+  const animate = side === "left" || side === "right" ? { x: 0 } : side === "menu" ? { opacity: 1, scale: 1, x: 0, y: 0 } : { opacity: 1 };
+  const exit = side === "modal" ? { opacity: 0 } : initial;
 
   return <motion.aside key={`${side}-${tab}`} className={`game-drawer wpk-panel drawer-${side} tab-${tab}`} initial={initial} animate={animate} exit={exit} transition={{ duration: .22, ease: "easeOut" }}>
     {tab === "menu" ? <div className="wpk-function-menu">

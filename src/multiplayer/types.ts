@@ -10,6 +10,7 @@ export interface RoomMember {
   nickname: string;
   avatar: string;
   connected: boolean;
+  left: boolean;
   isHost: boolean;
   buyIn: number;
   topUpTarget: number | null;
@@ -100,6 +101,7 @@ export interface RoomListItem {
 export type RoomClientMessage =
   | { type: "start" }
   | { type: "dissolve" }
+  | { type: "leave" }
   | { type: "sit"; seatIndex: number }
   | { type: "stand" }
   | { type: "action"; action: PlayerAction; raiseTo?: number }
@@ -111,6 +113,7 @@ export type RoomClientMessage =
 
 export type RoomServerMessage =
   | { type: "room"; room: RoomView }
+  | { type: "left" }
   | { type: "dissolved"; message: string }
   | { type: "emoji"; id: string; emoji: string; fromSeatId: string; targetSeatId: string }
   | { type: "error"; message: string }
