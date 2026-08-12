@@ -102,7 +102,10 @@ export const useGameStore = create<GameStore>()(persist((set, get) => ({
     const burst = { id: createUuid(), emoji, from: "seat-0", to: target };
     set((state) => ({ emojiBursts: [...state.emojiBursts, burst] }));
   },
-  receiveEmoji: (id, emoji, from, to) => set((state) => ({ emojiBursts: [...state.emojiBursts, { id, emoji, from, to }] })),
+  receiveEmoji: (id, emoji, from, to) => set((state) => {
+    if (state.emojiBursts.some((burst) => burst.id === id)) return state;
+    return { emojiBursts: [...state.emojiBursts, { id, emoji, from, to }].slice(-6) };
+  }),
   clearEmoji: (id) => set((state) => ({ emojiBursts: state.emojiBursts.filter((item) => item.id !== id) })),
   updateSettings: (settings) => set((state) => ({ settings: { ...state.settings, ...settings } }))
 }), {

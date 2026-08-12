@@ -1618,6 +1618,37 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
   margin:0 auto;
   transform:none!important;
 }
+
+/* Target-anchored player interactions: stay close to the selected avatar while
+   clamping every edge inside the 390px mobile table. */
+.app-shell.mode-mobile .fresh-table .interactable-avatar {
+  padding:0;
+  color:inherit;
+  cursor:pointer;
+  appearance:none;
+}
+.app-shell.mode-mobile .fresh-table .interactable-avatar:focus-visible {
+  outline:2px solid #ffd07c;
+  outline-offset:3px;
+}
+.app-shell.mode-mobile .fresh-table .player-interaction-card {
+  left:clamp(8px,calc(var(--interaction-x) - 108px),calc(100% - 224px));
+  right:auto;
+  bottom:auto;
+  width:216px;
+  max-width:calc(100% - 16px);
+  margin:0;
+  padding:9px;
+  transform:none!important;
+  transform-origin:center;
+}
+.app-shell.mode-mobile .fresh-table .player-interaction-card.interaction-target-right { left:clamp(8px,calc(var(--interaction-x) - 260px),calc(100% - 224px)); }
+.app-shell.mode-mobile .fresh-table .player-interaction-card.interaction-target-left { left:clamp(8px,calc(var(--interaction-x) + 40px),calc(100% - 224px)); }
+.app-shell.mode-mobile .fresh-table .player-interaction-card.interaction-below { top:clamp(8px,calc(var(--interaction-y) + 40px),calc(100% - 108px)); }
+.app-shell.mode-mobile .fresh-table .player-interaction-card.interaction-above { top:clamp(8px,calc(var(--interaction-y) - 136px),calc(100% - 108px)); bottom:auto; }
+.app-shell.mode-mobile .fresh-table .player-interaction-card>div { gap:4px; margin-top:7px; }
+.app-shell.mode-mobile .fresh-table .player-interaction-card>div button { height:43px; border-radius:9px; }
+.app-shell.mode-mobile .fresh-table .player-interaction-card>div button span { font-size:21.6px; line-height:1; }
 .app-shell.mode-mobile .wpk-chat-messages .chat-empty { height:100%; align-items:center; justify-content:center; }
 .app-shell.mode-mobile .wpk-chat-messages .chat-empty p { color:#7f8c88; background:transparent; }
 
