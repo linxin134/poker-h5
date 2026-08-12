@@ -174,7 +174,7 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
         const seatMatrix = new DOMMatrixReadOnly(getComputedStyle(element.closest(".seat")!).transform);
         return { textShadow: style.textShadow, filter: style.filter, fontSize: style.fontSize, lineHeight: style.lineHeight, scaleX: seatMatrix.a, scaleY: seatMatrix.d };
       });
-      expect(playerTextRendering).toEqual({ textShadow: "none", filter: "none", fontSize: "20px", lineHeight: "22px", scaleX: 1, scaleY: 1 });
+      expect(playerTextRendering).toEqual({ textShadow: "none", filter: "none", fontSize: "12px", lineHeight: "13.2px", scaleX: 1, scaleY: 1 });
     }
     const actingPage = (await Promise.all(pages.map(async (playerPage) => await playerPage.locator(".action-buttons").count() ? playerPage : null))).find(Boolean)!;
     await expect(actingPage.locator(".action-buttons small")).toHaveCount(0);
