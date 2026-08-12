@@ -2636,6 +2636,10 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
   height:55px;
   border-radius:15px;
 }
+.app-shell.mode-mobile .fresh-table .seat {
+  height:46px;
+  min-height:46px;
+}
 .app-shell.mode-mobile .fresh-table .seat .avatar-ring>.game-avatar { border-radius:12px; }
 .app-shell.mode-mobile .waiting-table-seat.occupied {
   min-width:82px;
@@ -2687,6 +2691,7 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
   height:52px;
   padding:0;
   border-radius:12px;
+  flex:0 0 52px;
 }
 .app-shell.mode-mobile .table-tools .ui-icon,
 .app-shell.mode-mobile .waiting-top-tools .ui-icon,
@@ -2764,4 +2769,490 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
 }
 .app-shell.mode-mobile .fresh-table .table-shield {
   bottom:max(7px,env(safe-area-inset-bottom));
+}
+
+/* In-hand interaction orbit. The full-screen overlay owns no layout space, so
+   showing presets, pre-actions or the raise rail can never move a seat. */
+.app-shell.mode-mobile .fresh-table .action-dock.action-orbit,
+.app-shell.mode-mobile .fresh-table .action-dock.action-orbit.my-turn,
+.app-shell.mode-mobile .fresh-table .action-dock.action-orbit.waiting-turn {
+  position:absolute;
+  z-index:35;
+  inset:0;
+  display:block;
+  width:100%;
+  max-width:none;
+  height:100%;
+  min-height:0;
+  padding:0;
+  transform:none;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+  pointer-events:none;
+}
+.app-shell.mode-mobile .fresh-table .action-orbit button,
+.app-shell.mode-mobile .fresh-table .action-orbit input { pointer-events:auto; }
+
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons {
+  position:absolute;
+  inset:0;
+  display:block;
+  width:100%;
+  max-width:none;
+  height:100%;
+  margin:0;
+  pointer-events:none;
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons .action {
+  position:absolute;
+  z-index:3;
+  left:var(--hero-x);
+  top:calc(var(--hero-y) + 25px);
+  display:grid;
+  width:58px!important;
+  min-width:58px!important;
+  height:58px!important;
+  min-height:58px!important;
+  place-content:center;
+  gap:1px;
+  padding:0 4px!important;
+  transform:translate(-50%,-50%);
+  border:1px solid #ffffff38;
+  border-radius:50%!important;
+  color:#fff;
+  background:#56726bce;
+  box-shadow:0 5px 15px #001c1780,inset 0 1px #ffffff38;
+  font-size:13px!important;
+  font-weight:800;
+  line-height:1.05;
+  text-align:center;
+  text-shadow:0 1px 2px #00221b;
+  backdrop-filter:blur(7px);
+  pointer-events:auto;
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons .action b,
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons .action span { display:block; font:inherit; }
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons .action.fold {
+  left:calc(var(--hero-x) - 64px);
+  top:calc(var(--hero-y) + 42px);
+  color:#fff;
+  background:#eb344ad9;
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons .action.raise {
+  top:var(--hero-y);
+  color:#fff;
+  background:#139ee7e8;
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons .action.check {
+  left:calc(var(--hero-x) + 64px);
+  top:calc(var(--hero-y) + 42px);
+  background:#31bc69dc;
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons .action.call,
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons .action.allin {
+  left:calc(var(--hero-x) + 64px);
+  top:calc(var(--hero-y) + 42px);
+  background:#139ee7e8;
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons.without-raise .action.fold {
+  left:calc(var(--hero-x) - 47px);
+  top:calc(var(--hero-y) + 21px);
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons.without-raise .action.call,
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons.without-raise .action.check,
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons.without-raise .action.allin {
+  left:calc(var(--hero-x) + 47px);
+  top:calc(var(--hero-y) + 21px);
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons .action:disabled { opacity:.25; }
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons .action:active:not(:disabled) { transform:translate(-50%,-50%) scale(.94); }
+
+/* Five amount presets form a shallow arc above the main action buttons. */
+.app-shell.mode-mobile .fresh-table .action-arc {
+  position:absolute;
+  z-index:2;
+  left:var(--hero-x);
+  top:calc(var(--hero-y) - 112px);
+  display:flex;
+  width:190px;
+  height:52px;
+  align-items:flex-start;
+  justify-content:center;
+  gap:5px;
+  transform:translateX(-50%);
+  pointer-events:none;
+}
+.app-shell.mode-mobile .fresh-table .action-arc button {
+  display:grid;
+  width:34px;
+  min-width:34px;
+  height:34px;
+  flex:0 0 34px;
+  place-content:center;
+  gap:0;
+  padding:0;
+  transform:translateY(12px);
+  border:1px solid #ffffff62;
+  border-radius:50%;
+  color:#fff;
+  background:#91aaa4c9;
+  box-shadow:0 4px 12px #001c1760,inset 0 1px #ffffff45;
+  line-height:1;
+  text-align:center;
+  backdrop-filter:blur(6px);
+  pointer-events:auto;
+}
+.app-shell.mode-mobile .fresh-table .action-arc button:nth-child(2),
+.app-shell.mode-mobile .fresh-table .action-arc button:nth-child(4) { transform:translateY(5px); }
+.app-shell.mode-mobile .fresh-table .action-arc button:nth-child(3) { transform:translateY(0); }
+.app-shell.mode-mobile .fresh-table .action-arc button small { color:#edf7f4; font-size:6px; font-weight:600; }
+.app-shell.mode-mobile .fresh-table .action-arc button b { margin:0; font-size:10px; }
+.app-shell.mode-mobile .fresh-table .action-arc button em { color:#eff8f5; font-size:6px; font-style:normal; }
+.app-shell.mode-mobile .fresh-table .action-arc button.active {
+  color:#fff;
+  background:#179fe6e8;
+  box-shadow:0 0 0 2px #b9ebff9c,0 5px 14px #001c1770;
+}
+
+/* Waiting actions mirror the two quiet circles around the anchored hero. */
+.app-shell.mode-mobile .fresh-table .action-orbit .preaction-buttons {
+  position:absolute;
+  inset:0;
+  display:block;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .preaction-buttons button {
+  position:absolute;
+  left:calc(var(--hero-x) - 64px);
+  top:calc(var(--hero-y) + 42px);
+  display:grid;
+  width:58px;
+  height:58px;
+  place-content:center;
+  padding:0 5px;
+  transform:translate(-50%,-50%);
+  border:1px solid #ffffff47;
+  border-radius:50%;
+  color:#fff;
+  background:#7e918cba;
+  box-shadow:0 5px 15px #001c1770,inset 0 1px #ffffff35;
+  font-size:10px;
+  font-weight:800;
+  line-height:1.05;
+  text-align:center;
+  backdrop-filter:blur(7px);
+  pointer-events:auto;
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .preaction-buttons button+button { left:calc(var(--hero-x) + 64px); }
+.app-shell.mode-mobile .fresh-table .action-orbit .preaction-buttons button.active {
+  color:#fff;
+  background:#28b96bd9;
+  box-shadow:0 0 0 2px #c8ffe09c,0 5px 15px #001c1770;
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .preaction-buttons button.active:before { content:"✓"; margin:0 0 2px; }
+
+/* Fine raise adjustment uses a vertical rail without changing the action or
+   seat coordinate systems. */
+.app-shell.mode-mobile .fresh-table .raise-backdrop {
+  position:absolute;
+  z-index:1;
+  inset:0;
+  width:100%;
+  height:100%;
+  border:0;
+  border-radius:0;
+  background:#001c1785;
+  backdrop-filter:blur(1px);
+}
+.app-shell.mode-mobile .fresh-table .raise-adjusting .action-buttons,
+.app-shell.mode-mobile .fresh-table .raise-adjusting .action-arc { opacity:.25; pointer-events:none; }
+.app-shell.mode-mobile .fresh-table .raise-panel.raise-rail {
+  position:absolute;
+  z-index:5;
+  left:var(--hero-x);
+  top:calc(var(--hero-y) - 315px);
+  bottom:auto;
+  display:block;
+  width:132px;
+  height:254px;
+  max-width:none;
+  max-height:none;
+  padding:0;
+  transform:translateX(-50%);
+  border:0;
+  border-radius:0;
+  color:#fff;
+  background:transparent;
+  box-shadow:none;
+  overflow:visible;
+  pointer-events:none;
+}
+.app-shell.mode-mobile .fresh-table .raise-panel.raise-rail header {
+  position:absolute;
+  top:0;
+  left:50%;
+  display:grid;
+  min-width:76px;
+  place-items:center;
+  padding:5px 10px;
+  transform:translateX(-50%);
+  border:1px solid #3fb8ff;
+  border-radius:13px;
+  background:#102447ed;
+  box-shadow:0 5px 13px #00132670;
+  pointer-events:auto;
+}
+.app-shell.mode-mobile .fresh-table .raise-panel.raise-rail header b { color:#fff; font-size:16px; font-variant-numeric:tabular-nums; }
+.app-shell.mode-mobile .fresh-table .raise-panel.raise-rail header small { color:#addcff; font-size:8px; }
+.app-shell.mode-mobile .fresh-table .raise-panel.raise-rail>input {
+  position:absolute;
+  top:113px;
+  left:50%;
+  width:156px;
+  height:30px;
+  margin:0;
+  transform:translate(-50%,-50%) rotate(-90deg);
+  accent-color:#ff8f26;
+  pointer-events:auto;
+}
+.app-shell.mode-mobile .fresh-table .raise-percent {
+  position:absolute;
+  top:91px;
+  right:96px;
+  display:grid;
+  min-width:68px;
+  place-items:center;
+  padding:6px 8px;
+  border-radius:18px;
+  color:#273e38;
+  background:#f8fbfa;
+  box-shadow:0 5px 13px #001c1766;
+}
+.app-shell.mode-mobile .fresh-table .raise-percent b { font-size:14px; }
+.app-shell.mode-mobile .fresh-table .raise-percent small { color:#ff6e42; font-size:8px; }
+.app-shell.mode-mobile .fresh-table .raise-handle {
+  position:absolute;
+  z-index:2;
+  top:var(--raise-handle-y);
+  left:50%;
+  display:grid;
+  width:42px;
+  height:42px;
+  place-items:center;
+  transform:translate(-50%,-50%);
+  border:0;
+  border-radius:50%;
+  color:#fff;
+  background:linear-gradient(#ffb233,#f16524);
+  box-shadow:0 4px 10px #001c1766;
+  font-size:15px;
+  font-style:normal;
+  font-weight:800;
+  pointer-events:none;
+}
+.app-shell.mode-mobile .fresh-table .raise-panel.raise-rail .raise-confirm {
+  position:absolute;
+  bottom:0;
+  left:50%;
+  display:grid;
+  width:58px;
+  height:58px;
+  place-items:center;
+  transform:translateX(-50%);
+  border:1px solid #8bd9ff;
+  border-radius:50%;
+  color:#fff;
+  background:#139ee7ef;
+  box-shadow:0 6px 16px #001c1780,inset 0 1px #ffffff38;
+  font-size:13px;
+  font-weight:900;
+  pointer-events:auto;
+}
+
+.app-shell.mode-mobile .fresh-table .action-submitting {
+  z-index:36;
+  left:var(--hero-x);
+  top:calc(var(--hero-y) - 82px);
+  right:auto;
+  bottom:auto;
+  display:grid;
+  width:48px;
+  height:48px;
+  min-height:48px;
+  place-items:center;
+  padding:0;
+  transform:translate(-50%,-50%);
+  border:1px solid #ffffff47;
+  border-radius:50%;
+  color:#fff;
+  background:#405f57d9;
+  box-shadow:0 5px 14px #001c1770;
+}
+.app-shell.mode-mobile .fresh-table .action-submitting i { display:none; }
+.app-shell.mode-mobile .fresh-table .action-submitting b { font-size:11px; }
+
+/* Reference-accurate in-hand player stack: name, circular avatar, dark stack
+   capsule and two horizontal cards. Decorative badges are pinned outside and
+   never take part in the seat's anchor geometry. */
+.app-shell.mode-mobile .fresh-table .seat .avatar-ring {
+  width:46px;
+  height:46px;
+  overflow:visible;
+  border:2px solid #ecf3f0;
+  border-radius:50%;
+  background:#f4f7f6;
+  box-shadow:0 3px 9px #001d176e;
+}
+.app-shell.mode-mobile .fresh-table .seat .avatar-ring>.game-avatar {
+  overflow:hidden;
+  width:100%;
+  height:100%;
+  border-radius:50%;
+}
+.app-shell.mode-mobile .fresh-table .seat.active .avatar-ring {
+  border-color:#4de879;
+  box-shadow:0 0 0 2px #47e67692,0 3px 9px #001d176e;
+}
+.app-shell.mode-mobile .fresh-table .seat-info b {
+  bottom:calc(100% + 5px);
+  color:#fff;
+  font-size:10px;
+  font-weight:700;
+  line-height:12px;
+}
+.app-shell.mode-mobile .fresh-table .seat-info span {
+  top:calc(100% + 3px);
+  min-width:52px;
+  height:17px;
+  padding:0 8px;
+  border:1px solid #d9ebe568;
+  border-radius:999px;
+  color:#fff;
+  background:#00352dcc;
+  box-shadow:0 2px 5px #001c1669;
+  font-size:10px;
+  line-height:15px;
+}
+.app-shell.mode-mobile .fresh-table .seat-cards {
+  top:calc(100% + 24px);
+  gap:2px;
+}
+.app-shell.mode-mobile .fresh-table .seat-cards .playing-card.small {
+  width:25px;
+  height:36px;
+  padding:2px;
+  border-radius:2px;
+}
+.app-shell.mode-mobile .fresh-table .seat-bet {
+  left:calc(100% + 4px);
+  top:50%;
+  right:auto;
+  display:flex;
+  min-width:0;
+  height:17px;
+  align-items:center;
+  padding:0 5px;
+  transform:translateY(-50%);
+  border-radius:999px;
+  color:#fff;
+  background:#006f62dc;
+  font-size:9px;
+  line-height:17px;
+}
+.app-shell.mode-mobile .fresh-table .seat.seat-right .seat-bet {
+  right:calc(100% + 4px);
+  left:auto;
+}
+.app-shell.mode-mobile .fresh-table .seat.hero-seat .seat-bet {
+  right:auto;
+  left:calc(100% + 4px);
+}
+.app-shell.mode-mobile .fresh-table .dealer-button {
+  top:28px;
+  left:-7px;
+  width:15px;
+  height:15px;
+  border:1px solid #fff;
+  font-size:8px;
+}
+.app-shell.mode-mobile .fresh-table .seat.seat-right .dealer-button {
+  right:-7px;
+  left:auto;
+}
+.app-shell.mode-mobile .fresh-table .timer-ring {
+  inset:-4px;
+  border-width:2px;
+  border-radius:50%;
+}
+/* The 390x660 compact media query may only move the toolbar; it must not
+   shrink real touch targets. Keep the reference-size controls authoritative. */
+.app-shell.mode-mobile .wpk-table-bar .table-tools button,
+.app-shell.mode-mobile .waiting-room>header .waiting-top-tools button {
+  width:52px!important;
+  min-width:52px!important;
+  height:52px!important;
+  max-height:none!important;
+  flex-basis:52px;
+}
+.app-shell.mode-mobile .fresh-table .seat-hand-rank {
+  position:absolute;
+  top:calc(100% + 63px);
+  left:50%;
+  min-width:48px;
+  transform:translateX(-50%);
+  color:#fff;
+  font-size:10px;
+  font-weight:700;
+  line-height:12px;
+  text-align:center;
+  text-shadow:0 1px 2px #00251e;
+  white-space:nowrap;
+}
+.app-shell.mode-mobile .fresh-table .seat.folded .action-bubble {
+  z-index:8;
+  top:50%;
+  margin:0;
+  transform:translate(-50%,-50%);
+  color:#fff;
+  background:#263e38d9;
+}
+
+/* Mobile cards use a single strong corner. Tens and face cards get the same
+   reserved corner column, so the suit can never disappear behind the rank. */
+.app-shell.mode-mobile .playing-card .card-corner-top {
+  top:3px;
+  left:3px;
+  display:grid;
+  justify-items:center;
+  line-height:.9;
+}
+.app-shell.mode-mobile .playing-card .card-corner-top b {
+  display:block;
+  min-width:1.35em;
+  font-size:14px;
+  line-height:.85;
+  text-align:center;
+}
+.app-shell.mode-mobile .playing-card .card-corner-top i {
+  display:block;
+  margin-top:2px;
+  font-size:9px;
+  line-height:1;
+}
+.app-shell.mode-mobile .playing-card.small .card-corner-top b { font-size:10px; }
+.app-shell.mode-mobile .playing-card.small .card-corner-top i { margin-top:1px; font-size:7px; }
+.app-shell.mode-mobile .playing-card.face-card:after {
+  content:"";
+  position:absolute;
+  right:3px;
+  bottom:3px;
+  width:46%;
+  height:46%;
+  border-radius:2px 2px 4px 2px;
+  background:linear-gradient(135deg,#edc563 0 48%,#3c7cb5 49% 70%,#d95854 71%);
+  opacity:.92;
 }

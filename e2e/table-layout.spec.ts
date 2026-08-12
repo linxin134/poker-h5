@@ -45,6 +45,7 @@ test("390x660 牌桌保持对称座位、大头像和放大工具按钮", async 
     await expect(guestPage.locator(".fresh-table")).toBeVisible();
 
     for (const playerPage of [page, guestPage]) {
+      const heroSeatBeforeAction = await playerPage.locator(".hero-seat").boundingBox();
       const geometry = await playerPage.evaluate(() => {
         const stage = document.querySelector(".table-stage")!.getBoundingClientRect();
         const hero = document.querySelector(".hero-seat")!.getBoundingClientRect();
@@ -71,7 +72,7 @@ test("390x660 牌桌保持对称座位、大头像和放大工具按钮", async 
       });
       expect(geometry.heroOffset).toBeLessThanOrEqual(2);
       expect(geometry.stage).toEqual({ top:0, bottom:660, height:660 });
-      expect(geometry.avatar).toEqual({ width:55, height:55 });
+      expect(geometry.avatar).toEqual({ width:46, height:46 });
       expect(geometry.controls.menu.width).toBeCloseTo(40, 0);
       expect(geometry.controls.top.width).toBeCloseTo(52, 0);
       expect(geometry.controls.bottom.width).toBeCloseTo(52, 0);
@@ -80,6 +81,34 @@ test("390x660 牌桌保持对称座位、大头像和放大工具按钮", async 
       expect(geometry.avatarBoardCollisions).toBe(0);
       expect(geometry.clipped).toBe(false);
       expect(geometry.controlSeatCollisions).toBe(0);
+
+      const actionDock = playerPage.locator(".action-dock.my-turn");
+      if (await actionDock.count()) {
+        const orbitGeometry = await playerPage.evaluate(() => {
+          const center = (selector:string) => {
+            const rect = document.querySelector<HTMLElement>(selector)!.getBoundingClientRect();
+            return { x:rect.left + rect.width / 2, y:rect.top + rect.height / 2, width:rect.width, height:rect.height };
+          };
+          const hero = center(".hero-seat .avatar-ring");
+          const raise = center(".action-buttons .action.raise");
+          const fold = center(".action-buttons .action.fold");
+          const right = center(".action-buttons .action.check,.action-buttons .action.call,.action-buttons .action.allin");
+          return { hero, raise, fold, right };
+        });
+        expect(Math.hypot(orbitGeometry.hero.x - orbitGeometry.raise.x, orbitGeometry.hero.y - orbitGeometry.raise.y)).toBeLessThanOrEqual(1);
+        expect(orbitGeometry.fold.width).toBeCloseTo(orbitGeometry.right.width, 1);
+        expect(orbitGeometry.fold.height).toBeCloseTo(orbitGeometry.right.height, 1);
+        expect(orbitGeometry.fold.y).toBeCloseTo(orbitGeometry.right.y, 1);
+        await expect(playerPage.locator(".action-arc button")).toHaveCount(5);
+        await playerPage.locator(".action-buttons .action.raise").dispatchEvent("pointerdown", { pointerType:"touch", isPrimary:true, button:0 });
+        await expect(playerPage.locator(".raise-panel.raise-rail")).toBeVisible();
+        const railBox = await playerPage.locator(".raise-panel.raise-rail").boundingBox();
+        expect(railBox!.height).toBeGreaterThan(railBox!.width);
+        const heroSeatWithRail = await playerPage.locator(".hero-seat").boundingBox();
+        expect(heroSeatWithRail).toEqual(heroSeatBeforeAction);
+        await playerPage.screenshot({ path:testInfo.outputPath("raise-orbit-390x660.png") });
+        await playerPage.locator(".raise-backdrop").dispatchEvent("click");
+      }
     }
     await page.screenshot({ path:testInfo.outputPath("active-2-player-390x660.png") });
   } finally {

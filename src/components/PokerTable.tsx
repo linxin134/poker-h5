@@ -12,6 +12,7 @@ import { playSound, speakAction } from "../services/audio";
 import { GameAvatar } from "./GameAvatar";
 import { UiIcon } from "./UiIcon";
 import { anchoredSeatPoint, relativeSeatPosition } from "../game/tableLayout";
+import { evaluateHand } from "../game/cards";
 
 const phaseLabels = { idle: "等待", preflop: "翻牌前", flop: "翻牌", turn: "转牌", river: "河牌", showdown: "摊牌", complete: "本手结束" };
 
@@ -141,6 +142,13 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
   const interactionTargets = game.seats.filter((seat) => seat.id !== room.mySeatId).map((seat) => ({ id: seat.id, name: seat.name }));
   const myRoomSeatId = room.mySeatId;
 
+  function handNameForSeat(seat: (typeof game.seats)[number]) {
+    if (seat.holeCards.length < 2) return null;
+    const availableCards = [...seat.holeCards, ...game.board];
+    if (availableCards.length >= 5) return evaluateHand(availableCards).name;
+    return seat.holeCards[0][0] === seat.holeCards[1][0] ? "一对" : "高牌";
+  }
+
   function showNotice(message: string) {
     setNotice(message);
     window.setTimeout(() => setNotice(null), 1_800);
@@ -194,11 +202,12 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
               return canReveal ? <button className="reveal-hole-card" aria-label={`公开第 ${cardIndex + 1} 张底牌`} key={`${game.handId}-reveal-${cardIndex}`} onClick={(event) => { event.stopPropagation(); send({ type:"revealCard", cardIndex }); }}>{renderedCard}<em>点击公开</em></button> : renderedCard;
             })}
           </div>
+          {isMe && handNameForSeat(seat) && <small className="seat-hand-rank">{handNameForSeat(seat)}</small>}
           {isMe
             ? <div className="avatar-ring"><GameAvatar seed={seat.avatar || seat.userId || seat.id} label={seat.name} />{isActor && <><i className={`timer-ring ${turnRemaining <= 5_000 ? "urgent" : ""}`} style={{ "--turn-progress": Math.max(0, Math.min(1, turnRemaining / 25_000)) } as CSSProperties} /><em className="seat-countdown">{Math.max(0, Math.ceil(turnRemaining / 1000))}</em></>}</div>
             : <button type="button" className="avatar-ring interactable-avatar" aria-label={`与 ${seat.name} 互动`} onClick={() => setInteractionSeatId(seat.id)}><GameAvatar seed={seat.avatar || seat.userId || seat.id} label={seat.name} />{isActor && <><i className={`timer-ring ${turnRemaining <= 5_000 ? "urgent" : ""}`} style={{ "--turn-progress": Math.max(0, Math.min(1, turnRemaining / 25_000)) } as CSSProperties} /><em className="seat-countdown">{Math.max(0, Math.ceil(turnRemaining / 1000))}</em></>}</button>}
           <div className="seat-info"><b>{seat.name}{isMe ? " · 你" : ""}</b><span>{seat.stack.toLocaleString()}</span></div>
-          {seat.lastAction && !seat.folded && <motion.div className="action-bubble" initial={{ scale: .7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>{seat.lastAction}</motion.div>}
+          {seat.lastAction && <motion.div className="action-bubble" initial={{ scale: .7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>{seat.lastAction}</motion.div>}
           {seat.bet > 0 && <motion.div className="seat-bet" initial={{ scale: 0 }} animate={{ scale: 1 }}>● {seat.bet}</motion.div>}
           {seat.id === dealerSeatId && <span className="dealer-button">D</span>}
         </motion.div>;

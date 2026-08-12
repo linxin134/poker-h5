@@ -194,7 +194,11 @@ test("six-player authoritative battle keeps perspectives, side pots and cumulati
       // room and a second join click can race the harness socket's turn timer.
       await uiPage.evaluate((roomCode) => sessionStorage.setItem("poker-active-room", roomCode), code);
       await uiPage.reload();
-      await expect(uiPage.locator(".table-screen")).toBeVisible();
+      if (!await uiPage.locator(".table-screen").count()) {
+        const roomCard = uiPage.locator(".public-room-list article", { hasText:code });
+        await roomCard.getByRole("button", { name:/加入/ }).click();
+      }
+      await expect(uiPage.locator(".table-screen")).toBeVisible({ timeout:10_000 });
       await expect(uiPage.locator(".hero-seat .seat-cards .playing-card:not(.card-back)")).toHaveCount(2);
       await expect(uiPage.locator(".action-dock.my-turn")).toBeVisible();
       const geometry = await uiPage.evaluate(() => {
@@ -207,11 +211,8 @@ test("six-player authoritative battle keeps perspectives, side pots and cumulati
         };
         const avatars = [...document.querySelectorAll<HTMLElement>(".seat .avatar-ring")].map((element) => element.getBoundingClientRect());
         const collisions = avatars.filter((avatar) => !(avatar.right <= board.left || avatar.left >= board.right || avatar.bottom <= board.top || avatar.top >= board.bottom)).length;
-        const heroElement = document.querySelector<HTMLElement>(".hero-seat")!;
-        const heroParts = [".seat-info b", ".avatar-ring", ".seat-info span", ".seat-cards"]
-          .map((selector) => heroElement.querySelector<HTMLElement>(selector)!.getBoundingClientRect());
-        const heroTop = Math.min(...heroParts.map((rect) => rect.top));
-        const actions = document.querySelector<HTMLElement>(".action-dock.my-turn")!.getBoundingClientRect();
+        const hero = document.querySelector<HTMLElement>(".hero-seat .avatar-ring")!.getBoundingClientRect();
+        const centerAction = document.querySelector<HTMLElement>(".action-buttons .action.raise")!.getBoundingClientRect();
         const playerUi = [...document.querySelectorAll<HTMLElement>(".seat .avatar-ring,.seat .seat-info b,.seat .seat-info span,.seat .seat-cards,.seat .seat-bet,.seat .dealer-button")];
         const clippedPlayerUi = playerUi.filter((element) => {
           const rect = element.getBoundingClientRect();
@@ -220,14 +221,14 @@ test("six-player authoritative battle keeps perspectives, side pots and cumulati
         return {
           collisions,
           clippedPlayerUi,
-          actionGap: heroTop - actions.bottom,
+          centerActionDelta: Math.hypot((hero.left + hero.width / 2) - (centerAction.left + centerAction.width / 2), (hero.top + hero.height / 2) - (centerAction.top + centerAction.height / 2)),
           horizontalOverflow: document.documentElement.scrollWidth - window.innerWidth,
           verticalOverflow: document.documentElement.scrollHeight - window.innerHeight
         };
       });
       expect(geometry.collisions).toBe(0);
       expect(geometry.clippedPlayerUi).toBe(0);
-      expect(geometry.actionGap).toBeGreaterThanOrEqual(3);
+      expect(geometry.centerActionDelta).toBeLessThanOrEqual(1);
       expect(geometry.horizontalOverflow).toBeLessThanOrEqual(0);
       expect(geometry.verticalOverflow).toBeLessThanOrEqual(1);
       await uiPage.screenshot({ path: testInfo.outputPath("complex-six-player-actor-view.png") });

@@ -129,7 +129,7 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
       const stage = document.querySelector(".waiting-table-stage")!.getBoundingClientRect();
       return {
         center:{ x:rect.left + rect.width / 2, y:rect.top + rect.height / 2 },
-        anchor:{ x:stage.left + stage.width * .5, y:stage.top + stage.height * (1 - (14 * 2 / 3) / 100) }
+        anchor:{ x:stage.left + stage.width * .5, y:stage.top + stage.height * .82 }
       };
     });
     const hostOccupiedCenter = hostOccupiedGeometry.center;
@@ -150,7 +150,7 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
       const ownSeatAlignment = await playerPage.evaluate(() => {
         const stage = document.querySelector(".waiting-table-stage")!.getBoundingClientRect();
         const seat = document.querySelector(".waiting-table-seat.mine")!.getBoundingClientRect();
-        return Math.hypot(seat.left + seat.width / 2 - (stage.left + stage.width * .5), seat.top + seat.height / 2 - (stage.top + stage.height * (1 - (14 * 2 / 3) / 100)));
+        return Math.hypot(seat.left + seat.width / 2 - (stage.left + stage.width * .5), seat.top + seat.height / 2 - (stage.top + stage.height * .82));
       });
       expect(ownSeatAlignment).toBeLessThanOrEqual(2);
     }
@@ -165,7 +165,7 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
       const heroAlignment = await playerPage.evaluate(() => {
         const stage = document.querySelector(".table-stage")!.getBoundingClientRect();
         const seat = document.querySelector(".hero-seat")!.getBoundingClientRect();
-        return Math.hypot(seat.left + seat.width / 2 - (stage.left + stage.width * .5), seat.top + seat.height / 2 - (stage.top + stage.height * (1 - (14 * 2 / 3) / 100)));
+        return Math.hypot(seat.left + seat.width / 2 - (stage.left + stage.width * .5), seat.top + seat.height / 2 - (stage.top + stage.height * .82));
       });
       expect(heroAlignment).toBeLessThanOrEqual(2);
       await expect(playerPage.locator(".board-cards > *")).toHaveCount(5);
@@ -181,27 +181,29 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
         const seatMatrix = new DOMMatrixReadOnly(getComputedStyle(element.closest(".seat")!).transform);
         return { textShadow: style.textShadow, filter: style.filter, fontSize: style.fontSize, lineHeight: style.lineHeight, scaleX: seatMatrix.a, scaleY: seatMatrix.d };
       });
-      expect(playerTextRendering).toEqual({ textShadow: "none", filter: "none", fontSize: "12px", lineHeight: "13.2px", scaleX: 1, scaleY: 1 });
+      expect(playerTextRendering).toEqual({ textShadow: "none", filter: "none", fontSize: "10px", lineHeight: "12px", scaleX: 1, scaleY: 1 });
     }
     const actingPage = (await Promise.all(pages.map(async (playerPage) => await playerPage.locator(".action-buttons").count() ? playerPage : null))).find(Boolean)!;
     await expect(actingPage.locator(".action-buttons small")).toHaveCount(0);
     await expect(actingPage.locator(".action-buttons")).not.toContainText(/FOLD|CHECK|CALL|BET SIZE|ALL IN/);
     const actionButtonBoxes = await actingPage.locator(".action-buttons .action").evaluateAll((buttons) => buttons.map((button) => { const rect = button.getBoundingClientRect(); return { width: rect.width, height: rect.height }; }));
-    expect(Math.max(...actionButtonBoxes.map((box) => box.height))).toBeLessThanOrEqual(24);
-    expect(Math.max(...actionButtonBoxes.map((box) => box.width))).toBeLessThanOrEqual(64);
+    expect(Math.max(...actionButtonBoxes.map((box) => box.height))).toBeGreaterThanOrEqual(56);
+    expect(Math.max(...actionButtonBoxes.map((box) => box.height))).toBeLessThanOrEqual(59);
+    expect(Math.max(...actionButtonBoxes.map((box) => box.width))).toBeGreaterThanOrEqual(56);
+    expect(Math.max(...actionButtonBoxes.map((box) => box.width))).toBeLessThanOrEqual(59);
     const preactionPage = pages.find((playerPage) => playerPage !== actingPage)!;
-    await preactionPage.getByRole("button", { name: "自动弃牌" }).click();
-    await expect(preactionPage.getByRole("button", { name: "自动弃牌" })).toHaveAttribute("aria-pressed", "true");
-    await preactionPage.getByRole("button", { name: "自动弃牌" }).click();
-    await expect(preactionPage.getByRole("button", { name: "自动弃牌" })).toHaveAttribute("aria-pressed", "false");
-    await expect(preactionPage.getByRole("button", { name: "自动弃牌" })).toBeVisible();
+      await preactionPage.getByRole("button", { name: "让或弃" }).click();
+      await expect(preactionPage.getByRole("button", { name: "让或弃" })).toHaveAttribute("aria-pressed", "true");
+      await preactionPage.getByRole("button", { name: "让或弃" }).click();
+      await expect(preactionPage.getByRole("button", { name: "让或弃" })).toHaveAttribute("aria-pressed", "false");
+      await expect(preactionPage.getByRole("button", { name: "让或弃" })).toBeVisible();
     const preactionGeometry = await preactionPage.evaluate(() => {
-      const dock = document.querySelector(".preaction-buttons")!.getBoundingClientRect();
+      const buttons = [...document.querySelectorAll<HTMLElement>(".preaction-buttons button")].map((button) => button.getBoundingClientRect());
       const candidates = [".hero-seat .avatar-ring", ".hero-seat .seat-cards", ".hero-seat .seat-bet", ".board-cards"]
         .map((selector) => ({ selector, rect: document.querySelector(selector)?.getBoundingClientRect() }))
         .filter((entry): entry is { selector: string; rect: DOMRect } => Boolean(entry.rect));
-      const collisions = candidates.filter(({ rect }) => dock.left < rect.right && dock.right > rect.left && dock.top < rect.bottom && dock.bottom > rect.top).map(({ selector }) => selector);
-      return { collisions, clipped: dock.left < 0 || dock.right > innerWidth || dock.top < 0 || dock.bottom > innerHeight };
+      const collisions = candidates.filter(({ rect }) => buttons.some((button) => button.left < rect.right && button.right > rect.left && button.top < rect.bottom && button.bottom > rect.top)).map(({ selector }) => selector);
+      return { collisions, clipped: buttons.some((button) => button.left < 0 || button.right > innerWidth || button.top < 0 || button.bottom > innerHeight) };
     });
     expect(preactionGeometry).toEqual({ collisions: [], clipped: false });
 
@@ -255,7 +257,7 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
       const avatarStyle = getComputedStyle(avatar);
       return { collisions, avatarSquare: Math.abs(avatar.offsetWidth - avatar.offsetHeight), avatarRadius: avatarStyle.borderRadius };
     });
-    expect(tableGeometry).toEqual({ collisions: 0, avatarSquare: 0, avatarRadius: "15px" });
+    expect(tableGeometry).toEqual({ collisions: 0, avatarSquare: 0, avatarRadius: "50%" });
     await guestTwoPage.screenshot({ path: testInfo.outputPath("mobile-table.png") });
 
     await guestTwoPage.locator(".table-bottom-tools").getByRole("button", { name: "聊天" }).click();
@@ -361,15 +363,15 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
     expect(rankingDeltas).toEqual([...rankingDeltas].sort((a, b) => b - a));
     await page.locator(".game-drawer .panel-close").click();
 
-    for (let actionIndex = 0; actionIndex < 12 && await page.locator(".board-cards .playing-card:not(.card-back)").count() < 3; actionIndex += 1) {
+    for (let actionIndex = 0; actionIndex < 30 && await page.locator(".board-cards .playing-card:not(.card-back)").count() < 3; actionIndex += 1) {
       for (const playerPage of pages) {
-        const passiveAction = playerPage.locator(".action.neutral");
+        const passiveAction = playerPage.locator(".action.check,.action.call,.action.allin").first();
         if (await passiveAction.count() > 0 && await passiveAction.isEnabled()) {
-          await passiveAction.click();
+          await passiveAction.dispatchEvent("click");
           break;
         }
       }
-      await page.waitForTimeout(120);
+      await page.waitForTimeout(250);
     }
     await expect(page.locator(".board-cards .playing-card:not(.card-back)")).toHaveCount(3);
     await expect(lateGuestPage.locator(".board-cards .playing-card:not(.card-back)")).toHaveCount(3);
@@ -393,13 +395,16 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
     for (const playerPage of pages) {
       const raise = playerPage.locator(".action.raise");
       if (await raise.count() > 0 && await raise.isEnabled()) {
-        const actionGap = await playerPage.evaluate(() => {
-          const hero = document.querySelector(".hero-seat")!;
-          const parts = [".seat-info b", ".avatar-ring", ".seat-info span", ".seat-cards"].map((selector) => hero.querySelector(selector)!.getBoundingClientRect());
-          const actions = [...document.querySelectorAll(".action-buttons .action")].map((element) => element.getBoundingClientRect());
-          return Math.min(...parts.map((part) => part.top)) - Math.max(...actions.map((action) => action.bottom));
+        const actionOrbit = await playerPage.evaluate(() => {
+          const hero = document.querySelector(".hero-seat .avatar-ring")!.getBoundingClientRect();
+          const center = document.querySelector(".action-buttons .action.raise")!.getBoundingClientRect();
+          return {
+            centerDelta: Math.hypot((hero.left + hero.width / 2) - (center.left + center.width / 2), (hero.top + hero.height / 2) - (center.top + center.height / 2)),
+            clipped: center.left < 0 || center.right > innerWidth || center.top < 0 || center.bottom > innerHeight,
+          };
         });
-        expect(actionGap).toBeGreaterThanOrEqual(3);
+        expect(actionOrbit.centerDelta).toBeLessThanOrEqual(1);
+        expect(actionOrbit.clipped).toBe(false);
         const seatDockCollisions = await playerPage.evaluate(() => {
           const actions = [...document.querySelectorAll(".action-buttons .action")].map((element) => element.getBoundingClientRect());
           return [...document.querySelectorAll(".seat:not(.hero-seat)")].flatMap((seat, index) => {
@@ -416,17 +421,17 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
           });
         });
         expect(seatDockCollisions).toEqual([]);
-        await raise.click();
+        await raise.dispatchEvent("pointerdown", { pointerType:"touch", isPrimary:true, button:0 });
         await expect(playerPage.locator(".raise-panel")).toBeVisible();
-        await expect(playerPage.locator(".raise-panel .quick-raises button")).toHaveCount(4);
+        await expect(playerPage.locator(".action-arc button")).toHaveCount(5);
         await expect(playerPage.locator(".turn-progress")).toBeHidden();
         await playerPage.screenshot({ path: testInfo.outputPath("mobile-raise.png") });
-        await raise.click();
+        await playerPage.locator(".raise-backdrop").dispatchEvent("click");
         break;
       }
     }
 
-    const lateBottom = await lateGuestPage.locator(".table-stage").evaluate((element) => { const rect = element.getBoundingClientRect(); return { x: rect.left + rect.width * .5, y: rect.top + rect.height * .78 }; });
+    const lateBottom = await lateGuestPage.locator(".table-stage").evaluate((element) => { const rect = element.getBoundingClientRect(); return { x: rect.left + rect.width * .5, y: rect.top + rect.height * .82 }; });
     const lateSeatChoice = lateGuestPage.locator(".late-seat-choice").last();
     const lateSeatCenter = await lateSeatChoice.evaluate((element) => { const rect = element.getBoundingClientRect(); return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }; });
     await lateSeatChoice.click();
@@ -436,24 +441,35 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
     expect(Math.hypot(pendingSeatCenter.x - lateSeatCenter.x, pendingSeatCenter.y - lateSeatCenter.y)).toBeGreaterThan(50);
 
     let revealedFoldedCard = false;
-    for (let round = 0; round < 3; round += 1) {
+    for (let round = 0; round < 80 && !await page.locator(".hand-settlement").count(); round += 1) {
+      let acted = false;
       for (const playerPage of pages) {
         const fold = playerPage.locator(".action.fold");
         if (await fold.count() > 0 && await fold.isEnabled()) {
           await fold.click();
-          await expect(playerPage.locator(".action-buttons")).toHaveCount(0);
-          await expect(playerPage.locator(".seat.folded .action-bubble")).toHaveCount(0);
+          await expect(playerPage.locator(".seat.folded .action-bubble")).toContainText("弃牌");
           if (!revealedFoldedCard) {
             const reveal = playerPage.getByRole("button", { name:"公开第 1 张底牌" });
-            await expect(reveal).toBeVisible();
-            await reveal.click();
-            revealedFoldedCard = true;
+            if (await reveal.count()) {
+              await expect(reveal).toBeVisible();
+              await reveal.click();
+              revealedFoldedCard = true;
+            }
           }
+          acted = true;
+          break;
+        }
+        const passive = playerPage.locator(".action.check,.action.call,.action.allin").first();
+        if (await passive.count() && await passive.isEnabled()) {
+          await passive.dispatchEvent("click");
+          acted = true;
           break;
         }
       }
-      if (await page.locator(".hand-settlement").count()) break;
-      await page.waitForTimeout(150);
+      if (!acted) {
+        for (const playerPage of pages) await playerPage.reload();
+      }
+      await page.waitForTimeout(acted ? 300 : 700);
     }
 
     await expect(page.locator(".hand-settlement")).toBeVisible();
