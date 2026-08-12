@@ -20,7 +20,7 @@ const live = (seat: Seat) => !seat.folded;
 export function createInitialState(seats: Pick<Seat, "id" | "name" | "avatar" | "stack" | "isHuman">[], smallBlind = 10, bigBlind = 20): PokerState {
   return {
     handId: uid(), handNumber: 0, startingStack: seats[0]?.stack ?? 0, phase: "idle",
-    seats: seats.map((seat) => ({ ...seat, holeCards: [], bet: 0, totalContribution: 0, folded: false, allIn: false })),
+    seats: seats.map((seat) => ({ ...seat, holeCards: [], bet: 0, totalContribution: 0, folded: false, allIn: false, allInAmount: undefined })),
     dealerIndex: -1, smallBlind, bigBlind, actorIndex: -1, board: [], deck: [], pot: 0,
     currentBet: 0, minRaise: bigBlind, actedThisRound: [], history: [], events: [], handStartStacks: {}
   };
@@ -60,7 +60,7 @@ export function startHand(input: PokerState, random = Math.random): PokerState {
   state.winnerText = undefined;
   state.result = undefined;
   state.handStartStacks = Object.fromEntries(state.seats.map((seat) => [seat.id, seat.stack]));
-  state.seats.forEach((seat) => Object.assign(seat, { holeCards: [], bet: 0, totalContribution: 0, folded: seat.stack <= 0, allIn: false, revealedHoleCardIndexes: [], shownHoleCards: undefined, lastAction: undefined }));
+  state.seats.forEach((seat) => Object.assign(seat, { holeCards: [], bet: 0, totalContribution: 0, folded: seat.stack <= 0, allIn: false, allInAmount: undefined, revealedHoleCardIndexes: [], shownHoleCards: undefined, lastAction: undefined }));
   state.dealerIndex = nextIndex(state, state.dealerIndex, (seat) => seat.stack > 0);
   const headsUp = state.seats.filter((seat) => seat.stack > 0).length === 2;
   const sb = headsUp ? state.dealerIndex : nextIndex(state, state.dealerIndex, (seat) => seat.stack > 0);
@@ -209,7 +209,8 @@ export function applyAction(input: PokerState, seatId: string, action: PlayerAct
         state.actedThisRound = [];
       }
     }
-    seat.lastAction = action === "all-in" ? `全下 ${seat.bet}` : `加注至 ${seat.bet}`;
+    if (action === "all-in") seat.allInAmount = seat.bet;
+    seat.lastAction = action === "all-in" ? "All in" : `加注至 ${seat.bet}`;
     event(state, "chips", seat.id, { amount, allIn: action === "all-in" });
   }
   state.actedThisRound.push(seat.id);

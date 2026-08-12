@@ -16,6 +16,7 @@ export interface Seat {
   totalContribution: number;
   folded: boolean;
   allIn: boolean;
+  allInAmount?: number;
   isHuman: boolean;
   connected?: boolean;
   standing?: boolean;

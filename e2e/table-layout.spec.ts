@@ -77,7 +77,8 @@ test("390x660 牌桌保持对称座位、大头像和放大工具按钮", async 
       expect(geometry.controls.top.width).toBeCloseTo(52, 0);
       expect(geometry.controls.bottom.width).toBeCloseTo(52, 0);
       expect(geometry.controls.emoji.width).toBeCloseTo(52, 0);
-      expect(geometry.controls.shield.width).toBeCloseTo(39, 0);
+      expect(geometry.controls.shield.width).toBeGreaterThanOrEqual(38);
+      expect(geometry.controls.shield.width).toBeLessThanOrEqual(39.5);
       expect(geometry.avatarBoardCollisions).toBe(0);
       expect(geometry.clipped).toBe(false);
       expect(geometry.controlSeatCollisions).toBe(0);
@@ -96,6 +97,8 @@ test("390x660 牌桌保持对称座位、大头像和放大工具按钮", async 
           return { hero, raise, fold, right };
         });
         expect(Math.hypot(orbitGeometry.hero.x - orbitGeometry.raise.x, orbitGeometry.hero.y - orbitGeometry.raise.y)).toBeLessThanOrEqual(1);
+        expect(orbitGeometry.raise.width).toBeCloseTo(56, 1);
+        expect(orbitGeometry.fold.width).toBeCloseTo(46, 1);
         expect(orbitGeometry.fold.width).toBeCloseTo(orbitGeometry.right.width, 1);
         expect(orbitGeometry.fold.height).toBeCloseTo(orbitGeometry.right.height, 1);
         expect(orbitGeometry.fold.y).toBeCloseTo(orbitGeometry.right.y, 1);

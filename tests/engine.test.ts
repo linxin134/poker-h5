@@ -133,6 +133,7 @@ describe("game engine", () => {
     state = applyAction(state, "a", "all-in");
     expect(state.seats[0].allIn).toBe(true);
     expect(state.seats[0].bet).toBe(20);
+    expect(state.seats[0].allInAmount).toBe(20);
   });
 
   it("拒绝越界、非整数和非当前玩家的加注", () => {

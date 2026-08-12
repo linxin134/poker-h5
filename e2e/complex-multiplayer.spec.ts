@@ -97,8 +97,9 @@ test("six-player authoritative battle keeps perspectives, side pots and cumulati
   const pages: Page[] = [page];
 
   try {
+    await page.setViewportSize({ width:390, height:660 });
     for (let index = 1; index < 6; index += 1) {
-      const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+      const context = await browser.newContext({ viewport: { width: 390, height: 660 } });
       contexts.push(context);
       pages.push(await context.newPage());
     }
@@ -189,15 +190,8 @@ test("six-player authoritative battle keeps perspectives, side pots and cumulati
     const liveActorIndex = users.findIndex((user) => user.id === liveActorUserId);
     const uiPage = await contexts[liveActorIndex].newPage();
     try {
+      await uiPage.addInitScript((roomCode) => sessionStorage.setItem("poker-active-room", roomCode), code);
       await uiPage.goto(origin);
-      // Use the production reconnect path. The actor already belongs to the
-      // room and a second join click can race the harness socket's turn timer.
-      await uiPage.evaluate((roomCode) => sessionStorage.setItem("poker-active-room", roomCode), code);
-      await uiPage.reload();
-      if (!await uiPage.locator(".table-screen").count()) {
-        const roomCard = uiPage.locator(".public-room-list article", { hasText:code });
-        await roomCard.getByRole("button", { name:/加入/ }).click();
-      }
       await expect(uiPage.locator(".table-screen")).toBeVisible({ timeout:10_000 });
       await expect(uiPage.locator(".hero-seat .seat-cards .playing-card:not(.card-back)")).toHaveCount(2);
       await expect(uiPage.locator(".action-dock.my-turn")).toBeVisible();
@@ -213,21 +207,25 @@ test("six-player authoritative battle keeps perspectives, side pots and cumulati
         const collisions = avatars.filter((avatar) => !(avatar.right <= board.left || avatar.left >= board.right || avatar.bottom <= board.top || avatar.top >= board.bottom)).length;
         const hero = document.querySelector<HTMLElement>(".hero-seat .avatar-ring")!.getBoundingClientRect();
         const centerAction = document.querySelector<HTMLElement>(".action-buttons .action.raise")!.getBoundingClientRect();
-        const playerUi = [...document.querySelectorAll<HTMLElement>(".seat .avatar-ring,.seat .seat-info b,.seat .seat-info span,.seat .seat-cards,.seat .seat-bet,.seat .dealer-button")];
-        const clippedPlayerUi = playerUi.filter((element) => {
+        const playerUi = [...document.querySelectorAll<HTMLElement>(".seat .seat-name,.seat .avatar-ring,.seat .seat-stack,.seat .seat-cards,.seat .seat-bet,.seat .dealer-button")];
+        const clippedElements = playerUi.filter((element) => {
           const rect = element.getBoundingClientRect();
           return rect.left < 0 || rect.right > window.innerWidth || rect.top < 0 || rect.bottom > window.innerHeight;
-        }).length;
+        }).map((element) => {
+          const rect = element.getBoundingClientRect();
+          return { className:element.className, text:element.textContent, rect:{ left:rect.left, right:rect.right, top:rect.top, bottom:rect.bottom } };
+        });
         return {
           collisions,
-          clippedPlayerUi,
+          clippedPlayerUi:clippedElements.length,
+          clippedElements,
           centerActionDelta: Math.hypot((hero.left + hero.width / 2) - (centerAction.left + centerAction.width / 2), (hero.top + hero.height / 2) - (centerAction.top + centerAction.height / 2)),
           horizontalOverflow: document.documentElement.scrollWidth - window.innerWidth,
           verticalOverflow: document.documentElement.scrollHeight - window.innerHeight
         };
       });
       expect(geometry.collisions).toBe(0);
-      expect(geometry.clippedPlayerUi).toBe(0);
+      expect(geometry.clippedPlayerUi, JSON.stringify(geometry.clippedElements)).toBe(0);
       expect(geometry.centerActionDelta).toBeLessThanOrEqual(1);
       expect(geometry.horizontalOverflow).toBeLessThanOrEqual(0);
       expect(geometry.verticalOverflow).toBeLessThanOrEqual(1);

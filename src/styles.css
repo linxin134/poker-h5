@@ -2399,6 +2399,11 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
 .app-shell.mode-mobile .fresh-table.settled .seat.hero-seat {
   top:var(--seat-y)!important;
 }
+.app-shell.mode-mobile .fresh-table.my-turn .seat.seat-lower:not(.hero-seat),
+.app-shell.mode-mobile .fresh-table.waiting-turn .seat.seat-lower:not(.hero-seat),
+.app-shell.mode-mobile .fresh-table.settled .seat.seat-lower:not(.hero-seat) {
+  top:var(--seat-y)!important;
+}
 .app-shell.mode-mobile .fresh-table .action-dock.my-turn {
   left:var(--hero-x);
   right:auto;
@@ -2806,6 +2811,8 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
   pointer-events:none;
 }
 .app-shell.mode-mobile .fresh-table .action-orbit .action-buttons .action {
+  appearance:none;
+  -webkit-appearance:none;
   position:absolute;
   z-index:3;
   left:var(--hero-x);
@@ -2831,6 +2838,8 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
   text-shadow:0 1px 2px #00221b;
   backdrop-filter:blur(7px);
   pointer-events:auto;
+  touch-action:manipulation;
+  transition:none;
 }
 .app-shell.mode-mobile .fresh-table .action-orbit .action-buttons .action b,
 .app-shell.mode-mobile .fresh-table .action-orbit .action-buttons .action span { display:block; font:inherit; }
@@ -3246,13 +3255,443 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
 .app-shell.mode-mobile .playing-card.small .card-corner-top b { font-size:10px; }
 .app-shell.mode-mobile .playing-card.small .card-corner-top i { margin-top:1px; font-size:7px; }
 .app-shell.mode-mobile .playing-card.face-card:after {
+  display:none;
+}
+
+/* Wepoker-style action countdown: every large circular action carries the
+   same authoritative 25-second sweep and travelling white cue. */
+.app-shell.mode-mobile .fresh-table .action-orbit .action-countdown-orbit {
+  position:absolute;
+  z-index:4;
+  inset:-4px;
+  border:1px solid #ffffff4a;
+  border-radius:50%;
+  background:transparent;
+  pointer-events:none;
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .action-countdown-orbit:after {
   content:"";
   position:absolute;
-  right:3px;
-  bottom:3px;
-  width:46%;
-  height:46%;
-  border-radius:2px 2px 4px 2px;
-  background:linear-gradient(135deg,#edc563 0 48%,#3c7cb5 49% 70%,#d95854 71%);
-  opacity:.92;
+  top:-3px;
+  left:50%;
+  width:6px;
+  height:6px;
+  transform:translateX(-50%);
+  border-radius:50%;
+  background:#fff;
+  box-shadow:0 0 8px #fff;
 }
+.app-shell.mode-mobile .fresh-table .action-orbit .action-countdown-orbit {
+  transform:rotate(calc((1 - var(--action-progress,1)) * 360deg));
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .action-countdown-orbit.urgent {
+  filter:drop-shadow(0 0 4px #ffcf69);
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .action>span,
+.app-shell.mode-mobile .fresh-table .action-orbit .action>b { position:relative; z-index:5; }
+
+/* All-in is an avatar state, not another piece of flowing content. It covers
+   the fixed avatar slot and leaves the player name, stack and hole cards in
+   their original coordinates. */
+.app-shell.mode-mobile .fresh-table .all-in-status {
+  position:absolute;
+  z-index:10;
+  inset:-2px;
+  display:grid;
+  place-items:center;
+  margin:0;
+  border:1px solid #ffe266;
+  border-radius:50%;
+  color:#fff;
+  background:#9d7a00b8;
+  box-shadow:0 0 0 2px #ffe5617a,0 0 12px #ffe15585,inset 0 0 14px #ffc92866;
+  font-size:11px;
+  font-style:normal;
+  font-weight:900;
+  line-height:1;
+  text-shadow:0 1px 2px #4b3800;
+  pointer-events:none;
+}
+.app-shell.mode-mobile .fresh-table .seat.all-in-seat .avatar-ring {
+  border-color:#f6d453;
+  box-shadow:0 0 0 2px #f6d4537d,0 3px 9px #001d176e;
+}
+.app-shell.mode-mobile .fresh-table .seat-bet>i,
+.app-shell.mode-mobile .fresh-table .pot-badge>i,
+.chip-commit-layer>i,
+.pot-award-coin {
+  display:inline-block;
+  width:10px;
+  height:10px;
+  flex:0 0 10px;
+  border:1px solid #fff8a6;
+  border-radius:50%;
+  background:radial-gradient(circle at 35% 32%,#fff6a6 0 11%,#f8ce39 13% 37%,#bd7811 39% 62%,#ffd85b 64% 78%,#9b5a0c 80%);
+  box-shadow:0 1px 3px #00231d8f;
+}
+.app-shell.mode-mobile .fresh-table .seat-bet { gap:3px; }
+
+.chip-commit-layer,
+.pot-award-layer {
+  position:absolute;
+  z-index:31;
+  inset:0;
+  overflow:hidden;
+  pointer-events:none;
+}
+.chip-commit-layer>i,
+.chip-commit-layer>b {
+  position:absolute;
+  transform:translate(-50%,-50%);
+}
+.chip-commit-layer>b {
+  padding:2px 5px;
+  border-radius:999px;
+  color:#fff3a0;
+  background:#003c34cc;
+  font-size:9px;
+  font-variant-numeric:tabular-nums;
+}
+
+.app-shell.mode-mobile .fresh-table .showdown-win-label {
+  position:absolute;
+  z-index:34;
+  left:50%;
+  top:51%;
+  transform:translate(-50%,-50%) rotate(-4deg);
+  color:#ffda45;
+  font-size:31px;
+  font-style:italic;
+  font-weight:1000;
+  letter-spacing:-2px;
+  text-shadow:0 2px #8a5400,0 5px 12px #001e1785;
+  white-space:nowrap;
+  pointer-events:none;
+}
+
+/* The reference settlement keeps the table visible. The next-hand timer is
+   authoritative but intentionally has no modal card covering the showdown. */
+.app-shell.mode-mobile .fresh-table.settled .showdown-summary {
+  position:absolute;
+  z-index:0;
+  width:1px;
+  height:1px;
+  overflow:hidden;
+  opacity:0;
+  pointer-events:none;
+}
+
+/* Root coordinate contract: ActionBar is a full-stage overlay. Children are
+   positioned once from --hero-x/--hero-y, so changing action state can never
+   move the avatar or apply a second coordinate transform. */
+.app-shell.mode-mobile .fresh-table .action-dock.action-orbit,
+.app-shell.mode-mobile .fresh-table .action-dock.action-orbit.my-turn,
+.app-shell.mode-mobile .fresh-table .action-dock.action-orbit.waiting-turn {
+  position:absolute;
+  z-index:35;
+  inset:0;
+  width:100%;
+  max-width:none;
+  height:100%;
+  min-height:0;
+  padding:0;
+  transform:none;
+  border:0;
+  background:transparent;
+  box-shadow:none;
+  pointer-events:none;
+}
+.app-shell.mode-mobile .fresh-table .action-dock.action-orbit button,
+.app-shell.mode-mobile .fresh-table .action-dock.action-orbit input { pointer-events:auto; }
+
+/* A seat is one invariant vertical stack. No child participates in normal
+   flow, so cards, ranks, timers and action states cannot shift the anchor. */
+.app-shell.mode-mobile .fresh-table .seat {
+  display:block!important;
+  width:72px;
+  min-width:72px;
+  height:46px;
+}
+.app-shell.mode-mobile .fresh-table .seat>.seat-name {
+  position:absolute;
+  z-index:5;
+  right:auto;
+  bottom:calc(100% + 5px);
+  left:50%;
+  width:92px;
+  overflow:hidden;
+  transform:translateX(-50%);
+  color:#fff;
+  font-size:10px;
+  font-weight:700;
+  line-height:12px;
+  text-align:center;
+  text-overflow:ellipsis;
+  text-shadow:none;
+  white-space:nowrap;
+}
+.app-shell.mode-mobile .fresh-table .seat>.avatar-ring {
+  position:absolute;
+  z-index:4;
+  top:0;
+  left:50%;
+  transform:translateX(-50%);
+}
+.app-shell.mode-mobile .fresh-table .seat>.seat-cards {
+  position:absolute;
+  z-index:3;
+  top:calc(100% + 4px);
+  left:50%;
+  display:flex;
+  gap:2px;
+  transform:translateX(-50%);
+}
+.app-shell.mode-mobile .fresh-table .seat>.seat-hand-rank {
+  position:absolute;
+  z-index:4;
+  top:calc(100% + 43px);
+  left:50%;
+  min-width:60px;
+  transform:translateX(-50%);
+  color:#fff;
+  font-size:10px;
+  font-weight:700;
+  line-height:12px;
+  text-align:center;
+  text-shadow:0 1px 2px #00251e;
+  white-space:nowrap;
+}
+.app-shell.mode-mobile .fresh-table .seat>.seat-stack {
+  position:absolute;
+  z-index:4;
+  top:calc(100% + 56px);
+  left:50%;
+  display:grid;
+  min-width:52px;
+  height:17px;
+  place-items:center;
+  padding:0 8px;
+  transform:translateX(-50%);
+  border:1px solid #d9ebe568;
+  border-radius:999px;
+  color:#fff;
+  background:#00352dcc;
+  box-shadow:0 2px 5px #001c1669;
+  font-size:10px;
+  font-weight:600;
+  line-height:15px;
+  white-space:nowrap;
+}
+.app-shell.mode-mobile .fresh-table .seat:not(.hero-seat)>.seat-hand-rank:empty { display:none; }
+.app-shell.mode-mobile .fresh-table .seat>.action-bubble {
+  z-index:9;
+  top:50%;
+  margin:0;
+  transform:translate(-50%,-50%);
+}
+
+/* Opponents use the separate compact reference stack: cards sit inside the
+   avatar's lower-right corner. Revealing or hiding them never changes the
+   avatar, name or stack coordinates. */
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat>.seat-cards {
+  z-index:7;
+  top:29px;
+  left:47px;
+  gap:-1px;
+  transform:none;
+}
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat>.seat-cards .playing-card.small {
+  width:13px;
+  height:18px;
+  padding:1px;
+  border-width:1px;
+}
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat>.seat-cards .playing-card.small+ .playing-card.small {
+  margin-left:-4px;
+}
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat>.seat-cards .card-corner-top {
+  display:none;
+}
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat>.seat-cards .playing-card.card-back:before { inset:2px; }
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat>.seat-cards .card-corner-bottom,
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat>.seat-cards .card-suit { display:none; }
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat>.seat-hand-rank {
+  top:51px;
+  left:57px;
+  min-width:40px;
+  font-size:8px;
+  line-height:9px;
+}
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat>.seat-stack {
+  top:calc(100% + 4px);
+}
+.app-shell.mode-mobile .fresh-table .seat-left>.seat-name {
+  left:36px;
+  transform:none;
+  text-align:left;
+}
+.app-shell.mode-mobile .fresh-table .seat-right>.seat-name {
+  right:36px;
+  left:auto;
+  transform:none;
+  text-align:right;
+}
+
+/* The reference uses one center slot: on three-action turns the raise/bet
+   circle replaces (and fully hides) the hero avatar; two-action and queued
+   states keep the avatar visible. Cards, rank and stack stay untouched. */
+.app-shell.mode-mobile .fresh-table.my-turn:has(.action-buttons.replaces-avatar) .hero-seat>.avatar-ring {
+  visibility:hidden;
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons.with-raise .action.raise {
+  width:56px!important;
+  min-width:56px!important;
+  height:56px!important;
+  min-height:56px!important;
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons.with-raise .action.fold,
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons.with-raise .action.check,
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons.with-raise .action.call,
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons.with-raise .action.allin {
+  width:46px!important;
+  min-width:46px!important;
+  height:46px!important;
+  min-height:46px!important;
+}
+
+/* Reference hierarchy: pot is above the board, never underneath it. Hidden
+   community cards reserve no five-card strip; only dealt cards are shown. */
+.app-shell.mode-mobile .fresh-table .board-zone {
+  inset:0;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  gap:0;
+  transform:none;
+  pointer-events:none;
+}
+.app-shell.mode-mobile .fresh-table .board-zone .pot-badge {
+  position:absolute;
+  top:28%;
+  bottom:auto;
+  left:50%;
+  transform:translate(-50%,-50%);
+  min-width:92px;
+  justify-content:center;
+  padding:3px 9px;
+  border-radius:0;
+  background:#00564be0;
+  box-shadow:none;
+}
+.app-shell.mode-mobile .fresh-table .board-zone .board-room-countdown {
+  position:absolute;
+  top:39.2%;
+  left:50%;
+  transform:translateX(-50%);
+  color:#cde6dc91;
+  font-size:8px;
+  font-weight:600;
+}
+.app-shell.mode-mobile .fresh-table .board-zone .board-cards {
+  position:absolute;
+  top:42.5%;
+  left:50%;
+  min-height:57px;
+  transform:translateX(-50%);
+}
+.app-shell.mode-mobile .fresh-table .board-zone .board-cards.empty { display:none; }
+
+/* Exact reference states: a center action replaces both the local avatar and
+   its nickname. Cards, hand rank and stack remain fixed underneath. */
+.app-shell.mode-mobile .fresh-table.my-turn:has(.action-buttons.replaces-avatar) .hero-seat>.seat-name {
+  visibility:hidden;
+}
+
+/* Opponent actions are separate layers: blue/green pills sit above the
+   avatar, folds cover it, while current bets stay outside beside a chip. */
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat>.action-bubble {
+  top:-18px;
+  left:50%;
+  min-width:42px;
+  padding:2px 8px;
+  transform:translateX(-50%);
+  border-radius:5px;
+  color:#fff;
+  font-size:8px;
+  line-height:13px;
+  text-align:center;
+  box-shadow:none;
+}
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat>.action-bubble.action-check,
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat>.action-bubble.action-call { background:#21a5e5e8; }
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat>.action-bubble.action-bet { background:#25be70e8; }
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat:has(>.action-bubble.action-check)>.seat-name,
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat:has(>.action-bubble.action-call)>.seat-name,
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat:has(>.action-bubble.action-bet)>.seat-name { visibility:hidden; }
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat.folded>.action-bubble.action-fold {
+  z-index:10;
+  top:50%;
+  min-width:0;
+  padding:0;
+  transform:translate(-50%,-50%);
+  background:transparent;
+  font-size:11px;
+  line-height:1;
+}
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat .seat-countdown {
+  z-index:12;
+  top:50%;
+  right:auto;
+  left:50%;
+  min-width:0;
+  height:auto;
+  transform:translate(-50%,-50%);
+  color:#fff;
+  background:transparent;
+  box-shadow:none;
+  font-size:12px;
+  font-style:normal;
+  font-weight:900;
+}
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat.active .avatar-ring { border-color:#34d16f; }
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat .timer-ring {
+  inset:-3px;
+  border:3px solid transparent;
+  border-top-color:#39d171;
+  border-right-color:#39d171;
+  border-radius:50%;
+}
+
+/* At showdown the opponent avatar is replaced by the two open cards, just as
+   in the supplied result frame; the name, hand rank and stack keep one fixed
+   vertical reading order. */
+.app-shell.mode-mobile .fresh-table.settled[data-result="showdown"] .seat.opponent-seat:not(.folded)>.avatar-ring {
+  visibility:hidden;
+}
+.app-shell.mode-mobile .fresh-table.settled[data-result="showdown"] .seat.opponent-seat:not(.folded)>.seat-cards {
+  top:0;
+  left:50%;
+  gap:2px;
+  transform:translateX(-50%);
+}
+.app-shell.mode-mobile .fresh-table.settled[data-result="showdown"] .seat.opponent-seat:not(.folded)>.seat-cards .playing-card.small {
+  width:27px;
+  height:39px;
+  margin:0;
+}
+.app-shell.mode-mobile .fresh-table.settled[data-result="showdown"] .seat.opponent-seat:not(.folded)>.seat-cards .card-corner-top { display:block; }
+.app-shell.mode-mobile .fresh-table.settled[data-result="showdown"] .seat.opponent-seat:not(.folded)>.seat-cards .card-corner-top b { font-size:10px; }
+.app-shell.mode-mobile .fresh-table.settled[data-result="showdown"] .seat.opponent-seat:not(.folded)>.seat-cards .card-corner-top i { display:block; font-size:7px; }
+.app-shell.mode-mobile .fresh-table.settled[data-result="showdown"] .seat.opponent-seat:not(.folded)>.seat-hand-rank {
+  top:42px;
+  left:50%;
+  min-width:52px;
+  transform:translateX(-50%);
+  font-size:9px;
+  line-height:11px;
+}
+.app-shell.mode-mobile .fresh-table.settled[data-result="showdown"] .seat.opponent-seat:not(.folded)>.seat-stack {
+  display:none;
+}
+.app-shell.mode-mobile .fresh-table.settled[data-result="showdown"] .seat>.dealer-button { opacity:.82; }

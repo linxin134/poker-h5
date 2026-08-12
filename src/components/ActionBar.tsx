@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { legalActions } from "../game/engine";
 import type { PlayerAction, PokerState } from "../game/types";
 
@@ -24,10 +24,14 @@ export function ActionBar({ game, mySeatId, turnRemainingMs, heroPoint, onAct }:
   const [quickPreset, setQuickPreset] = useState<string | null>(null);
   const [queuedAction, setQueuedAction] = useState<QueuedAction>(null);
   const [submittedAction, setSubmittedAction] = useState<SubmittedAction>(null);
+  const submittedActorRef = useRef<string | null>(null);
   const actor = game.seats[game.actorIndex];
   const isMyTurn = actor?.id === mySeatId;
   const legalKey = legal.actions.join(",");
-  const actionKey = `${game.handId}:${actor?.id ?? "none"}`;
+  // The same player can legally act again immediately after a street change.
+  // Include the authoritative action history/phase so the optimistic
+  // "submitting" state is released even when actorSeatId does not change.
+  const actionKey = `${game.handId}:${game.phase}:${game.history.length}:${actor?.id ?? "none"}`;
   const previousActionKey = useRef(actionKey);
 
   useEffect(() => {
@@ -37,6 +41,7 @@ export function ActionBar({ game, mySeatId, turnRemainingMs, heroPoint, onAct }:
     setRaiseOpen(false);
     setQuickPreset(null);
     setSubmittedAction(null);
+    submittedActorRef.current = null;
   }, [actionKey, legal.minRaiseTo]);
   useEffect(() => setQueuedAction(null), [game.handId]);
   useEffect(() => {
@@ -46,6 +51,7 @@ export function ActionBar({ game, mySeatId, turnRemainingMs, heroPoint, onAct }:
       : legal.actions.includes("check") ? "check" : "fold";
     if (!legal.actions.includes(action)) return;
     setQueuedAction(null);
+    submittedActorRef.current = actionKey;
     setSubmittedAction({ actorSeatId: actor.id, label: action === "check" ? "过牌" : "弃牌" });
     onAct(action);
   }, [actor, game.actorIndex, isMyTurn, legalKey, onAct, queuedAction]);
@@ -54,11 +60,18 @@ export function ActionBar({ game, mySeatId, turnRemainingMs, heroPoint, onAct }:
 
   const can = (action: typeof legal.actions[number]) => isMyTurn && legal.actions.includes(action);
   const seconds = Math.max(0, Math.ceil(turnRemainingMs / 1000));
+  const turnProgress = Math.max(0, Math.min(1, turnRemainingMs / 25_000));
   const visiblePot = game.pot + game.seats.reduce((sum, seat) => sum + seat.bet, 0);
   const chipUnit = Math.max(1, game.smallBlind);
   const mySeat = game.seats.find((seat) => seat.id === mySeatId);
   const projectedCall = mySeat ? Math.max(0, Math.min(game.currentBet - mySeat.bet, mySeat.stack)) : 0;
   const dockStyle = { "--hero-x": `${heroPoint.x}%`, "--hero-y": `${heroPoint.y}%` } as CSSProperties;
+  const countdownStyle = { "--action-progress": turnProgress } as CSSProperties;
+  const actionCountdown = () => <i className={`action-countdown-orbit ${seconds <= 5 ? "urgent" : ""}`} style={countdownStyle} aria-hidden="true" />;
+
+  // Folded and all-in players have finished this hand. Wepoker removes every
+  // action/pre-action control and leaves only the avatar status plus cards.
+  if (mySeat?.folded || mySeat?.allIn) return null;
 
   const raisePresets: RaisePreset[] = game.phase === "preflop"
     ? [2, 3, 4, 5, 6].map((bigBlinds) => ({
@@ -75,11 +88,22 @@ export function ActionBar({ game, mySeatId, turnRemainingMs, heroPoint, onAct }:
     }));
 
   const submit = (action: PlayerAction, label: string, target?: number) => {
-    if (submittedAction?.actorSeatId === actor.id) return;
+    // Touch browsers can emit pointerup and a synthetic click for one tap.
+    // Guard synchronously so one visible action can never be sent twice.
+    if (submittedActorRef.current === actionKey) return;
+    submittedActorRef.current = actionKey;
     setRaiseOpen(false);
     setSubmittedAction({ actorSeatId: actor.id, label });
     onAct(action, target);
   };
+  const activate = (action: PlayerAction, label: string, target?: number) => ({
+    onClick: () => submit(action, label, target),
+    onPointerUp: (event: ReactPointerEvent<HTMLButtonElement>) => {
+      if (event.pointerType !== "touch") return;
+      event.preventDefault();
+      submit(action, label, target);
+    },
+  });
   const commitRaise = () => {
     if (raiseTo >= legal.maxRaiseTo) submit("all-in", "All in");
     else submit("raise", game.currentBet === 0 ? "下注" : "加注", raiseTo);
@@ -122,10 +146,10 @@ export function ActionBar({ game, mySeatId, turnRemainingMs, heroPoint, onAct }:
         </button>)}
       </div>}
 
-      <div className={`action-buttons ${hasRaise ? "with-raise" : "without-raise"}`}>
-        <button className="action fold" disabled={!can("fold")} onClick={() => submit("fold", "弃牌")}>弃牌</button>
-        {hasRaise && <button className={`action raise ${raiseOpen ? "selected" : ""}`} onPointerDown={(event) => { event.stopPropagation(); setRaiseOpen(true); }}>{game.currentBet === 0 ? "下注" : "加注"}</button>}
-        {rightAction && <button className={`action ${rightAction.className}`} onClick={() => submit(rightAction.action, rightAction.label)}>{rightAction.amount !== null && <b>{rightAction.amount.toLocaleString()}</b>}<span>{rightAction.label}</span></button>}
+      <div className={`action-buttons ${hasRaise ? "with-raise replaces-avatar" : "without-raise keeps-avatar"}`}>
+        <button className="action fold" data-turn-seconds={seconds} disabled={!can("fold")} {...activate("fold", "弃牌")}>{actionCountdown()}<span>弃牌</span></button>
+        {hasRaise && <button className={`action raise ${raiseOpen ? "selected" : ""}`} data-turn-seconds={seconds} onPointerDown={(event) => { event.stopPropagation(); setRaiseOpen(true); }}>{actionCountdown()}<span>{game.currentBet === 0 ? "下注" : "加注"}</span></button>}
+        {rightAction && <button className={`action ${rightAction.className}`} data-turn-seconds={seconds} {...activate(rightAction.action, rightAction.label)}>{actionCountdown()}{rightAction.amount !== null && <b>{rightAction.amount.toLocaleString()}</b>}<span>{rightAction.label}</span></button>}
       </div>
 
       {raiseOpen && <div className="raise-panel raise-rail" role="dialog" aria-label="调节加注金额" style={{ "--raise-handle-y": `${190 - Math.max(0, Math.min(1, raiseProgress)) * 156}px` } as CSSProperties}>
