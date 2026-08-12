@@ -39,6 +39,7 @@ interface RoomRuntime {
   hands: RoomHandRecord[];
   chatMessages: RoomChatMessage[];
   clients: Map<string, Set<RoomSocket>>;
+  lastEmojiAt: Map<string, number>;
   turnTimer?: NodeJS.Timeout;
   nextHandTimer?: NodeJS.Timeout;
 }
@@ -401,7 +402,8 @@ export const roomService = {
       game: null,
       hands: [],
       chatMessages: [],
-      clients: new Map()
+      clients: new Map(),
+      lastEmojiAt: new Map()
     };
     rooms.set(code, room);
     saveRoom(room);
@@ -581,7 +583,16 @@ export const roomService = {
           }
           if (message.type === "emoji") {
             const from = room.members.find((entry) => entry.userId === user.id)!;
-            const payload: RoomServerMessage = { type: "emoji", id: crypto.randomUUID(), emoji: message.emoji.slice(0, 8), fromSeatId: from.seatId, targetSeatId: message.targetSeatId };
+            if (from.seatIndex === null || !from.seatId) throw new Error("请先落座再发送互动");
+            const target = room.members.find((entry) => !entry.left && entry.seatIndex !== null && entry.seatId === message.targetSeatId);
+            if (!target) throw new Error("互动目标已离开座位");
+            if (target.userId === user.id) throw new Error("不能向自己发送互动");
+            const emoji = typeof message.emoji === "string" ? message.emoji.trim().slice(0, 8) : "";
+            if (!emoji) throw new Error("互动表情不能为空");
+            const now = Date.now();
+            if (now - (room.lastEmojiAt.get(user.id) ?? 0) < 450) throw new Error("互动太频繁，请稍后再试");
+            room.lastEmojiAt.set(user.id, now);
+            const payload: RoomServerMessage = { type: "emoji", id: crypto.randomUUID(), emoji, fromSeatId: from.seatId, targetSeatId: target.seatId };
             for (const sockets of room.clients.values()) for (const target of sockets) send(target, payload);
             return;
           }
