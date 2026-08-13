@@ -363,8 +363,16 @@ test("390x660 牌桌保持对称座位、大头像和放大工具按钮", async 
         }));
         expect(presetArc[0].y).toBeCloseTo(presetArc[4].y, 1);
         expect(presetArc[1].y).toBeCloseTo(presetArc[3].y, 1);
-        expect(presetArc[0].y - presetArc[1].y).toBeGreaterThanOrEqual(17);
-        expect(presetArc[1].y - presetArc[2].y).toBeGreaterThanOrEqual(11);
+        expect(presetArc[0].x + presetArc[4].x).toBeCloseTo(2 * presetArc[2].x, 1);
+        expect(presetArc[1].x + presetArc[3].x).toBeCloseTo(2 * presetArc[2].x, 1);
+        expect(presetArc[2].y).toBeLessThan(presetArc[1].y);
+        expect(presetArc[1].y).toBeLessThan(presetArc[0].y);
+        const arcDx = presetArc[4].x - presetArc[2].x;
+        const arcDy = presetArc[4].y - presetArc[2].y;
+        const arcRadius = (arcDx * arcDx + arcDy * arcDy) / (2 * arcDy);
+        const arcCircleY = presetArc[2].y + arcRadius;
+        const arcDistances = presetArc.map((point) => Math.hypot(point.x - presetArc[2].x, point.y - arcCircleY));
+        expect(Math.max(...arcDistances) - Math.min(...arcDistances)).toBeLessThanOrEqual(.35);
         await playerPage.locator(".action-buttons .action.raise").dispatchEvent("pointerdown", { pointerType:"touch", isPrimary:true, button:0 });
         await expect(playerPage.locator(".raise-panel.raise-rail")).toBeVisible();
         const railBox = await playerPage.locator(".raise-panel.raise-rail").boundingBox();

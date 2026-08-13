@@ -215,14 +215,20 @@ test("All in 头像覆盖、筹码入池和三环倒计时保持固定布局", a
     const allInSeat = page.locator(".seat.all-in-seat");
     const allInGeometry = await allInSeat.evaluate((seat) => {
       const avatar = seat.querySelector(".avatar-ring")!.getBoundingClientRect();
-      const status = seat.querySelector(".all-in-status")!.getBoundingClientRect();
+      const statusElement = seat.querySelector<HTMLElement>(".all-in-status")!;
+      const status = statusElement.getBoundingClientRect();
+      const style = getComputedStyle(statusElement);
       return {
         centerDelta:Math.hypot(avatar.left + avatar.width / 2 - (status.left + status.width / 2), avatar.top + avatar.height / 2 - (status.top + status.height / 2)),
         status:{ width:status.width, height:status.height },
+        colour:{ background:style.backgroundImage, border:style.borderTopColor, text:style.color },
       };
     });
     expect(allInGeometry.centerDelta).toBeLessThanOrEqual(1);
     expect(allInGeometry.status.width).toBeCloseTo(allInGeometry.status.height, 1);
+    expect(allInGeometry.colour.background).toContain("255, 216, 74");
+    expect(allInGeometry.colour.border).toBe("rgb(255, 232, 121)");
+    expect(allInGeometry.colour.text).toBe("rgb(255, 253, 240)");
     const heroAfter = await actorPage.locator(".hero-seat .avatar-ring").boundingBox();
     expect(heroAfter).toEqual(heroBefore);
     await page.screenshot({ path:testInfo.outputPath("all-in-avatar-chip-390x660.png") });
@@ -285,6 +291,7 @@ test("All in 头像覆盖、筹码入池和三环倒计时保持固定布局", a
       return {
         label,
         viewport:{ width:innerWidth, height:innerHeight },
+        labelCenterX:(label.left + label.right) / 2,
         cardOverlaps:protectedCards.filter((card) => overlaps(label, card)).length
       };
     });
@@ -292,6 +299,7 @@ test("All in 头像覆盖、筹码入池和三环倒计时保持固定布局", a
     expect(settlementGeometry.label.left).toBeGreaterThanOrEqual(0);
     expect(settlementGeometry.label.right).toBeLessThanOrEqual(settlementGeometry.viewport.width);
     expect(settlementGeometry.label.bottom).toBeLessThanOrEqual(settlementGeometry.viewport.height);
+    expect(settlementGeometry.labelCenterX).toBeCloseTo(195, 0);
     await winnerPage.screenshot({ path:testInfo.outputPath("showdown-award-390x660.png") });
   } finally {
     await guestContext.close();

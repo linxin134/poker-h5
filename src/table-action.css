@@ -118,24 +118,28 @@
 }
 .app-shell.mode-mobile .fresh-table .action-orbit .action-countdown-orbit.urgent { filter:drop-shadow(0 0 4px #ffcf69); }
 
-/* Five preset circles follow the same pronounced arc as the three primary
-   controls: the outer pair is lowest, the middle pair rises, and the centre
-   is the crown. The values mirror the reference rather than a flat toolbar. */
+/* Five preset circles lie on one mathematical circle, not three hand-tuned
+   rows.  With R=100, each y offset is R-sqrt(R^2-x^2), so the crown and both
+   mirrored pairs form a continuous upper arc. */
 .app-shell.mode-mobile .fresh-table .action-arc {
-  position:absolute; z-index:2; left:var(--hero-x); top:calc(var(--hero-y) - 126px);
-  display:flex; width:198px; height:72px; align-items:flex-start;
-  justify-content:center; gap:5px; transform:translateX(-50%); pointer-events:none;
+  position:absolute; z-index:2; left:var(--hero-x); top:calc(var(--hero-y) - 132px);
+  display:block; width:200px; height:72px;
+  transform:translateX(-50%); pointer-events:none;
 }
 .app-shell.mode-mobile .fresh-table .action-arc button {
-  display:grid; width:34px; min-width:34px; height:34px; flex:0 0 34px;
-  place-content:center; gap:0; padding:0; transform:translateY(30px);
+  position:absolute; left:50%; top:17px;
+  display:grid; width:34px; min-width:34px; height:34px;
+  place-content:center; gap:0; padding:0; transform:translate(-50%,-50%);
   border:1px solid #ffffff62; border-radius:50%; color:#fff;
   background:var(--wpk-action-pre); box-shadow:0 4px 12px #001c1760,inset 0 1px #ffffff45;
   line-height:1; text-align:center; backdrop-filter:blur(6px); pointer-events:auto;
 }
-.app-shell.mode-mobile .fresh-table .action-arc button:nth-child(2),
-.app-shell.mode-mobile .fresh-table .action-arc button:nth-child(4) { transform:translateY(12px); }
-.app-shell.mode-mobile .fresh-table .action-arc button:nth-child(3) { transform:translateY(0); }
+.app-shell.mode-mobile .fresh-table .action-arc button:nth-child(1) { left:calc(50% - 76px); top:52.026px; }
+.app-shell.mode-mobile .fresh-table .action-arc button:nth-child(2) { left:calc(50% - 40px); top:25.348px; }
+.app-shell.mode-mobile .fresh-table .action-arc button:nth-child(3) { left:50%; top:17px; }
+.app-shell.mode-mobile .fresh-table .action-arc button:nth-child(4) { left:calc(50% + 40px); top:25.348px; }
+.app-shell.mode-mobile .fresh-table .action-arc button:nth-child(5) { left:calc(50% + 76px); top:52.026px; }
+.app-shell.mode-mobile .fresh-table .action-arc button:nth-child(n) { transform:translate(-50%,-50%)!important; }
 .app-shell.mode-mobile .fresh-table .action-arc button small { color:#edf7f4; font-size:6px; font-weight:600; }
 .app-shell.mode-mobile .fresh-table .action-arc button b { margin:0; font-size:10px; }
 .app-shell.mode-mobile .fresh-table .action-arc button em { color:#eff8f5; font-size:6px; font-style:normal; }
@@ -153,8 +157,17 @@
   place-content:center; padding:0 5px!important;
   transform:translate(-50%,-50%); border:1px solid #ffffff47; border-radius:50%!important;
   color:#fff; background:var(--wpk-action-pre); box-shadow:0 5px 15px #001c1770,inset 0 1px #ffffff35;
-  font-size:9px; font-weight:800; line-height:1.05; text-align:center; white-space:normal;
+  font-size:11.5px!important; font-weight:800; line-height:1.04; text-align:center; white-space:normal;
   backdrop-filter:blur(7px); pointer-events:auto;
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .preaction-buttons button b {
+  display:block; margin:0; font-size:13px!important; font-weight:900; line-height:1;
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .preaction-buttons button span {
+  display:block; margin-top:2px; font-size:10.5px!important; font-weight:800; line-height:1;
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .preaction-buttons button:disabled {
+  opacity:1!important; color:#e7efec; background:#687a77c2; cursor:default;
 }
 .app-shell.mode-mobile .fresh-table .action-orbit .preaction-buttons button + button { left:calc(var(--hero-x) + 62px); }
 .app-shell.mode-mobile .fresh-table .action-orbit .preaction-buttons button.active {

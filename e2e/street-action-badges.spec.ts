@@ -81,7 +81,12 @@ test("同街动作替换昵称槽且换街全清", async ({ page, browser }, tes
     const heroCall = first.locator(".hero-seat>.action-call");
     await expect(heroCall).toBeVisible();
     const heroCallUi = await seatUi(first, firstId);
-    expect(heroCallUi.action?.box).toEqual(heroCallUi.name);
+    expect(heroCallUi.action).not.toBeNull();
+    expect(heroCallUi.action!.box.top).toBeCloseTo(heroCallUi.name.top, 1);
+    expect(heroCallUi.action!.box.height).toBeCloseTo(heroCallUi.name.height, 1);
+    expect(heroCallUi.action!.box.left + heroCallUi.action!.box.width / 2).toBeCloseTo(heroCallUi.name.left + heroCallUi.name.width / 2, 1);
+    expect(heroCallUi.action!.box.width).toBeGreaterThanOrEqual(34);
+    expect(heroCallUi.action!.box.width).toBeLessThanOrEqual(58);
     await first.screenshot({ path:testInfo.outputPath("street-action-hero-call-390x660.png") });
 
     const second = await currentActor(pages);
@@ -106,7 +111,12 @@ test("同街动作替换昵称槽且换街全清", async ({ page, browser }, tes
     const badge = page.locator(`.seat[data-seat-id="${flopActorId}"]>.action-check`);
     await expect(badge).toHaveText("让牌");
     const withAction = await seatUi(page, flopActorId);
-    expect(withAction.action?.box).toEqual(beforeAction.name);
+    expect(withAction.action).not.toBeNull();
+    expect(withAction.action!.box.top).toBeCloseTo(beforeAction.name.top, 1);
+    expect(withAction.action!.box.height).toBeCloseTo(beforeAction.name.height, 1);
+    expect(withAction.action!.box.left + withAction.action!.box.width / 2).toBeCloseTo(beforeAction.name.left + beforeAction.name.width / 2, 1);
+    expect(withAction.action!.box.width).toBeGreaterThanOrEqual(34);
+    expect(withAction.action!.box.width).toBeLessThanOrEqual(58);
     expect(withAction.action?.color).toBe("rgba(37, 190, 112, 0.91)");
     expect({ avatar:withAction.avatar, cards:withAction.cards, stack:withAction.stack, bet:withAction.bet, dealer:withAction.dealer }).toEqual({ avatar:beforeAction.avatar, cards:beforeAction.cards, stack:beforeAction.stack, bet:beforeAction.bet, dealer:beforeAction.dealer });
     await page.screenshot({ path:testInfo.outputPath("street-action-replaces-id-390x660.png") });
@@ -132,11 +142,16 @@ test("四种本街动作具有独立文案和颜色", async ({ page }, testInfo)
     color:getComputedStyle(action).backgroundColor,
     box:(() => { const box=action.getBoundingClientRect(); return { width:box.width, height:box.height }; })()
   })));
-  expect(palette).toEqual([
-    { kind:"check", text:"让牌", color:"rgba(37, 190, 112, 0.91)", box:{ width:92, height:12 } },
-    { kind:"call", text:"跟注", color:"rgba(33, 184, 204, 0.91)", box:{ width:92, height:12 } },
-    { kind:"bet", text:"下注", color:"rgba(35, 142, 228, 0.91)", box:{ width:92, height:12 } },
-    { kind:"raise", text:"加注", color:"rgba(237, 139, 50, 0.91)", box:{ width:92, height:12 } },
+  expect(palette.map(({ kind,text,color }) => ({ kind,text,color }))).toEqual([
+    { kind:"check", text:"让牌", color:"rgba(37, 190, 112, 0.91)" },
+    { kind:"call", text:"跟注", color:"rgba(33, 184, 204, 0.91)" },
+    { kind:"bet", text:"下注", color:"rgba(35, 142, 228, 0.91)" },
+    { kind:"raise", text:"加注", color:"rgba(237, 139, 50, 0.91)" },
   ]);
+  for (const entry of palette) {
+    expect(entry.box.height).toBe(12);
+    expect(entry.box.width).toBeGreaterThanOrEqual(34);
+    expect(entry.box.width).toBeLessThanOrEqual(58);
+  }
   await page.screenshot({ path:testInfo.outputPath("street-action-four-colours-390x660.png") });
 });

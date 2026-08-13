@@ -260,7 +260,7 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
       {latestAllInSeat && latestAllInAction && <ChipCommitEffect actionId={latestAllInAction.id} amount={latestAllInAction.amount ?? latestAllInSeat.totalContribution} from={positionPoint(latestAllInSeat.position ?? 0)} />}
       {game.phase === "complete" && winnerTargets.length > 0 && <PotAwardEffect handId={game.handId} targets={winnerTargets} />}
       <AnimatePresence>
-        {game.phase === "complete" && game.result?.reason === "showdown" && game.result.winnerSeatIds.includes(room.mySeatId) && <motion.strong key="showdown-win" className="showdown-win-label" initial={{ opacity:0, scale:.5, y:10 }} animate={{ opacity:[0,1,1,0], scale:[.5,1.08,1,1], y:[10,0,0,-6] }} transition={{ duration:3.4, times:[0,.12,.82,1] }}>YOU WIN!</motion.strong>}
+        {game.phase === "complete" && game.result?.reason === "showdown" && game.result.winnerSeatIds.includes(room.mySeatId) && <motion.strong key="showdown-win" className="showdown-win-label" initial={{ opacity:0 }} animate={{ opacity:[0,1,1,0] }} transition={{ duration:3.4, times:[0,.12,.82,1] }}>YOU WIN!</motion.strong>}
         {game.phase === "complete" && room.status === "playing" && <motion.div key="hand-settlement" className="showdown-summary hand-settlement" initial={{ opacity: 0, scale: .92, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: .96 }} transition={{ delay:1.55, duration:.28 }}>
           <span><i aria-hidden="true" />{(game.result?.pot ?? 0).toLocaleString()}</span>
           <b>{game.winnerText}</b>
