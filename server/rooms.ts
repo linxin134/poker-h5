@@ -584,16 +584,21 @@ export const roomService = {
           }
           if (message.type === "emoji") {
             const from = room.members.find((entry) => entry.userId === user.id)!;
-            if (from.seatIndex === null || !from.seatId) throw new Error("请先落座再发送互动");
-            const target = room.members.find((entry) => !entry.left && entry.seatIndex !== null && entry.seatId === message.targetSeatId);
-            if (!target) throw new Error("互动目标已离开座位");
-            if (target.userId === user.id) throw new Error("不能向自己发送互动");
+            if (from.seatIndex === null || !from.seatId) throw new Error("请先落座再发送表情");
             const emoji = typeof message.emoji === "string" ? message.emoji.trim().slice(0, 8) : "";
-            if (!emoji) throw new Error("互动表情不能为空");
+            if (!emoji) throw new Error("表情不能为空");
             const now = Date.now();
             if (now - (room.lastEmojiAt.get(user.id) ?? 0) < 450) throw new Error("互动太频繁，请稍后再试");
             room.lastEmojiAt.set(user.id, now);
-            const payload: RoomServerMessage = { type: "emoji", id: crypto.randomUUID(), emoji, fromSeatId: from.seatId, targetSeatId: target.seatId };
+            let payload: RoomServerMessage;
+            if (message.kind === "expression") {
+              payload = { type: "emoji", kind: "expression", id: crypto.randomUUID(), emoji, fromSeatId: from.seatId, createdAt: now };
+            } else {
+              const target = room.members.find((entry) => !entry.left && entry.seatIndex !== null && entry.seatId === message.targetSeatId);
+              if (!target) throw new Error("互动目标已离开座位");
+              if (target.userId === user.id) throw new Error("不能向自己发送互动");
+              payload = { type: "emoji", kind: "interaction", id: crypto.randomUUID(), emoji, fromSeatId: from.seatId, targetSeatId: target.seatId, createdAt: now };
+            }
             for (const sockets of room.clients.values()) for (const target of sockets) send(target, payload);
             return;
           }
@@ -602,7 +607,7 @@ export const roomService = {
             const text = message.text.trim();
             if (!text) throw new Error("聊天内容不能为空");
             if (text.length > 80) throw new Error("聊天内容不能超过 80 个字符");
-            room.chatMessages.push({
+            const chatMessage: RoomChatMessage = {
               id: crypto.randomUUID(),
               userId: member.userId,
               seatId: member.seatId,
@@ -610,9 +615,19 @@ export const roomService = {
               avatar: member.avatar,
               text,
               createdAt: Date.now()
-            });
+            };
+            room.chatMessages.push(chatMessage);
             if (room.chatMessages.length > 100) room.chatMessages.splice(0, room.chatMessages.length - 100);
             broadcastRoom(room);
+            const payload: RoomServerMessage = {
+              type: "chat",
+              id: chatMessage.id,
+              text: chatMessage.text,
+              userId: chatMessage.userId,
+              seatId: chatMessage.seatId,
+              createdAt: chatMessage.createdAt
+            };
+            for (const sockets of room.clients.values()) for (const target of sockets) send(target, payload);
             return;
           }
           if (message.type === "revealCard") {

@@ -112,7 +112,8 @@ export type RoomClientMessage =
   | { type: "stand" }
   | { type: "action"; action: PlayerAction; raiseTo?: number }
   | { type: "revealCard"; cardIndex: number }
-  | { type: "emoji"; emoji: string; targetSeatId: string }
+  | { type: "emoji"; kind: "expression"; emoji: string }
+  | { type: "emoji"; kind: "interaction"; emoji: string; targetSeatId: string }
   | { type: "chat"; text: string }
   | { type: "topup"; targetStack: number }
   | { type: "ping" };
@@ -121,6 +122,8 @@ export type RoomServerMessage =
   | { type: "room"; room: RoomView }
   | { type: "left" }
   | { type: "dissolved"; message: string }
-  | { type: "emoji"; id: string; emoji: string; fromSeatId: string; targetSeatId: string }
+  | { type: "emoji"; kind: "expression"; id: string; emoji: string; fromSeatId: string; createdAt: number }
+  | { type: "emoji"; kind: "interaction"; id: string; emoji: string; fromSeatId: string; targetSeatId: string; createdAt: number }
+  | { type: "chat"; id: string; text: string; userId: string; seatId: string; createdAt: number }
   | { type: "error"; message: string }
   | { type: "pong"; at: number };

@@ -124,6 +124,152 @@
   clip-path:none;
 }
 
+/* Plain expressions are a local avatar overlay, not a targeted flight.  The
+   absolute layer is a sibling of the immutable avatar stack so it cannot
+   change the seat's measured box or move any card/action marker. */
+.app-shell.mode-mobile .fresh-table .seat>.seat-emoji-overlay,
+.app-shell.mode-mobile .waiting-table-seat .waiting-emoji-overlay {
+  position:absolute;
+  z-index:56;
+  top:23px;
+  left:50%;
+  display:grid;
+  width:42px;
+  height:42px;
+  margin:0;
+  padding:0;
+  place-items:center;
+  transform:translate(-50%,-50%);
+  border:0;
+  border-radius:10px;
+  color:#fff;
+  background:#001c16a8;
+  box-shadow:0 3px 10px #00140fb8;
+  font-style:normal;
+  font-size:29px;
+  line-height:1;
+  pointer-events:none;
+}
+.app-shell.mode-mobile .fresh-table .seat>.seat-emoji-overlay {
+  transform:translate3d(-50%,-50%,0)!important;
+}
+.app-shell.mode-mobile .waiting-table-seat .waiting-emoji-overlay {
+  top:50%;
+  right:auto;
+  bottom:auto;
+  left:50%;
+  width:44px;
+  height:44px;
+  transform:translate3d(-50%,-50%,0)!important;
+}
+
+/* A transient chat bubble is an overlay outside the immutable seat stack.
+   It stays horizontally aligned with the avatar, but never covers the
+   avatar, nickname/action slot, cards, bet marker or timer. */
+.app-shell.mode-mobile .fresh-table .seat>.seat-chat-bubble {
+  position:absolute;
+  z-index:48;
+  right:auto;
+  bottom:calc(100% + 43px);
+  left:50%;
+  display:-webkit-box;
+  width:max-content;
+  max-width:min(126px,calc(100vw - 20px));
+  max-height:42px;
+  box-sizing:border-box;
+  margin:0;
+  padding:6px 9px;
+  overflow:hidden;
+  /* Motion owns `transform` during enter/exit. Use the independent translate
+     property so animation can never knock the bubble off the avatar axis. */
+  transform:none;
+  translate:calc(-50% + var(--bubble-edge-shift,0px)) 0;
+  border:1px solid #ffffff28;
+  border-radius:10px;
+  color:#fff;
+  background:#06110de0;
+  box-shadow:0 4px 12px #00100ba6;
+  font-size:11px;
+  font-weight:650;
+  line-height:14px;
+  text-align:left;
+  text-overflow:ellipsis;
+  overflow-wrap:anywhere;
+  white-space:normal;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+  pointer-events:none;
+}
+.app-shell.mode-mobile .fresh-table .seat>.seat-chat-bubble::after {
+  content:"";
+  position:absolute;
+  top:100%;
+  left:50%;
+  width:7px;
+  height:7px;
+  transform:translate(-50%,-50%) rotate(45deg);
+  border-right:1px solid #ffffff28;
+  border-bottom:1px solid #ffffff28;
+  background:#06110de0;
+}
+.app-shell.mode-mobile .fresh-table .seat.seat-left>.seat-chat-bubble,
+.app-shell.mode-mobile .fresh-table .seat.seat-right>.seat-chat-bubble { max-width:86px; }
+
+/* Waiting-room chat mirrors the in-hand overlay while respecting its taller
+   avatar/name/role stack. It is a direct absolute child of the fixed seat,
+   so appearing or expiring cannot alter the seat or avatar geometry. */
+.app-shell.mode-mobile .waiting-table-seat>.waiting-chat-bubble {
+  position:absolute;
+  z-index:48;
+  right:auto;
+  bottom:calc(100% + 7px);
+  left:50%;
+  display:-webkit-box;
+  width:max-content;
+  max-width:min(132px,calc(100vw - 20px));
+  max-height:36px;
+  box-sizing:border-box;
+  margin:0;
+  padding:6px 9px;
+  overflow:hidden;
+  transform:none;
+  translate:calc(-50% + var(--bubble-edge-shift,0px)) 0;
+  border:1px solid #ffffff28;
+  border-radius:10px;
+  color:#fff;
+  background:#06110de0;
+  box-shadow:0 4px 12px #00100ba6;
+  font-style:normal;
+  font-size:11px;
+  font-weight:650;
+  line-height:14px;
+  text-align:left;
+  text-overflow:ellipsis;
+  overflow-wrap:anywhere;
+  white-space:normal;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+  pointer-events:none;
+}
+.app-shell.mode-mobile .waiting-table-seat.seat-left>.waiting-chat-bubble,
+.app-shell.mode-mobile .waiting-table-seat.seat-right>.waiting-chat-bubble {
+  max-width:82px;
+  font-size:8.5px;
+  line-height:11px;
+}
+.app-shell.mode-mobile .waiting-table-seat>.waiting-chat-bubble::after {
+  content:"";
+  position:absolute;
+  top:100%;
+  left:50%;
+  width:7px;
+  height:7px;
+  transform:translate(-50%,-50%) rotate(45deg);
+  border-right:1px solid #ffffff28;
+  border-bottom:1px solid #ffffff28;
+  background:#06110de0;
+}
+
 .app-shell.mode-mobile .fresh-table .seat.active>.avatar-ring,
 .app-shell.mode-mobile .fresh-table .seat.opponent-seat.active>.avatar-ring {
   /* The progress stroke below is the only acting-state outline. */

@@ -20,7 +20,9 @@ interface GameStore {
   screen: Screen;
   game: PokerState;
   settings: GameSettings;
-  emojiBursts: Array<{ id: string; emoji: string; from: string; to: string }>;
+  emojiBursts: Array<{ id: string; kind: "interaction"; emoji: string; from: string; to: string; createdAt: number }>;
+  emojiOverlays: Array<{ id: string; kind: "expression"; emoji: string; from: string; createdAt: number }>;
+  chatBubbles: Array<{ id: string; text: string; userId: string; seatId: string; createdAt: number }>;
   setScreen(screen: Screen): void;
   restoreGame(game: PokerState): void;
   newGame(options?: { seats?: number; stack?: number; smallBlind?: number; bigBlind?: number; durationMinutes?: 30 | 60 }): void;
@@ -28,8 +30,11 @@ interface GameStore {
   startNextHand(): void;
   act(action: PlayerAction, raiseTo?: number): void;
   sendEmoji(emoji: string, target: string): void;
-  receiveEmoji(id: string, emoji: string, from: string, target: string): void;
+  receiveEmoji(event: { id: string; kind: "expression" | "interaction"; emoji: string; from: string; to?: string; createdAt: number }): void;
   clearEmoji(id: string): void;
+  receiveChatBubble(id: string, text: string, userId: string, seatId: string, createdAt: number): void;
+  clearChatBubble(id: string): void;
+  clearTransientUi(): void;
   updateSettings(settings: Partial<GameSettings>): void;
 }
 
@@ -51,6 +56,8 @@ export const useGameStore = create<GameStore>()(persist((set, get) => ({
   game: makeGame(),
   settings: { music: 0.35, sound: 0.8, animationSpeed: 1, effectQuality: "high", autoNextHand: false, tutorialHints: true, fastMode: false },
   emojiBursts: [],
+  emojiOverlays: [],
+  chatBubbles: [],
   setScreen: (screen) => set({ screen }),
   restoreGame: (game) => { set({ game, screen: "table" }); void saveLocalGame(game); },
   newGame: (options) => {
@@ -99,14 +106,37 @@ export const useGameStore = create<GameStore>()(persist((set, get) => ({
     void saveLocalGame(game);
   },
   sendEmoji: (emoji, target) => {
-    const burst = { id: createUuid(), emoji, from: "seat-0", to: target };
+    const burst = { id: createUuid(), kind: "interaction" as const, emoji, from: "seat-0", to: target, createdAt: Date.now() };
     set((state) => ({ emojiBursts: [...state.emojiBursts, burst] }));
   },
-  receiveEmoji: (id, emoji, from, to) => set((state) => {
-    if (state.emojiBursts.some((burst) => burst.id === id)) return state;
-    return { emojiBursts: [...state.emojiBursts, { id, emoji, from, to }].slice(-6) };
+  receiveEmoji: (event) => set((state) => {
+    if (state.emojiBursts.some((burst) => burst.id === event.id) || state.emojiOverlays.some((overlay) => overlay.id === event.id)) return state;
+    if (event.kind === "expression") {
+      return {
+        emojiOverlays: [
+          ...state.emojiOverlays.filter((overlay) => overlay.from !== event.from),
+          { ...event, kind: "expression" as const }
+        ].slice(-9)
+      };
+    }
+    if (!event.to) return state;
+    return { emojiBursts: [...state.emojiBursts, { ...event, kind: "interaction" as const, to: event.to }].slice(-6) };
   }),
-  clearEmoji: (id) => set((state) => ({ emojiBursts: state.emojiBursts.filter((item) => item.id !== id) })),
+  clearEmoji: (id) => set((state) => ({
+    emojiBursts: state.emojiBursts.filter((item) => item.id !== id),
+    emojiOverlays: state.emojiOverlays.filter((item) => item.id !== id)
+  })),
+  receiveChatBubble: (id, text, userId, seatId, createdAt) => set((state) => {
+    if (!seatId || state.chatBubbles.some((bubble) => bubble.id === id)) return state;
+    return {
+      chatBubbles: [
+        ...state.chatBubbles.filter((bubble) => bubble.seatId !== seatId),
+        { id, text, userId, seatId, createdAt }
+      ].slice(-9)
+    };
+  }),
+  clearChatBubble: (id) => set((state) => ({ chatBubbles: state.chatBubbles.filter((bubble) => bubble.id !== id) })),
+  clearTransientUi: () => set({ emojiBursts: [], emojiOverlays: [], chatBubbles: [] }),
   updateSettings: (settings) => set((state) => ({ settings: { ...state.settings, ...settings } }))
 }), {
   name: "night-stack-settings",

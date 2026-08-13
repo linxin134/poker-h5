@@ -29,6 +29,10 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
   const send = useRoomStore((state) => state.send);
   const leave = useRoomStore((state) => state.leave);
   const settings = useGameStore((state) => state.settings);
+  const emojiOverlays = useGameStore((state) => state.emojiOverlays);
+  const clearEmoji = useGameStore((state) => state.clearEmoji);
+  const chatBubbles = useGameStore((state) => state.chatBubbles);
+  const clearChatBubble = useGameStore((state) => state.clearChatBubble);
   const [drawer, setDrawer] = useState<DrawerTab | null>(null);
   const [interactionSeatId, setInteractionSeatId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -42,10 +46,36 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
     return () => window.clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    const timers = chatBubbles.map((bubble) => window.setTimeout(
+      () => clearChatBubble(bubble.id),
+      Math.max(0, bubble.createdAt + 3_000 - Date.now())
+    ));
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [chatBubbles, clearChatBubble]);
+
+  useEffect(() => {
+    const timers = emojiOverlays.map((overlay) => window.setTimeout(
+      () => clearEmoji(overlay.id),
+      Math.max(0, overlay.createdAt + 3_000 - Date.now())
+    ));
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [emojiOverlays, clearEmoji]);
+
   const activeGame = room?.game;
   useEffect(() => {
     setInteractionSeatId(null);
-  }, [activeGame?.handId, activeGame?.history.length, activeGame?.phase, room?.status]);
+  }, [activeGame?.handId]);
+
+  useEffect(() => {
+    if (activeGame?.phase === "complete" || room?.status !== "playing") setInteractionSeatId(null);
+  }, [activeGame?.phase, room?.status]);
+
+  useEffect(() => {
+    if (!interactionSeatId) return;
+    const targetStillSeated = activeGame?.seats.some((seat) => seat.id === interactionSeatId && seat.id !== room?.mySeatId && !seat.standing);
+    if (!targetStillSeated) setInteractionSeatId(null);
+  }, [activeGame?.seats, interactionSeatId, room?.mySeatId]);
 
   useEffect(() => {
     if (!interactionSeatId) return;
@@ -54,8 +84,15 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
       if (target?.closest(".player-interaction-card,.interactable-avatar")) return;
       setInteractionSeatId(null);
     };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setInteractionSeatId(null);
+    };
     document.addEventListener("pointerdown", closeOutside, true);
-    return () => document.removeEventListener("pointerdown", closeOutside, true);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOutside, true);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
   }, [interactionSeatId]);
   useEffect(() => {
     const latest = activeGame?.history.at(-1);
@@ -141,7 +178,10 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
     const point = positionPoint(seat.position ?? 0);
     return [seat.id, { x: point.x / 100, y: point.y / 100 }];
   }));
-  const interactionSeat = game.seats.find((seat) => seat.id === interactionSeatId);
+  // Keep the target bound to the opponent that was actually tapped. A stale
+  // id (self, stood-up player, or a player removed by the next room update)
+  // must never silently fall through to another opponent.
+  const interactionSeat = game.seats.find((seat) => seat.id === interactionSeatId && seat.id !== room.mySeatId && !seat.standing);
   const interactionPoint = interactionSeat ? positionPoint(interactionSeat.position ?? 0) : null;
   const interactionTargets = game.seats.filter((seat) => seat.id !== room.mySeatId).map((seat) => ({ id: seat.id, name: seat.name }));
   const myRoomSeatId = room.mySeatId;
@@ -164,7 +204,12 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
 
   function playInteraction(emoji: string, target: string) {
     if (!myRoomSeatId || target === myRoomSeatId) return;
-    send({ type: "emoji", emoji, targetSeatId: target });
+    send({ type: "emoji", kind: "interaction", emoji, targetSeatId: target });
+  }
+
+  function playExpression(emoji: string) {
+    if (!myRoomSeatId) return;
+    send({ type: "emoji", kind: "expression", emoji });
   }
 
   return <section data-drawer={drawer ?? ""} data-hand-id={game.handId} data-phase={game.phase} data-result={game.result?.reason ?? ""} className={`table-screen fresh-table ${game.phase === "complete" ? "settled" : ""} ${!mySeat ? "spectating" : ""} ${actorSeatId === room.mySeatId ? "my-turn" : "waiting-turn"}`} style={{ "--animation-speed": `${1 / settings.animationSpeed}s` } as CSSProperties}>
@@ -207,11 +252,17 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
           : seat.lastAction?.startsWith("弃牌") ? "弃牌"
           : null;
         const actionClass = seat.streetAction ?? (actionText === "弃牌" ? "fold" : "");
+        const chatBubble = !isMe
+          ? chatBubbles.find((bubble) => bubble.seatId === seat.id && bubble.userId !== user?.id && now < bubble.createdAt + 3_000)
+          : undefined;
+        const emojiOverlay = emojiOverlays.find((overlay) => overlay.from === seat.id && now < overlay.createdAt + 3_000);
         return <motion.div data-seat-id={seat.id} className={`seat ${sideClass} ${rowClass} ${isActor ? "active" : ""} ${seat.folded ? "folded" : ""} ${seat.allIn ? "all-in-seat" : ""} ${winners.some((winner) => winner.id === seat.id) ? "winner-seat" : ""} ${isMe ? "hero-seat" : "opponent-seat"} ${seat.connected === false ? "offline" : ""} ${!isMe ? "interactable-seat" : ""}`} style={positionStyle(seat.position ?? 0)} key={seat.id}>
+          <AnimatePresence>{chatBubble && <motion.div key={chatBubble.id} className="seat-chat-bubble" role="status" data-chat-id={chatBubble.id} initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:.16 }}>{chatBubble.text}</motion.div>}</AnimatePresence>
           <b className="seat-name">{seat.name}{isMe ? " · 你" : ""}</b>
           {isMe
             ? <div className="avatar-ring"><GameAvatar seed={seat.avatar || seat.userId || seat.id} label={seat.name} />{isActor && <><i className={`timer-ring ${turnRemaining <= 5_000 ? "urgent" : ""}`} style={{ "--turn-progress": Math.max(0, Math.min(1, turnRemaining / 25_000)) } as CSSProperties} /><em className="seat-countdown">{Math.max(0, Math.ceil(turnRemaining / 1000))}s</em></>}{seat.allIn && game.phase !== "complete" && <motion.i className="all-in-status" initial={{ opacity:0, scale:.75 }} animate={{ opacity:1, scale:1 }}>All in</motion.i>}</div>
-            : <button type="button" className="avatar-ring interactable-avatar" aria-label={`与 ${seat.name} 互动`} onClick={() => setInteractionSeatId(seat.id)}><GameAvatar seed={seat.avatar || seat.userId || seat.id} label={seat.name} />{isActor && <><i className={`timer-ring ${turnRemaining <= 5_000 ? "urgent" : ""}`} style={{ "--turn-progress": Math.max(0, Math.min(1, turnRemaining / 25_000)) } as CSSProperties} /><em className="seat-countdown">{Math.max(0, Math.ceil(turnRemaining / 1000))}s</em></>}{seat.allIn && game.phase !== "complete" && <motion.i className="all-in-status" initial={{ opacity:0, scale:.75 }} animate={{ opacity:1, scale:1 }}>All in</motion.i>}</button>}
+            : <button type="button" className="avatar-ring interactable-avatar" aria-label={`与 ${seat.name} 互动`} aria-controls="player-interaction-picker" aria-expanded={interactionSeatId === seat.id} data-interaction-target={seat.id} onClick={() => setInteractionSeatId((current) => current === seat.id ? null : seat.id)}><GameAvatar seed={seat.avatar || seat.userId || seat.id} label={seat.name} />{isActor && <><i className={`timer-ring ${turnRemaining <= 5_000 ? "urgent" : ""}`} style={{ "--turn-progress": Math.max(0, Math.min(1, turnRemaining / 25_000)) } as CSSProperties} /><em className="seat-countdown">{Math.max(0, Math.ceil(turnRemaining / 1000))}s</em></>}{seat.allIn && game.phase !== "complete" && <motion.i className="all-in-status" initial={{ opacity:0, scale:.75 }} animate={{ opacity:1, scale:1 }}>All in</motion.i>}</button>}
+          <AnimatePresence>{emojiOverlay && <motion.span key={emojiOverlay.id} className="seat-emoji-overlay" role="status" aria-label={`${seat.name} 发送 ${emojiOverlay.emoji}`} data-emoji-id={emojiOverlay.id} data-emoji-sender={emojiOverlay.from} initial={{ opacity:0, scale:.5 }} animate={{ opacity:1, scale:[.5,1.12,1] }} exit={{ opacity:0, scale:.8 }} transition={{ duration:.2 }}>{emojiOverlay.emoji}</motion.span>}</AnimatePresence>
           <div className="seat-cards">
             {Array.from({ length: cardCount }, (_, cardIndex) => {
               const card = displayHoleCards[cardIndex] ?? undefined;
@@ -245,8 +296,8 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
         <span>＋</span><b>空位</b><small>点击落座</small>
       </motion.button>)}
 
-      <AnimatePresence>{interactionSeat && interactionPoint && <motion.div data-target-seat-id={interactionSeat.id} className={`player-interaction-card ${interactionPoint.y <= 60 ? "interaction-above" : "interaction-below"} ${interactionPoint.x >= 66 ? "interaction-target-right" : interactionPoint.x <= 34 ? "interaction-target-left" : "interaction-target-center"}`} style={{ "--interaction-x": `${interactionPoint.x}%`, "--interaction-y": `${interactionPoint.y}%` } as CSSProperties} initial={{ opacity: 0, scale: .86 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: .9 }}>
-        <header><span><GameAvatar seed={interactionSeat.avatar || interactionSeat.userId || interactionSeat.id} label={interactionSeat.name} /></span><div><small>与玩家互动</small><b>{interactionSeat.name}</b></div><button aria-label="关闭玩家互动" onClick={() => setInteractionSeatId(null)}><UiIcon name="close" /></button></header>
+      <AnimatePresence>{interactionSeat && interactionPoint && <motion.div id="player-interaction-picker" role="dialog" aria-label={`与 ${interactionSeat.name} 互动`} data-target-seat-id={interactionSeat.id} className={`player-interaction-card ${interactionPoint.y <= 60 ? "interaction-above" : "interaction-below"} ${interactionPoint.x >= 66 ? "interaction-target-right" : interactionPoint.x <= 34 ? "interaction-target-left" : "interaction-target-center"}`} style={{ "--interaction-x": `${interactionPoint.x}%`, "--interaction-y": `${interactionPoint.y}%` } as CSSProperties} initial={{ opacity: 0, scale: .86 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: .9 }}>
+        <header><span><GameAvatar seed={interactionSeat.avatar || interactionSeat.userId || interactionSeat.id} label={interactionSeat.name} /></span><div><small>与玩家互动</small><b>{interactionSeat.name}</b></div><button type="button" aria-label="关闭玩家互动" onClick={() => setInteractionSeatId(null)}><UiIcon name="close" /></button></header>
         <div>{[["👏", "点赞"], ["🍺", "干杯"], ["🌹", "送花"], ["🍅", "番茄"]].map(([emoji, label]) => <button key={label} onClick={() => { playSound("emoji", settings.sound); playInteraction(emoji, interactionSeat.id); setInteractionSeatId(null); }}><span>{emoji}</span><small>{label}</small></button>)}</div>
       </motion.div>}</AnimatePresence>
 
@@ -255,7 +306,7 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
         <button aria-label="聊天" onClick={() => setDrawer("chat")}><UiIcon name="chat" /></button>
       </div>
       <button className="table-shield" aria-label="牌局由服务端校验" onClick={() => showNotice("牌局操作由服务端校验")}><UiIcon name="shield" /></button>
-      <EmojiTray targetSeatId={targetSeatId} targets={interactionTargets} onSend={playInteraction} />
+      <EmojiTray targetSeatId={targetSeatId} targets={interactionTargets} onSendExpression={playExpression} onSendInteraction={playInteraction} />
       <EffectsLayer seatPositions={effectSeatPositions} />
       {latestAllInSeat && latestAllInAction && <ChipCommitEffect actionId={latestAllInAction.id} amount={latestAllInAction.amount ?? latestAllInSeat.totalContribution} from={positionPoint(latestAllInSeat.position ?? 0)} />}
       {game.phase === "complete" && winnerTargets.length > 0 && <PotAwardEffect handId={game.handId} targets={winnerTargets} />}
@@ -313,6 +364,29 @@ function PotAwardEffect({ handId, targets }: { handId: string; targets: Array<{ 
 
 function WaitingRoom({ room, user, connectionStatus, onSit, onStart, onTopup, onLeave }: { room: NonNullable<ReturnType<typeof useRoomStore.getState>["room"]>; user: User | null; connectionStatus: string; onSit(seatIndex: number): void; onStart(): void; onTopup(targetStack: number): void; onLeave(): void }) {
   const [drawer, setDrawer] = useState<DrawerTab | null>(null);
+  const emojiOverlays = useGameStore((state) => state.emojiOverlays);
+  const clearEmoji = useGameStore((state) => state.clearEmoji);
+  const chatBubbles = useGameStore((state) => state.chatBubbles);
+  const clearChatBubble = useGameStore((state) => state.clearChatBubble);
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const tick = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(tick);
+  }, []);
+  useEffect(() => {
+    const timers = emojiOverlays.map((overlay) => window.setTimeout(
+      () => clearEmoji(overlay.id),
+      Math.max(0, overlay.createdAt + 3_000 - Date.now())
+    ));
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [emojiOverlays, clearEmoji]);
+  useEffect(() => {
+    const timers = chatBubbles.map((bubble) => window.setTimeout(
+      () => clearChatBubble(bubble.id),
+      Math.max(0, bubble.createdAt + 3_000 - Date.now())
+    ));
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [chatBubbles, clearChatBubble]);
   const isHost = room.hostUserId === user?.id;
   const seatedCount = room.members.filter((member) => member.seatIndex !== null).length;
   const slots = Array.from({ length: room.capacity }, (_, index) => room.members.find((member) => member.seatIndex === index));
@@ -332,8 +406,14 @@ function WaitingRoom({ room, user, connectionStatus, onSit, onStart, onTopup, on
       {slots.map((member, index) => {
         const { x, y } = waitingPoint(index);
         const canChoose = !member || member.userId === user?.id;
-        return <motion.button disabled={!canChoose} onClick={() => onSit(index)} className={`waiting-table-seat ${member ? "occupied" : "empty"} ${member?.userId === user?.id ? "mine" : ""}`} style={{ "--seat-x": `${x}%`, "--seat-y": `${y}%` } as CSSProperties} initial={{ opacity: 0, scale: .8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay:index * .04 }} key={member?.userId ?? index}>
-          <span>{member ? <GameAvatar seed={member.avatar || member.userId} label={member.nickname} /> : "＋"}{member && <i className={member.connected ? "online" : ""} />}</span>
+        const emojiOverlay = member ? emojiOverlays.find((overlay) => overlay.from === member.seatId && now < overlay.createdAt + 3_000) : undefined;
+        const chatBubble = member && member.userId !== user?.id
+          ? chatBubbles.find((bubble) => bubble.seatId === member.seatId && bubble.userId !== user?.id && now < bubble.createdAt + 3_000)
+          : undefined;
+        const edgeClass = x <= 24 ? "seat-left" : x >= 76 ? "seat-right" : "seat-center";
+        return <motion.button data-seat-id={member?.seatId || undefined} disabled={!canChoose} onClick={() => onSit(index)} className={`waiting-table-seat ${edgeClass} ${member ? "occupied" : "empty"} ${member?.userId === user?.id ? "mine" : ""}`} style={{ "--seat-x": `${x}%`, "--seat-y": `${y}%` } as CSSProperties} initial={{ opacity: 0, scale: .8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay:index * .04 }} key={member?.userId ?? index}>
+          <AnimatePresence>{chatBubble && <motion.em key={chatBubble.id} className="waiting-chat-bubble" role="status" data-chat-id={chatBubble.id} initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:.16 }}>{chatBubble.text}</motion.em>}</AnimatePresence>
+          <span>{member ? <GameAvatar seed={member.avatar || member.userId} label={member.nickname} /> : "＋"}{member && <i className={member.connected ? "online" : ""} />}{emojiOverlay && <motion.em className="seat-emoji-overlay waiting-emoji-overlay" role="status" aria-label={`${member?.nickname} 发送 ${emojiOverlay.emoji}`} data-emoji-id={emojiOverlay.id} data-emoji-sender={emojiOverlay.from} initial={{ opacity:0, scale:.5 }} animate={{ opacity:1, scale:[.5,1.12,1] }} exit={{ opacity:0, scale:.8 }}>{emojiOverlay.emoji}</motion.em>}</span>
           <b>{member?.nickname ?? "空位"}</b>
           <small>{member?.isHost ? "房主" : member ? `座位 ${index + 1}` : "等待加入"}</small>
         </motion.button>;
@@ -347,7 +427,7 @@ function WaitingRoom({ room, user, connectionStatus, onSit, onStart, onTopup, on
         <button aria-label="计分" onClick={() => setDrawer("stats")}><UiIcon name="stats" /></button>
         <button aria-label="聊天" onClick={() => setDrawer("chat")}><UiIcon name="chat" /></button>
       </nav>
-      <EmojiTray targetSeatId={emojiTarget} targets={emojiTargets} onSend={(emoji, target) => useRoomStore.getState().send({ type: "emoji", emoji, targetSeatId: target })} />
+      <EmojiTray targetSeatId={emojiTarget} targets={emojiTargets} onSendExpression={(emoji) => useRoomStore.getState().send({ type:"emoji", kind:"expression", emoji })} onSendInteraction={(emoji, target) => useRoomStore.getState().send({ type: "emoji", kind:"interaction", emoji, targetSeatId: target })} />
       <EffectsLayer seatPositions={waitingEffectPositions} />
     </main>
     {drawer && <><div className="drawer-shade" onClick={() => setDrawer(null)} /><GameDrawer key={drawer} initialTab={drawer} room={room} currentUserId={user?.id ?? ""} onClose={() => setDrawer(null)} onLeave={onLeave} onDissolve={() => useRoomStore.getState().send({ type: "dissolve" })} onStand={() => useRoomStore.getState().send({ type: "stand" })} onTopup={onTopup} onChat={(text) => useRoomStore.getState().send({ type: "chat", text })} /></>}

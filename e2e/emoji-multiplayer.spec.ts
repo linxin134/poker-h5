@@ -67,17 +67,19 @@ test("server validates and broadcasts transient avatar interactions without reco
     expect(senderSeatId).toBeTruthy();
     expect(receiverSeatId).toBeTruthy();
 
-    await send(page, { type: "emoji", emoji: "🌹", targetSeatId: senderSeatId });
+    await send(page, { type: "emoji", kind:"interaction", emoji: "🌹", targetSeatId: senderSeatId });
     await expect.poll(async () => (await messages(page)).some((message) => message.type === "error" && message.message.includes("不能向自己"))).toBe(true);
-    await send(page, { type: "emoji", emoji: "🌹", targetSeatId: "missing-seat" });
+    await page.waitForTimeout(500);
+    await send(page, { type: "emoji", kind:"interaction", emoji: "🌹", targetSeatId: "missing-seat" });
     await expect.poll(async () => (await messages(page)).some((message) => message.type === "error" && message.message.includes("目标已离开"))).toBe(true);
 
-    await send(page, { type: "emoji", emoji: "🌹", targetSeatId: receiverSeatId });
+    await page.waitForTimeout(500);
+    await send(page, { type: "emoji", kind:"interaction", emoji: "🌹", targetSeatId: receiverSeatId });
     await expect.poll(async () => (await messages(receiver)).filter((message) => message.type === "emoji").length).toBe(1);
     const senderEvent = (await messages(page)).find((message) => message.type === "emoji");
     const receiverEvent = (await messages(receiver)).find((message) => message.type === "emoji");
     expect(receiverEvent).toEqual(senderEvent);
-    expect(receiverEvent).toMatchObject({ type: "emoji", emoji: "🌹", fromSeatId: senderSeatId, targetSeatId: receiverSeatId });
+    expect(receiverEvent).toMatchObject({ type: "emoji", kind:"interaction", emoji: "🌹", fromSeatId: senderSeatId, targetSeatId: receiverSeatId });
 
     await receiver.evaluate(() => (window as typeof window & { __emojiHarness: EmojiHarness }).__emojiHarness.socket.close());
     await connect(receiver, code);

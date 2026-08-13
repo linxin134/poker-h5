@@ -6,6 +6,9 @@ playwright-report/
 test-results/
 test-results-*/
 qa-card-results-*/
+qa-chat-results/
+qa-emoji-panel-results/
+qa-expression-results/
 qa-screenshots/
 .env
 *.log

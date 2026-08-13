@@ -34,7 +34,8 @@ export function EffectsLayer({ seatPositions = {} }: { seatPositions?: Record<st
 
   useEffect(() => {
     const current = runtime.current;
-    if (!current || !ready) return;
+    const host = hostRef.current;
+    if (!current || !ready || !host) return;
 
     for (const pending of bursts) {
       if (processed.current.has(pending.id)) continue;
@@ -56,6 +57,13 @@ export function EffectsLayer({ seatPositions = {} }: { seatPositions?: Record<st
       const createImpact = () => {
         const targetX = current.app.screen.width * to.x;
         const targetY = current.app.screen.height * to.y;
+        // Runtime observability doubles as a stable contract for visual QA:
+        // the impact must finish at the immutable target from the broadcast,
+        // never whichever player happens to be selected afterwards.
+        host.dataset.lastImpactSeatId = pending.to;
+        host.dataset.lastImpactFromSeatId = pending.from;
+        host.dataset.lastImpactX = String(targetX);
+        host.dataset.lastImpactY = String(targetY);
         ring = new Graphics().circle(0, 0, 10).stroke({ color: 0xffd276, width: 3, alpha: .9 });
         ring.position.set(targetX, targetY);
         current.layer.addChild(ring);

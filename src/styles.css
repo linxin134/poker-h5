@@ -2478,6 +2478,15 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
 .app-shell.mode-mobile .wpk-topup-panel>em { margin-top:28px; line-height:1.55; }
 
 /* Emoji sheet is a sibling of the trigger and uses the whole table viewport. */
+.app-shell.mode-mobile .emoji-popover-backdrop {
+  position:absolute;
+  z-index:73;
+  inset:0;
+  border:0;
+  background:#00130d24;
+  backdrop-filter:blur(.6px);
+  touch-action:none;
+}
 .app-shell.mode-mobile .interaction-popover {
   position:absolute;
   z-index:74;
@@ -2494,8 +2503,33 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
   background:#202735f8;
   box-shadow:0 -13px 32px #0007;
 }
-.app-shell.mode-mobile .interaction-popover>header { min-height:42px; }
-.app-shell.mode-mobile .interaction-popover>header nav button { height:31px; padding:0 17px; font-size:10.8px; }
+.app-shell.mode-mobile .interaction-popover>header {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 32px;
+  align-items:center;
+  gap:8px;
+  min-height:36px;
+}
+.app-shell.mode-mobile .interaction-popover>header nav { display:flex; align-items:center; gap:4px; min-width:0; }
+.app-shell.mode-mobile .interaction-popover>header nav button { height:31px; padding:0 17px; font-size:10.8px; transform:none; }
+.app-shell.mode-mobile .interaction-popover .popover-close {
+  position:static;
+  display:grid;
+  justify-self:end;
+  width:32px;
+  min-width:32px;
+  height:32px;
+  padding:0;
+  place-items:center;
+  border:1px solid #ffffff14;
+  border-radius:9px;
+  color:#c9d5d1;
+  background:#ffffff0a;
+  font-size:0;
+  line-height:1;
+  transform:none;
+}
+.app-shell.mode-mobile .interaction-popover .popover-close:active { background:#ffffff18; }
 .app-shell.mode-mobile .emoji-targets { margin:9px 0; scrollbar-width:none; }
 .app-shell.mode-mobile .emoji-targets::-webkit-scrollbar { display:none; }
 .app-shell.mode-mobile .emoji-targets button { height:28px; padding:0 11px; font-size:9.6px; }
@@ -3709,3 +3743,31 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
   display:none;
 }
 .app-shell.mode-mobile .fresh-table.settled[data-result="showdown"] .seat>.dealer-button { opacity:.82; }
+
+/* Chat is intentionally narrower than the other table drawers. Keep this
+   override tab-scoped so rankings and hand history retain their own width. */
+.app-shell.mode-mobile .game-drawer.wpk-panel.drawer-left.tab-chat {
+  left:0;
+  right:auto;
+  width:56%;
+  min-width:0;
+  overflow-x:hidden;
+  padding-right:10px;
+  padding-left:10px;
+}
+.app-shell.mode-mobile .tab-chat .wpk-panel-header,
+.app-shell.mode-mobile .tab-chat .wpk-chat-panel,
+.app-shell.mode-mobile .tab-chat .wpk-chat-compose,
+.app-shell.mode-mobile .tab-chat .wpk-chat-messages { min-width:0; max-width:100%; box-sizing:border-box; }
+.app-shell.mode-mobile .tab-chat .wpk-chat-messages { overflow-x:hidden; }
+.app-shell.mode-mobile .tab-chat .wpk-chat-messages>div>span { min-width:0; }
+.app-shell.mode-mobile .tab-chat .wpk-chat-messages p {
+  max-width:100%;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  white-space:normal;
+}
+.app-shell.mode-mobile .tab-chat .wpk-chat-compose { grid-template-columns:27px minmax(0,1fr) 31px; gap:3px; }
+.app-shell.mode-mobile .tab-chat .wpk-chat-compose button { width:27px; padding:0; }
+.app-shell.mode-mobile .tab-chat .wpk-chat-compose .send { width:31px; }
+.app-shell.mode-mobile .tab-chat .wpk-chat-compose input { width:100%; padding:0 6px; }

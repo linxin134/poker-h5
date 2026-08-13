@@ -33,6 +33,10 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
   connect: (codeInput) => {
     const code = codeInput.trim().toUpperCase();
     if (!code) return;
+    // A room boundary invalidates every seat-keyed transient.  Preserve them
+    // only for a reconnect to the same active room; ordinary room snapshots
+    // must never clear an effect that is currently on screen.
+    if (activeCode && activeCode !== code) useGameStore.getState().clearTransientUi();
     if (reconnectTimer) window.clearTimeout(reconnectTimer);
     manualClose = false;
     activeCode = code;
@@ -48,7 +52,18 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
         return;
       }
       if (message.type === "emoji") {
-        useGameStore.getState().receiveEmoji(message.id, message.emoji, message.fromSeatId, message.targetSeatId);
+        useGameStore.getState().receiveEmoji({
+          id: message.id,
+          kind: message.kind,
+          emoji: message.emoji,
+          from: message.fromSeatId,
+          to: message.kind === "interaction" ? message.targetSeatId : undefined,
+          createdAt: message.createdAt
+        });
+        return;
+      }
+      if (message.type === "chat") {
+        useGameStore.getState().receiveChatBubble(message.id, message.text, message.userId, message.seatId, message.createdAt);
         return;
       }
       if (message.type === "left") {
@@ -62,6 +77,7 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
         window.sessionStorage.removeItem("poker-active-room");
         set({ room: null, connectionStatus: "idle", error: message.message });
         useGameStore.getState().setScreen("lobby");
+        useGameStore.getState().clearTransientUi();
         socket?.close();
         return;
       }
@@ -73,6 +89,7 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
           window.sessionStorage.removeItem("poker-active-room");
           set({ room: null, connectionStatus: "error", error: message.message });
           useGameStore.getState().setScreen("lobby");
+          useGameStore.getState().clearTransientUi();
           socket?.close();
           return;
         }
@@ -81,6 +98,9 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
     });
     socket.addEventListener("close", (event) => {
       if (manualClose) return;
+      // A disconnected socket cannot guarantee that seat ids still refer to
+      // the same members; clear transient seat UI before reconnecting.
+      useGameStore.getState().clearTransientUi();
       if (event.code === 1008) {
         set({ connectionStatus: "error", error: get().error ?? "房间连接失败" });
         return;
@@ -98,6 +118,7 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
     socket = null;
     activeCode = "";
     window.sessionStorage.removeItem("poker-active-room");
+    useGameStore.getState().clearTransientUi();
     set({ room: null, connectionStatus: "idle", error: null });
   },
 
