@@ -2,6 +2,8 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { App } from "./App";
 import "./styles.css";
+import "./table-seats.css";
+import "./table-action.css";
 
 declare const __APP_RELEASE__: string;
 

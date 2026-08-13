@@ -1,0 +1,684 @@
+/*
+ * Authoritative 390 x 660 mobile in-hand seat contract.
+ *
+ * Imported after styles.css. Legacy rules continue to own lobby/drawers;
+ * this file alone owns the in-hand stage, seat children, centre board and
+ * edge tools. Every seat child is absolute, so phase/action changes cannot
+ * reflow or move an avatar.
+ */
+
+.app-shell.mode-mobile .fresh-table,
+.app-shell.mode-mobile .fresh-table .table-stage {
+  width:100%;
+  height:100%;
+  min-height:0;
+}
+
+/* Video-reference table palette: deep emerald perimeter, softly illuminated
+   centre and a restrained cloth weave.  The game remains readable in every
+   state without changing colour between desktop preview and a real phone. */
+.app-shell.mode-mobile .fresh-table .fresh-felt {
+  background-color:#00604f;
+  background-image:radial-gradient(ellipse 78% 62% at 50% 46%,#087e67 0%,#087660 42%,#00604f 78%,#015b4a 100%);
+  background-size:100% 100%;
+  background-repeat:no-repeat;
+}
+.app-shell.mode-mobile .fresh-table .fresh-felt::after {
+  content:"";
+  position:absolute;
+  inset:0;
+  display:block;
+  background-image:
+    repeating-linear-gradient(17deg,rgba(255,255,255,.025) 0 1px,transparent 1px 4px),
+    repeating-linear-gradient(107deg,rgba(0,24,20,.04) 0 1px,transparent 1px 5px);
+  opacity:.55;
+  mix-blend-mode:soft-light;
+  pointer-events:none;
+}
+
+.app-shell.mode-mobile .fresh-table .table-stage {
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+}
+
+/* --seat-x/--seat-y are stage percentages from tableLayout.ts. */
+.app-shell.mode-mobile .fresh-table .seat {
+  position:absolute;
+  z-index:12;
+  left:var(--seat-x);
+  top:var(--seat-y);
+  display:block!important;
+  width:72px;
+  min-width:72px;
+  height:46px;
+  min-height:46px;
+  margin:0;
+  padding:0;
+  transform:translate(-50%,-50%)!important;
+  overflow:visible;
+  contain:layout style;
+}
+
+.app-shell.mode-mobile .fresh-table .seat>.seat-name {
+  position:absolute;
+  z-index:5;
+  top:auto;
+  right:auto;
+  bottom:calc(100% + 5px);
+  left:50%;
+  display:block;
+  width:92px;
+  min-width:0;
+  margin:0;
+  padding:0;
+  overflow:hidden;
+  transform:translateX(-50%);
+  color:#e7f1ef;
+  font-size:10px;
+  font-weight:700;
+  line-height:12px;
+  text-align:center;
+  text-overflow:ellipsis;
+  text-shadow:none;
+  -webkit-font-smoothing:antialiased;
+  white-space:nowrap;
+}
+
+.app-shell.mode-mobile .fresh-table .seat.seat-left>.seat-name,
+.app-shell.mode-mobile .fresh-table .seat.seat-right>.seat-name {
+  right:auto;
+  left:50%;
+  transform:translateX(-50%);
+  text-align:center;
+}
+
+.app-shell.mode-mobile .fresh-table .seat>.avatar-ring,
+.app-shell.mode-mobile .fresh-table .seat.active>.avatar-ring,
+.app-shell.mode-mobile .fresh-table .seat.all-in-seat>.avatar-ring {
+  position:absolute;
+  z-index:4;
+  top:0;
+  left:50%;
+  display:block;
+  width:46px;
+  min-width:46px;
+  height:46px;
+  min-height:46px;
+  margin:0;
+  padding:0;
+  transform:translateX(-50%);
+  overflow:visible;
+  border:2px solid #ecf3f0;
+  border-radius:12px;
+  background:#f4f7f6;
+  box-shadow:0 3px 9px #001d176e;
+}
+
+.app-shell.mode-mobile .fresh-table .seat>.avatar-ring>.game-avatar {
+  display:block;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  border-radius:10px;
+  clip-path:none;
+}
+
+.app-shell.mode-mobile .fresh-table .seat.active>.avatar-ring,
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat.active>.avatar-ring {
+  /* The progress stroke below is the only acting-state outline. */
+  border-color:#ecf3f0;
+  box-shadow:0 3px 9px #001d176e;
+}
+
+.app-shell.mode-mobile .fresh-table .seat .timer-ring,
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat .timer-ring {
+  --seat-timer-color:#28d58c;
+  --seat-timer-track:#f4a824;
+  position:absolute;
+  z-index:11;
+  top:2px;
+  right:auto;
+  bottom:auto;
+  left:50%;
+  box-sizing:border-box;
+  width:42px;
+  height:6px;
+  padding:0;
+  transform:translateX(-50%);
+  border:0;
+  border-radius:999px;
+  background:linear-gradient(90deg,var(--seat-timer-color) 0 calc(var(--turn-progress,1) * 100%),var(--seat-timer-track) 0 100%);
+  box-shadow:0 1px 3px #001b17a8;
+  animation:none;
+  filter:none;
+  pointer-events:none;
+}
+
+.app-shell.mode-mobile .fresh-table .seat .timer-ring.urgent,
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat .timer-ring.urgent {
+  --seat-timer-color:#f0a11a;
+  --seat-timer-track:#553c16cc;
+  filter:none;
+}
+
+.app-shell.mode-mobile .fresh-table .seat .seat-countdown,
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat .seat-countdown {
+  position:absolute;
+  z-index:12;
+  top:-1px;
+  right:auto;
+  bottom:auto;
+  left:50%;
+  display:grid;
+  width:38px;
+  min-width:0;
+  height:12px;
+  margin:0;
+  padding:0;
+  transform:translateX(-50%);
+  place-items:center;
+  border:0;
+  border-radius:999px;
+  color:#fff;
+  background:transparent;
+  box-shadow:none;
+  font-size:8px;
+  font-style:normal;
+  font-weight:900;
+  font-variant-numeric:tabular-nums;
+  line-height:1;
+  text-shadow:0 1px 3px #001d17,0 0 3px #001d17;
+  pointer-events:none;
+}
+
+.app-shell.mode-mobile .fresh-table .seat .timer-ring.urgent~.seat-countdown,
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat .timer-ring.urgent~.seat-countdown {
+  border:0;
+  border-radius:999px;
+  background:transparent;
+  box-shadow:none;
+}
+
+/* Hero reading order: avatar -> cards -> hand rank -> stack. */
+.app-shell.mode-mobile .fresh-table .seat.hero-seat>.seat-cards {
+  position:absolute;
+  z-index:3;
+  top:calc(100% + 4px);
+  left:50%;
+  display:flex;
+  gap:2px;
+  width:auto;
+  height:40px;
+  margin:0;
+  padding:0;
+  transform:translateX(-50%);
+  overflow:visible;
+}
+
+.app-shell.mode-mobile .fresh-table .seat.hero-seat>.seat-cards .playing-card.small {
+  width:28px;
+  min-width:28px;
+  height:40px;
+  min-height:40px;
+  flex:0 0 28px;
+  box-sizing:border-box;
+  margin:0;
+  padding:2px;
+  border-radius:2px;
+}
+
+.app-shell.mode-mobile .fresh-table .seat.hero-seat>.seat-hand-rank {
+  position:absolute;
+  z-index:4;
+  top:calc(100% + 46px);
+  left:50%;
+  display:block;
+  min-width:60px;
+  margin:0;
+  padding:0;
+  transform:translateX(-50%);
+  color:#fff;
+  font-size:10px;
+  font-weight:700;
+  line-height:12px;
+  text-align:center;
+  text-shadow:none;
+  white-space:nowrap;
+}
+
+.app-shell.mode-mobile .fresh-table .seat>.seat-stack-line {
+  position:absolute;
+  z-index:4;
+  top:calc(100% + 4px);
+  left:50%;
+  display:flex;
+  width:max-content;
+  height:17px;
+  align-items:center;
+  justify-content:center;
+  gap:0;
+  margin:0;
+  padding:0;
+  transform:translateX(-50%);
+  white-space:nowrap;
+}
+
+.app-shell.mode-mobile .fresh-table .seat>.seat-stack-line>.seat-stack {
+  position:static;
+  display:grid;
+  min-width:52px;
+  height:17px;
+  place-items:center;
+  margin:0;
+  padding:0 8px;
+  transform:none;
+  border:1px solid #d9ebe568;
+  border-radius:999px;
+  color:#e7f1ef;
+  background:rgba(5,15,15,.68);
+  box-shadow:0 2px 5px #001c1669;
+  font-size:10px;
+  font-weight:600;
+  line-height:15px;
+  white-space:nowrap;
+}
+
+.app-shell.mode-mobile .fresh-table .seat.hero-seat>.seat-stack-line {
+  top:calc(100% + 59px);
+}
+
+/* Hero cards, rank and stack are seat-owned coordinates. Action states are
+   overlays and must never push these layers; waiting, acting, raising,
+   submitting and showdown therefore share the exact same geometry. */
+
+.app-shell.mode-mobile .fresh-table .seat .all-in-status {
+  inset:-2px;
+  border-radius:12px;
+  background:linear-gradient(145deg,#dca51bd9,#8b5f00e8);
+  box-shadow:inset 0 0 0 1px #ffe79a7a,0 3px 9px #001d176e;
+}
+
+/* Opponents: tiny cards occupy the avatar's lower-right corner. */
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat>.seat-cards {
+  position:absolute;
+  z-index:7;
+  top:29px;
+  /* The seat box is 72px wide while the avatar starts at x=13px.
+     x=48 therefore anchors the first card 35px from the avatar edge. */
+  left:48px;
+  display:flex;
+  gap:0;
+  width:auto;
+  height:17px;
+  margin:0;
+  padding:0;
+  transform:none;
+  overflow:visible;
+  pointer-events:none;
+}
+
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat>.seat-cards .playing-card.small {
+  width:12px;
+  min-width:12px;
+  height:17px;
+  min-height:17px;
+  flex:0 0 12px;
+  box-sizing:border-box;
+  margin:0;
+  padding:1px;
+  border-width:1px;
+  border-radius:1px;
+}
+
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat>.seat-cards .playing-card.small+.playing-card.small {
+  margin-left:-4px!important;
+}
+
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat>.seat-cards .card-corner-top,
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat>.seat-cards .card-corner-bottom,
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat>.seat-cards .card-suit { display:none; }
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat>.seat-cards .playing-card.card-back:before { inset:2px; }
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat>.seat-hand-rank { display:none; }
+
+/* Showdown replaces an opponent avatar with two readable open cards. */
+.app-shell.mode-mobile .fresh-table.settled[data-result="showdown"] .seat.opponent-seat:not(.folded)>.avatar-ring { visibility:hidden; }
+.app-shell.mode-mobile .fresh-table.settled[data-result="showdown"] .seat.opponent-seat:not(.folded)>.seat-cards {
+  top:0;
+  left:50%;
+  gap:2px;
+  height:39px;
+  transform:translateX(-50%);
+}
+.app-shell.mode-mobile .fresh-table.settled[data-result="showdown"] .seat.opponent-seat:not(.folded)>.seat-cards .playing-card.small {
+  width:27px;
+  min-width:27px;
+  height:39px;
+  min-height:39px;
+  flex:0 0 27px;
+  box-sizing:border-box;
+  margin:0;
+  padding:2px;
+  border-radius:2px;
+}
+.app-shell.mode-mobile .fresh-table.settled[data-result="showdown"] .seat.opponent-seat:not(.folded)>.seat-cards .card-corner-top { display:grid; }
+.app-shell.mode-mobile .fresh-table.settled[data-result="showdown"] .seat.opponent-seat:not(.folded)>.seat-cards .card-corner-top b { font-size:10px; }
+.app-shell.mode-mobile .fresh-table.settled[data-result="showdown"] .seat.opponent-seat:not(.folded)>.seat-cards .card-corner-top i { display:block; font-size:7px; }
+.app-shell.mode-mobile .fresh-table.settled[data-result="showdown"] .seat.opponent-seat:not(.folded)>.seat-hand-rank {
+  position:absolute;
+  z-index:4;
+  top:42px;
+  left:50%;
+  display:block;
+  min-width:52px;
+  transform:translateX(-50%);
+  color:#fff;
+  font-size:9px;
+  font-weight:700;
+  line-height:11px;
+  text-align:center;
+  white-space:nowrap;
+}
+.app-shell.mode-mobile .fresh-table.settled[data-result="showdown"] .seat.opponent-seat:not(.folded)>.seat-stack-line>.seat-stack { display:none; }
+.app-shell.mode-mobile .fresh-table.settled[data-result="showdown"] .seat.opponent-seat:not(.folded)>.seat-stack-line {
+  top:55px;
+}
+
+/* Fold is an avatar overlay, not a tiny free-floating label.  Keep the seat
+   anchor fully opaque and dim its visual children individually so the status
+   text itself stays legible. */
+.app-shell.mode-mobile .fresh-table .seat.folded {
+  opacity:1;
+  filter:none;
+}
+.app-shell.mode-mobile .fresh-table .seat.folded>.avatar-ring {
+  opacity:1;
+  filter:grayscale(.35);
+}
+.app-shell.mode-mobile .fresh-table .seat.folded>.seat-cards {
+  opacity:.42;
+  filter:grayscale(1);
+}
+.app-shell.mode-mobile .fresh-table .seat.folded>.seat-name,
+.app-shell.mode-mobile .fresh-table .seat.folded>.seat-hand-rank,
+.app-shell.mode-mobile .fresh-table .seat.folded>.seat-stack-line,
+.app-shell.mode-mobile .fresh-table .seat.folded>.seat-bet {
+  opacity:1;
+  filter:none;
+}
+
+/* State overlays never enter the seat's vertical flow. */
+.app-shell.mode-mobile .fresh-table .seat>.action-bubble {
+  position:absolute;
+  z-index:9;
+  display:block;
+  top:auto;
+  bottom:calc(100% + 5px);
+  left:50%;
+  width:92px;
+  min-width:0;
+  height:12px;
+  margin:0;
+  padding:0;
+  transform:translateX(-50%);
+  border-radius:4px;
+  color:#fff;
+  font-size:10px;
+  font-weight:700;
+  line-height:12px;
+  text-align:center;
+  box-shadow:none;
+  white-space:nowrap;
+}
+.app-shell.mode-mobile .fresh-table .seat.hero-seat>.action-bubble.action-check,
+.app-shell.mode-mobile .fresh-table .seat.hero-seat>.action-bubble.action-call,
+.app-shell.mode-mobile .fresh-table .seat.hero-seat>.action-bubble.action-bet,
+.app-shell.mode-mobile .fresh-table .seat.hero-seat>.action-bubble.action-raise {
+  display:block;
+}
+.app-shell.mode-mobile .fresh-table .seat>.action-bubble.action-check { background:#25be70e8; }
+.app-shell.mode-mobile .fresh-table .seat>.action-bubble.action-call { background:#21b8cce8; }
+.app-shell.mode-mobile .fresh-table .seat>.action-bubble.action-bet { background:#238ee4e8; }
+.app-shell.mode-mobile .fresh-table .seat>.action-bubble.action-raise { background:#ed8b32e8; }
+.app-shell.mode-mobile .fresh-table .seat.hero-seat>.action-bubble.action-check,
+.app-shell.mode-mobile .fresh-table .seat.hero-seat>.action-bubble.action-call,
+.app-shell.mode-mobile .fresh-table .seat.hero-seat>.action-bubble.action-bet,
+.app-shell.mode-mobile .fresh-table .seat.hero-seat>.action-bubble.action-raise { display:block; }
+.app-shell.mode-mobile .fresh-table .seat.folded>.action-bubble.action-fold,
+.app-shell.mode-mobile .fresh-table .seat.opponent-seat.folded>.action-bubble.action-fold {
+  top:0;
+  left:13px;
+  display:grid;
+  width:46px;
+  min-width:46px;
+  height:46px;
+  min-height:46px;
+  place-items:center;
+  padding:0;
+  transform:none!important;
+  border:0;
+  border-radius:12px;
+  color:#d9e5e3;
+  background:rgba(3,13,14,.8);
+  box-shadow:inset 0 0 0 1px #d8eee626;
+  font-size:11px;
+  font-weight:800;
+  line-height:1;
+  text-align:center;
+  text-shadow:0 1px 3px #001b17,0 0 2px #001b17;
+  opacity:1;
+  filter:none;
+  pointer-events:none;
+}
+.app-shell.mode-mobile .fresh-table .seat:has(>.action-bubble.action-check)>.seat-name,
+.app-shell.mode-mobile .fresh-table .seat:has(>.action-bubble.action-call)>.seat-name,
+.app-shell.mode-mobile .fresh-table .seat:has(>.action-bubble.action-bet)>.seat-name,
+.app-shell.mode-mobile .fresh-table .seat:has(>.action-bubble.action-raise)>.seat-name { visibility:hidden; }
+
+.app-shell.mode-mobile .fresh-table .seat>.seat-bet {
+  position:absolute;
+  z-index:8;
+  top:50%;
+  right:auto;
+  /* The 46px avatar is centred in the 72px seat anchor. Opponent hole-card
+     corners extend 9px beyond its lower-right edge, so a 12px edge clearance
+     keeps the inward bet marker independent from both avatar and cards. */
+  left:calc(50% + 35px);
+  display:flex;
+  min-width:0;
+  height:17px;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+  margin:0;
+  padding:0;
+  transform:none;
+  translate:0 -50%;
+  border-radius:999px;
+  color:#d5efeb;
+  background:transparent;
+  font-size:9px;
+  font-weight:800;
+  line-height:17px;
+  text-shadow:0 1px 2px #002b25,0 0 3px #002b25;
+  white-space:nowrap;
+}
+.app-shell.mode-mobile .fresh-table .seat>.seat-bet>i {
+  display:block;
+  width:10px;
+  min-width:10px;
+  height:10px;
+  margin:0;
+  border:1px solid #d5efeb;
+  border-radius:50%;
+  background:repeating-conic-gradient(from 0deg,#34d8d0 0 16deg,#087e67 16deg 32deg);
+  box-shadow:0 0 0 1px #20c9c480;
+}
+.app-shell.mode-mobile .fresh-table .seat.seat-right>.seat-bet {
+  right:calc(50% + 35px);
+  left:auto;
+}
+.app-shell.mode-mobile .fresh-table .seat.seat-center:not(.hero-seat)>.seat-bet {
+  /* A top opponent uses the clean left avatar edge; the lower-right edge is
+     reserved for its two miniature cards and the stack remains below. */
+  top:50%;
+  right:calc(50% + 35px);
+  left:auto;
+  transform:none;
+  translate:0 -50%;
+}
+.app-shell.mode-mobile .fresh-table .seat.hero-seat>.seat-bet {
+  right:auto;
+  left:50%;
+  top:auto;
+  /* Bet -> ID -> avatar. Anchoring from the avatar top rather than the ID
+     width keeps the marker horizontally centred and leaves a fixed 5px gap. */
+  bottom:calc(100% + 22px);
+  transform:none;
+  translate:-50% 0;
+}
+
+.app-shell.mode-mobile .fresh-table .seat>.seat-stack-line>.dealer-button {
+  position:absolute;
+  z-index:9;
+  display:grid;
+  width:15px;
+  min-width:15px;
+  height:15px;
+  flex:0 0 15px;
+  place-items:center;
+  margin:0;
+  padding:0;
+  border:1px solid #fff;
+  border-radius:50%;
+  font-size:8px;
+}
+.app-shell.mode-mobile .fresh-table .seat.hero-seat>.seat-stack-line>.dealer-button,
+.app-shell.mode-mobile .fresh-table .seat.seat-left>.seat-stack-line>.dealer-button,
+.app-shell.mode-mobile .fresh-table .seat.seat-center>.seat-stack-line>.dealer-button {
+  top:1px;
+  right:-18px;
+  bottom:auto;
+  left:auto;
+}
+.app-shell.mode-mobile .fresh-table .seat.seat-right>.seat-stack-line>.dealer-button {
+  top:1px;
+  right:auto;
+  bottom:auto;
+  left:-18px;
+}
+
+/* Centre hierarchy: total pot above, timer then actual community cards. */
+.app-shell.mode-mobile .fresh-table .board-zone {
+  position:absolute;
+  z-index:9;
+  inset:0;
+  display:block;
+  width:100%;
+  height:100%;
+  transform:none;
+  pointer-events:none;
+}
+
+.app-shell.mode-mobile .fresh-table .board-zone .pot-badge {
+  position:absolute;
+  top:32.5%;
+  right:auto;
+  bottom:auto;
+  left:50%;
+  display:flex;
+  min-width:92px;
+  height:22px;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  margin:0;
+  padding:3px 9px;
+  transform:translate(-50%,-50%);
+  border:0;
+  border-radius:0;
+  color:#fff;
+  background:rgba(5,15,15,.64);
+  box-shadow:none;
+}
+.app-shell.mode-mobile .fresh-table .board-zone .pot-badge small { color:#d7ebe5; font-size:8px; line-height:1; }
+.app-shell.mode-mobile .fresh-table .board-zone .pot-badge span { font-size:12px; font-weight:800; }
+
+.app-shell.mode-mobile .fresh-table .board-zone .board-room-countdown {
+  position:absolute;
+  top:39.2%;
+  left:50%;
+  transform:translateX(-50%);
+  color:#cde6dc91;
+  background:transparent;
+  font-size:8px;
+  font-weight:600;
+  line-height:1;
+}
+
+.app-shell.mode-mobile .fresh-table .board-zone .board-cards {
+  position:absolute;
+  top:42.5%;
+  left:50%;
+  display:flex;
+  min-height:57px;
+  gap:2px;
+  transform:translateX(-50%);
+}
+.app-shell.mode-mobile .fresh-table .board-zone .board-cards.empty { display:none; }
+.app-shell.mode-mobile .fresh-table .board-zone .board-cards .playing-card {
+  width:36px;
+  min-width:36px;
+  height:53px;
+  min-height:53px;
+  margin:0;
+  padding:3px;
+  border-radius:2px;
+}
+
+/* Edge tools stay fixed. Product scope intentionally omits invite and table
+   rail; service authority remains functional without a decorative shield. */
+.app-shell.mode-mobile .fresh-table .wpk-table-bar,
+.app-shell.mode-mobile .fresh-table .table-topbar {
+  position:absolute;
+  z-index:35;
+  top:0;
+  right:0;
+  left:0;
+  height:56px;
+  border:0;
+  background:transparent;
+  box-shadow:none;
+}
+.app-shell.mode-mobile .fresh-table .wpk-table-bar .table-menu-trigger {
+  width:40px!important;
+  min-width:40px!important;
+  height:40px!important;
+}
+.app-shell.mode-mobile .fresh-table .wpk-table-bar .table-tools button {
+  width:44px!important;
+  min-width:44px!important;
+  height:44px!important;
+  flex-basis:44px;
+}
+
+.app-shell.mode-mobile .fresh-table .table-bottom-tools {
+  position:absolute;
+  z-index:35;
+  bottom:max(2px,env(safe-area-inset-bottom));
+  left:8px;
+  display:flex;
+  gap:5px;
+}
+.app-shell.mode-mobile .fresh-table .table-bottom-tools button,
+.app-shell.mode-mobile .fresh-table .emoji-tray .round-tool {
+  width:44px!important;
+  min-width:44px!important;
+  height:44px!important;
+  border:0;
+  background:transparent;
+  box-shadow:none;
+}
+.app-shell.mode-mobile .fresh-table .table-bottom-tools .ui-icon,
+.app-shell.mode-mobile .fresh-table .emoji-tray .round-tool .ui-icon { width:24px; height:24px; }
+.app-shell.mode-mobile .fresh-table .table-shield { display:none!important; }

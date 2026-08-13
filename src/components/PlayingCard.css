@@ -1,0 +1,55 @@
+/* Video-matched four-colour deck. Keep these declarations component-local
+   and authoritative: the legacy table stylesheet still contains two-colour
+   rules used by non-card record badges. */
+.playing-card:not(.card-back) {
+  --card-suit-colour:#172326;
+  color:var(--card-suit-colour)!important;
+  background:#f2f3ef!important;
+}
+
+.playing-card.suit-spades { --card-suit-colour:#172326; }
+.playing-card.suit-hearts { --card-suit-colour:#e44c54; }
+.playing-card.suit-diamonds { --card-suit-colour:#2d76d6; }
+.playing-card.suit-clubs { --card-suit-colour:#28a75c; }
+
+.playing-card:not(.card-back) .card-corner,
+.playing-card:not(.card-back) .card-suit {
+  color:var(--card-suit-colour)!important;
+}
+
+/* A rank and its suit own separate rows. In particular, the two glyphs in
+   “10” can no longer occupy the suit's row on 36px board cards or 24px
+   opponent cards. */
+.app-shell.mode-mobile .playing-card:not(.card-back) .card-corner-top {
+  display:grid;
+  grid-template-rows:auto auto;
+  justify-items:center;
+  align-content:start;
+  min-width:18px;
+  gap:1px;
+  line-height:1;
+}
+
+.app-shell.mode-mobile .playing-card:not(.card-back) .card-corner-top b,
+.app-shell.mode-mobile .playing-card:not(.card-back) .card-corner-top i {
+  position:static;
+  display:block;
+  margin:0;
+  white-space:nowrap;
+}
+
+.app-shell.mode-mobile .playing-card:not(.card-back) .card-corner-top b {
+  min-width:0;
+  line-height:.88;
+  letter-spacing:-.07em;
+}
+
+.app-shell.mode-mobile .playing-card:not(.card-back) .card-corner-top i {
+  line-height:1;
+  font-style:normal;
+}
+
+.app-shell.mode-mobile .playing-card.small:not(.card-back) .card-corner-top {
+  min-width:13px;
+  gap:1px;
+}

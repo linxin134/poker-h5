@@ -2124,7 +2124,7 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
 .app-shell.mode-mobile .fresh-table.settled .seat.hero-seat { top:72%!important; }
 .app-shell.mode-mobile .fresh-table.my-turn .seat.seat-lower:not(.hero-seat) { top:65%!important; }
 .app-shell.mode-mobile .fresh-table.settled .showdown-summary { top:55%; width:196px; min-height:48px; padding:7px 10px; }
-.app-shell.mode-mobile .fresh-table .seat.hero-seat .action-bubble { display:none; }
+.app-shell.mode-mobile .fresh-table .seat.hero-seat .action-bubble.action-fold { display:none; }
 .app-shell.mode-mobile .fresh-table .seat.hero-seat .dealer-button { right:auto; left:calc(50% - 39px); }
 .app-shell.mode-mobile .fresh-table .action-dock.waiting-turn { right:auto; left:50%; transform:translateX(-50%); }
 .app-shell.mode-mobile .fresh-table .action-dock.waiting-turn .preaction-buttons { display:flex; justify-content:center; gap:7px; }
@@ -3104,7 +3104,7 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
 .app-shell.mode-mobile .fresh-table .action-submitting i { display:none; }
 .app-shell.mode-mobile .fresh-table .action-submitting b { font-size:11px; }
 
-/* Reference-accurate in-hand player stack: name, circular avatar, dark stack
+/* Reference-accurate in-hand player stack: name, softly rounded square avatar, dark stack
    capsule and two horizontal cards. Decorative badges are pinned outside and
    never take part in the seat's anchor geometry. */
 .app-shell.mode-mobile .fresh-table .seat .avatar-ring {
@@ -3112,7 +3112,7 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
   height:46px;
   overflow:visible;
   border:2px solid #ecf3f0;
-  border-radius:50%;
+  border-radius:12px;
   background:#f4f7f6;
   box-shadow:0 3px 9px #001d176e;
 }
@@ -3120,7 +3120,7 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
   overflow:hidden;
   width:100%;
   height:100%;
-  border-radius:50%;
+  border-radius:10px;
 }
 .app-shell.mode-mobile .fresh-table .seat.active .avatar-ring {
   border-color:#4de879;
@@ -3357,14 +3357,17 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
   position:absolute;
   z-index:34;
   left:50%;
-  top:51%;
-  transform:translate(-50%,-50%) rotate(-4deg);
+  top:55%;
+  max-width:150px;
+  transform:translate(-50%,-50%) rotate(-2deg);
   color:#ffda45;
-  font-size:31px;
+  font-size:20px;
   font-style:italic;
   font-weight:1000;
-  letter-spacing:-2px;
-  text-shadow:0 2px #8a5400,0 5px 12px #001e1785;
+  letter-spacing:-1px;
+  line-height:1;
+  text-align:center;
+  text-shadow:0 1px #8a5400,0 3px 8px #001e1785;
   white-space:nowrap;
   pointer-events:none;
 }
@@ -3608,27 +3611,34 @@ html,body,#root { height:100%; height:100dvh; overscroll-behavior:none; }
   visibility:hidden;
 }
 
-/* Opponent actions are separate layers: blue/green pills sit above the
-   avatar, folds cover it, while current bets stay outside beside a chip. */
-.app-shell.mode-mobile .fresh-table .seat.opponent-seat>.action-bubble {
-  top:-18px;
+/* Current-street voluntary actions reuse the invariant nickname slot for
+   every seat. Folds still cover the avatar; current bets remain independent. */
+.app-shell.mode-mobile .fresh-table .seat>.action-bubble {
+  top:auto;
+  bottom:calc(100% + 5px);
   left:50%;
-  min-width:42px;
-  padding:2px 8px;
+  display:block;
+  width:92px;
+  min-width:0;
+  height:12px;
+  padding:0;
   transform:translateX(-50%);
-  border-radius:5px;
+  border-radius:4px;
   color:#fff;
-  font-size:8px;
-  line-height:13px;
+  font-size:10px;
+  font-weight:700;
+  line-height:12px;
   text-align:center;
   box-shadow:none;
 }
-.app-shell.mode-mobile .fresh-table .seat.opponent-seat>.action-bubble.action-check,
-.app-shell.mode-mobile .fresh-table .seat.opponent-seat>.action-bubble.action-call { background:#21a5e5e8; }
-.app-shell.mode-mobile .fresh-table .seat.opponent-seat>.action-bubble.action-bet { background:#25be70e8; }
-.app-shell.mode-mobile .fresh-table .seat.opponent-seat:has(>.action-bubble.action-check)>.seat-name,
-.app-shell.mode-mobile .fresh-table .seat.opponent-seat:has(>.action-bubble.action-call)>.seat-name,
-.app-shell.mode-mobile .fresh-table .seat.opponent-seat:has(>.action-bubble.action-bet)>.seat-name { visibility:hidden; }
+.app-shell.mode-mobile .fresh-table .seat>.action-bubble.action-check { background:#25be70e8; }
+.app-shell.mode-mobile .fresh-table .seat>.action-bubble.action-call { background:#21b8cce8; }
+.app-shell.mode-mobile .fresh-table .seat>.action-bubble.action-bet { background:#238ee4e8; }
+.app-shell.mode-mobile .fresh-table .seat>.action-bubble.action-raise { background:#ed8b32e8; }
+.app-shell.mode-mobile .fresh-table .seat:has(>.action-bubble.action-check)>.seat-name,
+.app-shell.mode-mobile .fresh-table .seat:has(>.action-bubble.action-call)>.seat-name,
+.app-shell.mode-mobile .fresh-table .seat:has(>.action-bubble.action-bet)>.seat-name,
+.app-shell.mode-mobile .fresh-table .seat:has(>.action-bubble.action-raise)>.seat-name { visibility:hidden; }
 .app-shell.mode-mobile .fresh-table .seat.opponent-seat.folded>.action-bubble.action-fold {
   z-index:10;
   top:50%;

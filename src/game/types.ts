@@ -3,6 +3,7 @@ export type Rank = "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "T" | "J" | "
 export type Card = `${Rank}${Suit}`;
 export type Phase = "idle" | "preflop" | "flop" | "turn" | "river" | "showdown" | "complete";
 export type PlayerAction = "fold" | "check" | "call" | "raise" | "all-in";
+export type StreetAction = "check" | "call" | "bet" | "raise";
 
 export interface Seat {
   id: string;
@@ -24,6 +25,8 @@ export interface Seat {
   revealedHoleCardIndexes?: number[];
   shownHoleCards?: Array<Card | null>;
   lastAction?: string;
+  /** Last voluntary betting action on the current street only. */
+  streetAction?: StreetAction;
 }
 
 export interface ActionRecord {
@@ -49,6 +52,8 @@ export interface HandResult {
   pot: number;
   reason: "fold" | "showdown";
   handName?: string;
+  /** Exact chips paid to each winner across the main pot and every side pot. */
+  payouts?: Array<{ seatId: string; amount: number }>;
 }
 
 export interface RoomSession {

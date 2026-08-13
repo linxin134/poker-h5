@@ -60,7 +60,7 @@ export function startHand(input: PokerState, random = Math.random): PokerState {
   state.winnerText = undefined;
   state.result = undefined;
   state.handStartStacks = Object.fromEntries(state.seats.map((seat) => [seat.id, seat.stack]));
-  state.seats.forEach((seat) => Object.assign(seat, { holeCards: [], bet: 0, totalContribution: 0, folded: seat.stack <= 0, allIn: false, allInAmount: undefined, revealedHoleCardIndexes: [], shownHoleCards: undefined, lastAction: undefined }));
+  state.seats.forEach((seat) => Object.assign(seat, { holeCards: [], bet: 0, totalContribution: 0, folded: seat.stack <= 0, allIn: false, allInAmount: undefined, revealedHoleCardIndexes: [], shownHoleCards: undefined, lastAction: undefined, streetAction: undefined }));
   state.dealerIndex = nextIndex(state, state.dealerIndex, (seat) => seat.stack > 0);
   const headsUp = state.seats.filter((seat) => seat.stack > 0).length === 2;
   const sb = headsUp ? state.dealerIndex : nextIndex(state, state.dealerIndex, (seat) => seat.stack > 0);
@@ -80,7 +80,9 @@ export function startHand(input: PokerState, random = Math.random): PokerState {
   return state;
 }
 
-export function legalActions(state: PokerState, seatIndex = state.actorIndex): LegalActions {
+type LegalActionState = Pick<PokerState, "seats" | "actorIndex" | "currentBet" | "minRaise" | "actedThisRound">;
+
+export function legalActions(state: LegalActionState, seatIndex = state.actorIndex): LegalActions {
   const seat = state.seats[seatIndex];
   if (!seat || seatIndex !== state.actorIndex || !eligible(seat)) return { actions: [], callAmount: 0, minRaiseTo: 0, maxRaiseTo: 0 };
   const callAmount = Math.max(0, Math.min(state.currentBet - seat.bet, seat.stack));
@@ -131,7 +133,7 @@ function finishByFold(state: PokerState) {
   const settledPot = state.pot;
   winner.stack += settledPot;
   state.winnerText = `${winner.name} 赢得 ${settledPot} 筹码`;
-  state.result = { winnerSeatIds: [winner.id], pot: settledPot, reason: "fold" };
+  state.result = { winnerSeatIds: [winner.id], pot: settledPot, reason: "fold", payouts: [{ seatId: winner.id, amount: settledPot }] };
   record(state, state.winnerText, "win", winner.id, settledPot);
   event(state, "win", winner.id, { amount: settledPot });
   state.pot = 0;
@@ -145,6 +147,7 @@ function showdown(state: PokerState) {
   const settledPot = state.pot;
   const scores = new Map(state.seats.filter(live).map((seat) => [seat.id, evaluateHand([...seat.holeCards, ...state.board])]));
   const winners = new Set<string>();
+  const payoutBySeat = new Map<string, number>();
   for (const pot of buildSidePots(state.seats)) {
     const candidates = pot.eligibleSeatIds.map((id) => ({ id, score: scores.get(id)! }));
     const best = candidates.sort((a, b) => compareScores(b.score, a.score))[0].score;
@@ -158,14 +161,18 @@ function showdown(state: PokerState) {
     const share = Math.floor(pot.amount / tied.length);
     tied.forEach((entry, index) => {
       const seat = state.seats.find((item) => item.id === entry.id)!;
-      seat.stack += share + (index < pot.amount % tied.length ? 1 : 0);
+      const amount = share + (index < pot.amount % tied.length ? 1 : 0);
+      seat.stack += amount;
+      payoutBySeat.set(entry.id, (payoutBySeat.get(entry.id) ?? 0) + amount);
       winners.add(entry.id);
     });
   }
   const names = [...winners].map((id) => state.seats.find((seat) => seat.id === id)!.name);
   const bestName = scores.get([...winners][0])?.name ?? "胜出";
   state.winnerText = `${names.join("、")} 以${bestName}赢得底池`;
-  state.result = { winnerSeatIds: [...winners], pot: settledPot, reason: "showdown", handName: bestName };
+  const payouts = [...payoutBySeat].map(([seatId, amount]) => ({ seatId, amount }));
+  if (payouts.reduce((sum, payout) => sum + payout.amount, 0) !== settledPot) throw new Error("底池派奖不守恒");
+  state.result = { winnerSeatIds: [...winners], pot: settledPot, reason: "showdown", handName: bestName, payouts };
   record(state, state.winnerText, "showdown");
   event(state, "showdown");
   event(state, "win", [...winners][0], { amount: settledPot });
@@ -180,6 +187,9 @@ function advanceStreet(state: PokerState) {
   else if (state.phase === "flop") { state.phase = "turn"; state.deck.pop(); state.board.push(state.deck.pop()!); }
   else if (state.phase === "turn") { state.phase = "river"; state.deck.pop(); state.board.push(state.deck.pop()!); }
   else { showdown(state); return; }
+  // Action badges describe the current betting street. Blinds are not
+  // voluntary actions, and no badge from the previous street may survive.
+  state.seats.forEach((seat) => { seat.streetAction = undefined; });
   record(state, `${state.phase} 发牌`, "street");
   event(state, "street", undefined, { phase: state.phase });
   state.actorIndex = nextIndex(state, state.dealerIndex, eligible);
@@ -193,9 +203,9 @@ export function applyAction(input: PokerState, seatId: string, action: PlayerAct
   const seat = state.seats[seatIndex];
   const legal = legalActions(state, seatIndex);
   if (!legal.actions.includes(action)) throw new Error("当前操作不合法");
-  if (action === "fold") { seat.folded = true; seat.lastAction = "弃牌"; event(state, "fold", seat.id); }
-  if (action === "check") seat.lastAction = "过牌";
-  if (action === "call") { const amount = commit(seat, legal.callAmount); seat.lastAction = `跟注 ${amount}`; event(state, "chips", seat.id, { amount }); }
+  if (action === "fold") { seat.folded = true; seat.lastAction = "弃牌"; seat.streetAction = undefined; event(state, "fold", seat.id); }
+  if (action === "check") { seat.lastAction = "过牌"; seat.streetAction = "check"; }
+  if (action === "call") { const amount = commit(seat, legal.callAmount); seat.lastAction = `跟注 ${amount}`; seat.streetAction = "call"; event(state, "chips", seat.id, { amount }); }
   if (action === "raise" || action === "all-in") {
     if (action === "raise" && (!Number.isInteger(raiseTo) || raiseTo! < legal.minRaiseTo || raiseTo! > legal.maxRaiseTo)) throw new Error("加注金额不合法");
     const target = action === "all-in" ? legal.maxRaiseTo : raiseTo!;
@@ -211,6 +221,7 @@ export function applyAction(input: PokerState, seatId: string, action: PlayerAct
     }
     if (action === "all-in") seat.allInAmount = seat.bet;
     seat.lastAction = action === "all-in" ? "All in" : `加注至 ${seat.bet}`;
+    if (action === "raise") seat.streetAction = previous === 0 ? "bet" : "raise";
     event(state, "chips", seat.id, { amount, allIn: action === "all-in" });
   }
   state.actedThisRound.push(seat.id);

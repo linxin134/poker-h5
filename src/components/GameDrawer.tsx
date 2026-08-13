@@ -170,7 +170,6 @@ export function GameDrawer({ initialTab, onClose, onLeave, onDissolve, onStand, 
 
       {tab === "topup" && <div className="wpk-topup-panel">
         <strong>{topup.toLocaleString()}</strong>
-        <small>({Math.round(topup / room.bigBlind)}BB)</small>
         <p>带入记分牌</p>
         <input aria-label="补充记分牌数量" type="range" min={room.startingStack} max={room.startingStack * 3} step={room.bigBlind} value={topup} onChange={(event) => { setTopup(Number(event.target.value)); setTopupSaved(false); }} />
         <div className="topup-range-labels"><span>最小</span><span>最大</span></div>

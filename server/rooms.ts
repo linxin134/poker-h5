@@ -9,6 +9,7 @@ import type {
   RoomHandRecord,
   RoomListItem,
   RoomMember,
+  PublicPokerState,
   RoomServerMessage,
   RoomView
 } from "../src/multiplayer/types";
@@ -86,9 +87,9 @@ function saveRoom(room: RoomRuntime) {
     .run(room.code, room.hostUserId, room.status, room.durationMinutes, room.capacity, room.startingStack, room.smallBlind, room.bigBlind, room.startedAt, room.endsAt, Date.now());
 }
 
-function publicGame(room: RoomRuntime, userId: string) {
+function publicGame(room: RoomRuntime, userId: string): PublicPokerState | null {
   if (!room.game) return null;
-  const game = structuredClone(room.game);
+  const { deck: _privateDeck, ...game } = structuredClone(room.game);
   const reveal = game.phase === "showdown" || (game.phase === "complete" && game.result?.reason === "showdown");
   for (const seat of game.seats) {
     seat.connected = room.members.find((member) => member.seatId === seat.id)?.connected ?? false;

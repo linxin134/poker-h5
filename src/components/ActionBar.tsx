@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { legalActions } from "../game/engine";
-import type { PlayerAction, PokerState } from "../game/types";
+import type { PlayerAction } from "../game/types";
+import type { PublicPokerState } from "../multiplayer/types";
 
-type QueuedAction = "check-fold" | "call" | null;
+type QueuedAction = { type: "check-fold" } | { type: "call"; amount: number } | null;
 type SubmittedAction = { actorSeatId: string; label: string } | null;
 
 type RaisePreset = {
   key: string;
   eyebrow: string;
   label: string;
+  detail?: string;
   target: number;
 };
 
@@ -17,7 +19,7 @@ function clampRaiseTarget(value: number, min: number, max: number, unit: number)
   return Math.min(max, Math.max(min, rounded));
 }
 
-export function ActionBar({ game, mySeatId, turnRemainingMs, heroPoint, onAct }: { game: PokerState; mySeatId: string; turnRemainingMs: number; heroPoint: { x: number; y: number }; onAct(action: PlayerAction, raiseTo?: number): void }) {
+export function ActionBar({ game, mySeatId, turnRemainingMs, heroPoint, onAct }: { game: PublicPokerState; mySeatId: string; turnRemainingMs: number; heroPoint: { x: number; y: number }; onAct(action: PlayerAction, raiseTo?: number): void }) {
   const legal = legalActions(game);
   const [raiseTo, setRaiseTo] = useState(legal.minRaiseTo);
   const [raiseOpen, setRaiseOpen] = useState(false);
@@ -27,6 +29,8 @@ export function ActionBar({ game, mySeatId, turnRemainingMs, heroPoint, onAct }:
   const submittedActorRef = useRef<string | null>(null);
   const actor = game.seats[game.actorIndex];
   const isMyTurn = actor?.id === mySeatId;
+  const mySeat = game.seats.find((seat) => seat.id === mySeatId);
+  const projectedCall = mySeat ? Math.max(0, Math.min(game.currentBet - mySeat.bet, mySeat.stack)) : 0;
   const legalKey = legal.actions.join(",");
   // The same player can legally act again immediately after a street change.
   // Include the authoritative action history/phase so the optimistic
@@ -45,14 +49,27 @@ export function ActionBar({ game, mySeatId, turnRemainingMs, heroPoint, onAct }:
   }, [actionKey, legal.minRaiseTo]);
   useEffect(() => setQueuedAction(null), [game.handId]);
   useEffect(() => {
+    // A queued call is consent for the amount shown at selection time only.
+    // Any intervening raise cancels it instead of silently calling more chips.
+    if (queuedAction?.type === "call" && queuedAction.amount !== projectedCall) setQueuedAction(null);
+  }, [projectedCall, queuedAction]);
+  useEffect(() => {
     if (!isMyTurn || !queuedAction || !actor) return;
-    const action: PlayerAction = queuedAction === "call"
-      ? "call"
-      : legal.actions.includes("check") ? "check" : "fold";
+    let action: PlayerAction;
+    if (queuedAction.type === "call") {
+      // “跟注”只执行玩家选择时看到的金额，绝不退化成自动让牌。
+      if (!legal.actions.includes("call") || legal.callAmount !== queuedAction.amount) {
+        setQueuedAction(null);
+        return;
+      }
+      action = "call";
+    } else {
+      action = legal.actions.includes("check") ? "check" : "fold";
+    }
     if (!legal.actions.includes(action)) return;
     setQueuedAction(null);
     submittedActorRef.current = actionKey;
-    setSubmittedAction({ actorSeatId: actor.id, label: action === "check" ? "过牌" : "弃牌" });
+    setSubmittedAction({ actorSeatId: actor.id, label: action === "check" ? "过牌" : action === "call" ? "跟注" : "弃牌" });
     onAct(action);
   }, [actor, game.actorIndex, isMyTurn, legalKey, onAct, queuedAction]);
 
@@ -63,28 +80,30 @@ export function ActionBar({ game, mySeatId, turnRemainingMs, heroPoint, onAct }:
   const turnProgress = Math.max(0, Math.min(1, turnRemainingMs / 25_000));
   const visiblePot = game.pot + game.seats.reduce((sum, seat) => sum + seat.bet, 0);
   const chipUnit = Math.max(1, game.smallBlind);
-  const mySeat = game.seats.find((seat) => seat.id === mySeatId);
-  const projectedCall = mySeat ? Math.max(0, Math.min(game.currentBet - mySeat.bet, mySeat.stack)) : 0;
   const dockStyle = { "--hero-x": `${heroPoint.x}%`, "--hero-y": `${heroPoint.y}%` } as CSSProperties;
   const countdownStyle = { "--action-progress": turnProgress } as CSSProperties;
-  const actionCountdown = () => <i className={`action-countdown-orbit ${seconds <= 5 ? "urgent" : ""}`} style={countdownStyle} aria-hidden="true" />;
+  const actionCountdown = () => <i className={`action-countdown-orbit ${seconds <= 5 ? "urgent" : ""}`} style={countdownStyle} aria-hidden="true"><span className="action-countdown-dot" /></i>;
 
   // Folded and all-in players have finished this hand. Wepoker removes every
   // action/pre-action control and leaves only the avatar status plus cards.
   if (mySeat?.folded || mySeat?.allIn) return null;
 
   const raisePresets: RaisePreset[] = game.phase === "preflop"
-    ? [2, 3, 4, 5, 6].map((bigBlinds) => ({
-      key: `bb-${bigBlinds}`,
-      eyebrow: "BB",
-      label: String(bigBlinds),
-      target: clampRaiseTarget(game.bigBlind * bigBlinds, legal.minRaiseTo, legal.maxRaiseTo, chipUnit),
-    }))
+    ? [2, 3, 4, 5, 6].map((blindMultiple) => {
+      const target = clampRaiseTarget(game.bigBlind * blindMultiple, legal.minRaiseTo, legal.maxRaiseTo, chipUnit);
+      return {
+        key: `chips-${target}`,
+        eyebrow: "加到",
+        label: target.toLocaleString(),
+        target,
+      };
+    })
     : [["1/3", .33], ["1/2", .5], ["2/3", .67], ["1", 1], ["1.2", 1.2]].map(([label, ratio]) => ({
       key: `pot-${label}`,
       eyebrow: "底池",
       label: String(label),
       target: clampRaiseTarget(game.currentBet + visiblePot * Number(ratio), legal.minRaiseTo, legal.maxRaiseTo, chipUnit),
+      detail: clampRaiseTarget(game.currentBet + visiblePot * Number(ratio), legal.minRaiseTo, legal.maxRaiseTo, chipUnit).toLocaleString(),
     }));
 
   const submit = (action: PlayerAction, label: string, target?: number) => {
@@ -114,14 +133,14 @@ export function ActionBar({ game, mySeatId, turnRemainingMs, heroPoint, onAct }:
   if (!isMyTurn) return (
     <div className="action-dock waiting-turn action-orbit" style={dockStyle}>
       <div className="preaction-buttons" aria-label="预操作">
-        <button className={queuedAction === "check-fold" ? "active" : ""} aria-pressed={queuedAction === "check-fold"} onClick={() => setQueuedAction(queuedAction === "check-fold" ? null : "check-fold")}>让或弃</button>
-        <button className={queuedAction === "call" ? "active" : ""} aria-pressed={queuedAction === "call"} disabled={projectedCall <= 0} onClick={() => setQueuedAction(queuedAction === "call" ? null : "call")}>{projectedCall > 0 ? <><b>{projectedCall.toLocaleString()}</b><span>跟注</span></> : "自动让牌"}</button>
+        <button className={queuedAction?.type === "check-fold" ? "active" : ""} aria-pressed={queuedAction?.type === "check-fold"} onClick={() => setQueuedAction(queuedAction?.type === "check-fold" ? null : { type: "check-fold" })}>让或弃</button>
+        <button className={queuedAction?.type === "call" ? "active" : ""} aria-pressed={queuedAction?.type === "call"} aria-label={projectedCall > 0 ? `${projectedCall.toLocaleString()} 跟注` : "跟注"} disabled={projectedCall <= 0} onClick={() => setQueuedAction(queuedAction?.type === "call" ? null : { type: "call", amount: projectedCall })}>{projectedCall > 0 ? <><b>{projectedCall.toLocaleString()}</b><span>跟注</span></> : <span>跟注</span>}</button>
       </div>
     </div>
   );
 
   if (submittedAction?.actorSeatId === actor.id) return (
-    <div className="action-dock action-submitting" style={dockStyle}><i /><b>{submittedAction.label}</b></div>
+    <div className="action-dock action-submitting action-orbit" style={dockStyle}><i /><b>{submittedAction.label}</b></div>
   );
 
   const hasRaise = can("raise");
@@ -142,7 +161,7 @@ export function ActionBar({ game, mySeatId, turnRemainingMs, heroPoint, onAct }:
 
       {hasRaise && <div className="quick-raises action-arc" aria-label="快捷加注">
         {raisePresets.map((preset) => <button type="button" className={quickPreset === preset.key ? "active" : ""} key={preset.key} onClick={() => { setQuickPreset(preset.key); setRaiseTo(preset.target); }}>
-          <small>{preset.eyebrow}</small><b>{preset.label}</b><em>{preset.target.toLocaleString()}</em>
+          <small>{preset.eyebrow}</small><b>{preset.label}</b>{preset.detail && <em>{preset.detail}</em>}
         </button>)}
       </div>}
 

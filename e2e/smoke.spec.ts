@@ -51,10 +51,12 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
     expect(createScrollChrome).toEqual({ overflow: "hidden", gutter: 0, contentScrollbar: "none" });
     await expect(page.locator(".public-room-note")).toHaveCount(0);
     await expect(page.locator(".config-card")).toContainText("1 / 2");
-    await expect(page.locator(".config-card")).toContainText("200 (100BB)");
+    await expect(page.locator(".config-card")).toContainText("带入筹码200");
+    await expect(page.locator(".config-card")).not.toContainText(/BB/i);
+    await expect(page.locator(".buyin-segments button")).toHaveText(["100", "200", "400"]);
     await expect(page.locator(".config-card")).toContainText("8 人");
     await page.getByLabel("盲注级别").fill("2");
-    await page.getByRole("button", { name: "200BB" }).click();
+    await page.getByRole("button", { name: "2,000" }).click();
     await page.screenshot({ path: testInfo.outputPath("mobile-create-room.png") });
     await page.getByRole("button", { name: "立即开局" }).click();
     await expect(page.getByText("请选择空位")).toBeVisible();
@@ -222,20 +224,17 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
         menu: rect(".table-menu-trigger"),
         top: rect(".table-tools button"),
         bottom: rect(".table-bottom-tools button"),
-        emoji: rect(".round-tool"),
-        shield: rect(".table-shield")
+        emoji: rect(".round-tool")
       };
     });
     expect(edgeControlGeometry.menu.width).toBeCloseTo(40, 0);
     expect(edgeControlGeometry.menu.height).toBeCloseTo(40, 0);
-    expect(edgeControlGeometry.top.width).toBeCloseTo(52, 0);
-    expect(edgeControlGeometry.top.height).toBeCloseTo(52, 0);
-    expect(edgeControlGeometry.bottom.width).toBeCloseTo(52, 0);
-    expect(edgeControlGeometry.bottom.height).toBeCloseTo(52, 0);
-    expect(edgeControlGeometry.emoji.width).toBeCloseTo(52, 0);
-    expect(edgeControlGeometry.emoji.height).toBeCloseTo(52, 0);
-    expect(edgeControlGeometry.shield.width).toBeCloseTo(39, 0);
-    expect(edgeControlGeometry.shield.height).toBeCloseTo(39, 0);
+    expect(edgeControlGeometry.top.width).toBeCloseTo(44, 0);
+    expect(edgeControlGeometry.top.height).toBeCloseTo(44, 0);
+    expect(edgeControlGeometry.bottom.width).toBeCloseTo(44, 0);
+    expect(edgeControlGeometry.bottom.height).toBeCloseTo(44, 0);
+    expect(edgeControlGeometry.emoji.width).toBeCloseTo(44, 0);
+    expect(edgeControlGeometry.emoji.height).toBeCloseTo(44, 0);
     for (const control of Object.values(edgeControlGeometry)) {
       expect(control.left).toBeGreaterThanOrEqual(0);
       expect(control.right).toBeLessThanOrEqual(390);
@@ -253,10 +252,15 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
       const avatarRects = [...document.querySelectorAll(".seat .avatar-ring")].map((element) => element.getBoundingClientRect());
       const collisions = avatarRects.filter((avatar) => !(avatar.right <= board.left || avatar.left >= board.right || avatar.bottom <= board.top || avatar.top >= board.bottom)).length;
       const avatar = document.querySelector<HTMLElement>(".seat .avatar-ring")!;
-      const avatarStyle = getComputedStyle(avatar);
-      return { collisions, avatarSquare: Math.abs(avatar.offsetWidth - avatar.offsetHeight), avatarRadius: avatarStyle.borderRadius };
+      const avatarImage = avatar.querySelector<HTMLElement>(".game-avatar")!;
+      return {
+        collisions,
+        avatarSquare: Math.abs(avatar.offsetWidth - avatar.offsetHeight),
+        avatarRadius: getComputedStyle(avatar).borderRadius,
+        avatarImageRadius: getComputedStyle(avatarImage).borderRadius
+      };
     });
-    expect(tableGeometry).toEqual({ collisions: 0, avatarSquare: 0, avatarRadius: "50%" });
+    expect(tableGeometry).toEqual({ collisions: 0, avatarSquare: 0, avatarRadius: "12px", avatarImageRadius: "10px" });
     await guestTwoPage.screenshot({ path: testInfo.outputPath("mobile-table.png") });
 
     await guestTwoPage.locator(".table-bottom-tools").getByRole("button", { name: "聊天" }).click();
@@ -288,6 +292,7 @@ test("三名玩家可以加入、选座、行动并自动续手", async ({ page,
 
     await guestTwoPage.getByRole("button", { name: "补充记分牌" }).click();
     await expect(guestTwoPage.locator(".game-drawer.tab-topup")).not.toContainText("钻石");
+    await expect(guestTwoPage.locator(".game-drawer.tab-topup")).not.toContainText(/BB/i);
     const topupBox = await guestTwoPage.locator(".game-drawer.tab-topup").boundingBox();
     const viewport = guestTwoPage.viewportSize();
     expect(topupBox).not.toBeNull();

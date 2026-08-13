@@ -1,0 +1,233 @@
+/* Authoritative 390x660 mobile in-hand ActionBar contract. */
+:root {
+  /* Sampled from the standard Hold'em table shown in the supplied video.
+     Keep state colours centralized so legacy rules cannot introduce a
+     second, slightly different palette. */
+  --wpk-action-fold:#d9364f;
+  --wpk-action-primary:#159be3;
+  --wpk-action-check:#34b96a;
+  --wpk-action-pre:#89908fcc;
+  --wpk-action-pre-active:#32b96fe8;
+  --wpk-action-sector:#002a258a;
+  --wpk-action-shadow:#001c1780;
+}
+.app-shell.mode-mobile .fresh-table .action-dock.action-orbit,
+.app-shell.mode-mobile .fresh-table .action-dock.action-orbit.my-turn,
+.app-shell.mode-mobile .fresh-table .action-dock.action-orbit.waiting-turn {
+  position:absolute; z-index:35; inset:0; display:block;
+  width:100%; max-width:none; height:100%; min-height:0; padding:0;
+  transform:none; border:0; border-radius:0; background:transparent;
+  box-shadow:none; pointer-events:none;
+}
+.app-shell.mode-mobile .fresh-table .action-orbit button,
+.app-shell.mode-mobile .fresh-table .action-orbit input { pointer-events:auto; }
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons,
+.app-shell.mode-mobile .fresh-table .action-orbit .preaction-buttons {
+  position:absolute; inset:0; display:block; width:100%; max-width:none;
+  height:100%; margin:0; pointer-events:none;
+}
+
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons .action {
+  --action-dot-radius:28px;
+  appearance:none; -webkit-appearance:none; position:absolute; z-index:3;
+  left:var(--hero-x); top:var(--hero-y); display:grid;
+  width:46px!important; min-width:46px!important;
+  height:46px!important; min-height:46px!important;
+  place-content:center; gap:1px; padding:0 3px!important;
+  transform:translate(-50%,-50%); border:1px solid #ffffff4d;
+  border-radius:50%!important; color:#fff; background:var(--wpk-action-pre);
+  box-shadow:0 5px 15px var(--wpk-action-shadow),inset 0 1px #ffffff38;
+  font-size:11px!important; font-weight:800; line-height:1.05;
+  text-align:center; text-shadow:0 1px 2px #00221b;
+  backdrop-filter:blur(7px); pointer-events:auto; touch-action:manipulation;
+  transition:none;
+}
+/* Legacy hover/active rules used `transform:none`, which moved the hovered
+   absolute-positioned circle right and down by half of its own size.  Every
+   interaction state must keep the same anchored centre. */
+.app-shell.mode-mobile .fresh-table .action-dock.action-orbit.my-turn .action-buttons .action:hover:not(:disabled),
+.app-shell.mode-mobile .fresh-table .action-dock.action-orbit.my-turn .action-buttons .action:active:not(:disabled) {
+  transform:translate(-50%,-50%)!important;
+}
+.app-shell.mode-mobile .fresh-table .action-dock.action-orbit.my-turn .action-buttons .action.fold,
+.app-shell.mode-mobile .fresh-table .action-dock.action-orbit.my-turn .action-buttons .action.raise,
+.app-shell.mode-mobile .fresh-table .action-dock.action-orbit.my-turn .action-buttons .action.check,
+.app-shell.mode-mobile .fresh-table .action-dock.action-orbit.my-turn .action-buttons .action.call,
+.app-shell.mode-mobile .fresh-table .action-dock.action-orbit.my-turn .action-buttons .action.allin {
+  border:1px solid #ffffff4d;
+  box-shadow:0 5px 15px #001c1780,inset 0 1px #ffffff38;
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons .action b,
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons .action > span:not(.action-countdown-dot) {
+  position:relative; z-index:5; display:block; font:inherit;
+}
+
+/* Three-action orbit: center control replaces the fixed hero avatar. */
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons.with-raise .action.raise {
+  --action-dot-radius:33px; left:var(--hero-x); top:calc(var(--hero-y) - 12px);
+  width:56px!important; min-width:56px!important;
+  height:56px!important; min-height:56px!important; background:var(--wpk-action-primary);
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons.with-raise .action.fold {
+  left:calc(var(--hero-x) - 70px); top:calc(var(--hero-y) + 13px); background:var(--wpk-action-fold);
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons.with-raise .action.check,
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons.with-raise .action.call,
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons.with-raise .action.allin {
+  left:calc(var(--hero-x) + 70px); top:calc(var(--hero-y) + 13px);
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons.with-raise .action.check { background:var(--wpk-action-check); }
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons.with-raise .action.call,
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons.with-raise .action.allin { background:var(--wpk-action-primary); }
+
+/* Two-action orbit keeps the hero avatar visible. */
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons.without-raise .action.fold {
+  left:calc(var(--hero-x) - 58px); top:calc(var(--hero-y) + 21px); background:var(--wpk-action-fold);
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons.without-raise .action.check,
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons.without-raise .action.call,
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons.without-raise .action.allin {
+  left:calc(var(--hero-x) + 58px); top:calc(var(--hero-y) + 21px);
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons.without-raise .action.check { background:var(--wpk-action-check); }
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons.without-raise .action.call,
+.app-shell.mode-mobile .fresh-table .action-orbit .action-buttons.without-raise .action.allin { background:var(--wpk-action-primary); }
+
+/* Every action owns a synchronized sector and a separate moving boundary dot.
+   The sector coordinate system stays fixed; only the dot is rotated. */
+.app-shell.mode-mobile .fresh-table .action-orbit .action-countdown-orbit {
+  --action-sweep:calc((1 - var(--action-progress,1)) * 1turn);
+  position:absolute; z-index:4; inset:-5px; overflow:visible;
+  box-sizing:border-box; width:auto; height:auto; padding:5px;
+  transform:none!important;
+  border:1px solid #ffffff5c; border-radius:50%;
+  background:conic-gradient(from 0deg,var(--wpk-action-sector) var(--action-sweep),#ffffff05 0) content-box;
+  background-clip:content-box;
+  pointer-events:none;
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .action-countdown-orbit::after {
+  content:none!important;
+  display:none!important;
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .action-countdown-dot {
+  position:absolute; top:50%; left:50%;
+  display:block; width:6px; height:6px;
+  transform:translate(-50%,-50%) rotate(var(--action-sweep)) translateY(calc(-1 * var(--action-dot-radius)));
+  transform-origin:50% 50%; border-radius:50%; background:#fff;
+  box-shadow:0 0 8px #fff;
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .action-countdown-orbit.urgent { filter:drop-shadow(0 0 4px #ffcf69); }
+
+/* Five preset circles follow the same pronounced arc as the three primary
+   controls: the outer pair is lowest, the middle pair rises, and the centre
+   is the crown. The values mirror the reference rather than a flat toolbar. */
+.app-shell.mode-mobile .fresh-table .action-arc {
+  position:absolute; z-index:2; left:var(--hero-x); top:calc(var(--hero-y) - 126px);
+  display:flex; width:198px; height:72px; align-items:flex-start;
+  justify-content:center; gap:5px; transform:translateX(-50%); pointer-events:none;
+}
+.app-shell.mode-mobile .fresh-table .action-arc button {
+  display:grid; width:34px; min-width:34px; height:34px; flex:0 0 34px;
+  place-content:center; gap:0; padding:0; transform:translateY(30px);
+  border:1px solid #ffffff62; border-radius:50%; color:#fff;
+  background:var(--wpk-action-pre); box-shadow:0 4px 12px #001c1760,inset 0 1px #ffffff45;
+  line-height:1; text-align:center; backdrop-filter:blur(6px); pointer-events:auto;
+}
+.app-shell.mode-mobile .fresh-table .action-arc button:nth-child(2),
+.app-shell.mode-mobile .fresh-table .action-arc button:nth-child(4) { transform:translateY(12px); }
+.app-shell.mode-mobile .fresh-table .action-arc button:nth-child(3) { transform:translateY(0); }
+.app-shell.mode-mobile .fresh-table .action-arc button small { color:#edf7f4; font-size:6px; font-weight:600; }
+.app-shell.mode-mobile .fresh-table .action-arc button b { margin:0; font-size:10px; }
+.app-shell.mode-mobile .fresh-table .action-arc button em { color:#eff8f5; font-size:6px; font-style:normal; }
+.app-shell.mode-mobile .fresh-table .action-arc button.active {
+  background:var(--wpk-action-primary); box-shadow:0 0 0 2px #b9ebff9c,0 5px 14px #001c1770;
+}
+
+/* Pre-actions are the two quiet circular controls from the reference. They
+   flank the anchored hero and never fall back to legacy pill geometry. */
+.app-shell.mode-mobile .fresh-table .action-orbit .preaction-buttons button {
+  appearance:none; -webkit-appearance:none;
+  position:absolute; left:calc(var(--hero-x) - 62px); top:calc(var(--hero-y) + 22px);
+  display:grid; width:50px!important; min-width:50px!important;
+  height:50px!important; min-height:50px!important; aspect-ratio:1;
+  place-content:center; padding:0 5px!important;
+  transform:translate(-50%,-50%); border:1px solid #ffffff47; border-radius:50%!important;
+  color:#fff; background:var(--wpk-action-pre); box-shadow:0 5px 15px #001c1770,inset 0 1px #ffffff35;
+  font-size:9px; font-weight:800; line-height:1.05; text-align:center; white-space:normal;
+  backdrop-filter:blur(7px); pointer-events:auto;
+}
+.app-shell.mode-mobile .fresh-table .action-orbit .preaction-buttons button + button { left:calc(var(--hero-x) + 62px); }
+.app-shell.mode-mobile .fresh-table .action-orbit .preaction-buttons button.active {
+  background:var(--wpk-action-pre-active); box-shadow:0 0 0 2px #c8ffe09c,0 5px 15px #001c1770;
+}
+
+/* Raise mode covers the stage without changing any table/seat coordinate. */
+.app-shell.mode-mobile .fresh-table .raise-backdrop {
+  position:absolute; z-index:1; inset:0; width:100%; height:100%;
+  border:0; border-radius:0; background:#001c1785; backdrop-filter:blur(1px);
+}
+.app-shell.mode-mobile .fresh-table .raise-adjusting .action-buttons,
+.app-shell.mode-mobile .fresh-table .raise-adjusting .action-arc { opacity:.25; pointer-events:none; }
+.app-shell.mode-mobile .fresh-table .raise-panel.raise-rail {
+  position:absolute; z-index:5; inset:0; display:block;
+  width:100%; max-width:none; height:100%; max-height:none; padding:0;
+  transform:none; border:0; border-radius:0; color:#fff; background:transparent;
+  box-shadow:none; overflow:visible; pointer-events:none;
+}
+.app-shell.mode-mobile .fresh-table .raise-panel.raise-rail header {
+  position:absolute; top:calc(var(--hero-y) - 282px); left:var(--hero-x);
+  display:grid; min-width:76px; place-items:center; padding:5px 10px;
+  transform:translateX(-50%); border:1px solid #3fb8ff; border-radius:13px;
+  background:#102447ed; box-shadow:0 5px 13px #00132670; pointer-events:auto;
+}
+.app-shell.mode-mobile .fresh-table .raise-panel.raise-rail header b { color:#fff; font-size:16px; font-variant-numeric:tabular-nums; }
+.app-shell.mode-mobile .fresh-table .raise-panel.raise-rail > input {
+  position:absolute; top:calc(var(--hero-y) - 166px); left:var(--hero-x);
+  width:176px; height:30px; margin:0;
+  transform:translate(-50%,-50%) rotate(-90deg); accent-color:#ff8f26; pointer-events:auto;
+}
+.app-shell.mode-mobile .fresh-table .raise-panel.raise-rail .raise-percent {
+  position:absolute; top:calc(var(--hero-y) - 166px); left:calc(var(--hero-x) - 80px); right:auto;
+  display:grid; min-width:68px; place-items:center; padding:6px 8px;
+  transform:translate(-50%,-50%); border-radius:18px; color:#273e38;
+  background:#f8fbfa; box-shadow:0 5px 13px #001c1766;
+}
+.app-shell.mode-mobile .fresh-table .raise-panel.raise-rail .raise-percent b { font-size:14px; }
+.app-shell.mode-mobile .fresh-table .raise-panel.raise-rail .raise-percent small { color:#ff6e42; font-size:8px; }
+.app-shell.mode-mobile .fresh-table .raise-panel.raise-rail .raise-handle {
+  position:absolute; z-index:2; top:calc(var(--hero-y) - 280px + var(--raise-handle-y)); left:var(--hero-x);
+  display:grid; width:42px; height:42px; place-items:center;
+  transform:translate(-50%,-50%); border:0; border-radius:50%; color:#fff;
+  background:linear-gradient(#ffb233,#f16524); box-shadow:0 4px 10px #001c1766;
+  font-size:15px; font-style:normal; font-weight:800; pointer-events:none;
+}
+.app-shell.mode-mobile .fresh-table .raise-panel.raise-rail .raise-confirm {
+  position:absolute; top:calc(var(--hero-y) - 12px); left:var(--hero-x); bottom:auto;
+  display:grid; width:56px; height:56px; place-items:center;
+  transform:translate(-50%,-50%); border:1px solid #8bd9ff; border-radius:50%;
+  color:#fff; background:var(--wpk-action-primary); box-shadow:0 6px 16px #001c1780,inset 0 1px #ffffff38;
+  font-size:13px; font-weight:900; pointer-events:auto;
+}
+
+/* Submission feedback shares the hero coordinate contract. It cannot fall
+   back to any legacy dock position and therefore cannot jump the avatar. */
+.app-shell.mode-mobile .fresh-table .action-dock.action-submitting.action-orbit {
+  position:absolute!important; z-index:36; inset:0!important; display:block;
+  width:100%!important; max-width:none; height:100%!important; min-height:0;
+  padding:0!important; transform:none!important; border:0; background:transparent;
+  box-shadow:none; pointer-events:none;
+}
+.app-shell.mode-mobile .fresh-table .action-dock.action-submitting.action-orbit>b {
+  position:absolute; left:var(--hero-x); top:calc(var(--hero-y) - 14px);
+  display:grid; width:56px; height:56px; place-items:center; padding:0 4px;
+  transform:translate(-50%,-50%); border:1px solid #ffffff4d; border-radius:50%;
+  color:#fff; background:#315e50e8; box-shadow:0 5px 15px #001c1780;
+  font-size:11px; line-height:1.05; text-align:center;
+}
+
+/* On a three-action turn the centre circle visually replaces only the hero
+   portrait. Cards, rank and stack keep their fixed seats contract. */
+.app-shell.mode-mobile .fresh-table.my-turn:has(.action-buttons.replaces-avatar) .hero-seat>.avatar-ring,
+.app-shell.mode-mobile .fresh-table.my-turn:has(.action-buttons.replaces-avatar) .hero-seat>.seat-name {
+  visibility:hidden;
+}

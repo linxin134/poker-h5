@@ -9,14 +9,14 @@ import { ProfileSheet } from "./ProfileSheet";
 import { UiIcon } from "./UiIcon";
 
 const BLINDS = [[1, 2], [2, 4], [5, 10], [10, 20], [20, 40]] as const;
-const BUY_IN_BB = [50, 100, 200] as const;
+const BUY_IN_MULTIPLIERS = [50, 100, 200] as const;
 
 export function Lobby({ user, onLogin, onLogout, onUserChange }: { user: User | null; onLogin(): void; onLogout(): void; onUserChange(user: User): void }) {
   const setScreen = useGameStore((state) => state.setScreen);
   const connect = useRoomStore((state) => state.connect);
   const [seats, setSeats] = useState(8);
   const [blindIndex, setBlindIndex] = useState(0);
-  const [buyInBb, setBuyInBb] = useState<(typeof BUY_IN_BB)[number]>(100);
+  const [buyInMultiplier, setBuyInMultiplier] = useState<(typeof BUY_IN_MULTIPLIERS)[number]>(100);
   const [durationMinutes, setDurationMinutes] = useState<RoomDurationMinutes>(30);
   const [rooms, setRooms] = useState<RoomListItem[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
@@ -24,7 +24,7 @@ export function Lobby({ user, onLogin, onLogout, onUserChange }: { user: User | 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [smallBlind, bigBlind] = BLINDS[blindIndex];
-  const stack = bigBlind * buyInBb;
+  const stack = bigBlind * buyInMultiplier;
 
   useEffect(() => {
     let active = true;
@@ -93,8 +93,8 @@ export function Lobby({ user, onLogin, onLogout, onUserChange }: { user: User | 
             <input aria-label="盲注级别" type="range" min="0" max={BLINDS.length - 1} step="1" value={blindIndex} onChange={(event) => setBlindIndex(Number(event.target.value))} />
             <div className="range-ticks">{BLINDS.map(([small, big]) => <span key={small}>{small}/{big}</span>)}</div>
 
-            <label className="config-row"><span>带入筹码</span><b>{stack.toLocaleString()} <small>({buyInBb}BB)</small></b></label>
-            <div className="config-segments buyin-segments">{BUY_IN_BB.map((value) => <button key={value} className={buyInBb === value ? "active" : ""} onClick={() => setBuyInBb(value)}>{value}BB</button>)}</div>
+            <label className="config-row"><span>带入筹码</span><b>{stack.toLocaleString()}</b></label>
+            <div className="config-segments buyin-segments">{BUY_IN_MULTIPLIERS.map((value) => <button key={value} className={buyInMultiplier === value ? "active" : ""} onClick={() => setBuyInMultiplier(value)}>{(bigBlind * value).toLocaleString()}</button>)}</div>
 
             <label className="config-row"><span>房间时长</span><b>{durationMinutes === 30 ? "0.5 小时" : "1 小时"}</b></label>
             <div className="config-segments">{[30, 60].map((value) => <button key={value} className={durationMinutes === value ? "active" : ""} onClick={() => setDurationMinutes(value as RoomDurationMinutes)}>{value === 30 ? "0.5 小时" : "1 小时"}</button>)}</div>

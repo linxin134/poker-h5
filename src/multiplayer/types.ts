@@ -1,5 +1,11 @@
 import type { Card, PlayerAction, PokerState } from "../game/types";
 
+/**
+ * The authoritative server keeps the shuffled deck private.  Clients only
+ * receive cards that have actually been dealt/revealed, never future cards.
+ */
+export type PublicPokerState = Omit<PokerState, "deck">;
+
 export type RoomDurationMinutes = 30 | 60;
 export type RoomStatus = "waiting" | "playing" | "finished";
 
@@ -77,7 +83,7 @@ export interface RoomView {
   nextHandAt: number | null;
   mySeatId: string;
   members: RoomMember[];
-  game: PokerState | null;
+  game: PublicPokerState | null;
   hands: RoomHandRecord[];
   scoreboard: RoomScoreEntry[];
   chatMessages: RoomChatMessage[];

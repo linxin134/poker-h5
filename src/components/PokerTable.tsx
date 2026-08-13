@@ -12,6 +12,7 @@ import { playSound, speakAction } from "../services/audio";
 import { GameAvatar } from "./GameAvatar";
 import { UiIcon } from "./UiIcon";
 import { anchoredSeatPoint, relativeSeatPosition } from "../game/tableLayout";
+import { buildPotAwardTargets } from "../game/payouts";
 import { evaluateHand } from "../game/cards";
 
 const phaseLabels = { idle: "等待", preflop: "翻牌前", flop: "翻牌", turn: "转牌", river: "河牌", showdown: "摊牌", complete: "本手结束" };
@@ -126,7 +127,10 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
     return anchoredSeatPoint(relativePosition, tableCapacity);
   }
 
-  const winnerTargets = winners.map((winner) => ({ id: winner.id, ...positionPoint(winner.position ?? 0) }));
+  const winnerTargets = buildPotAwardTargets(game.result, (seatId) => {
+    const winner = game.seats.find((seat) => seat.id === seatId);
+    return winner ? positionPoint(winner.position ?? 0) : undefined;
+  });
 
   function positionStyle(position: number) {
     const point = positionPoint(position);
@@ -196,17 +200,18 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
         const displayHoleCards = seat.holeCards.length ? seat.holeCards : (seat.shownHoleCards ?? []);
         const cardCount = Math.max(displayHoleCards.length, seat.holeCardCount || 0);
         const showHandName = displayHoleCards.length >= 2 && (isMe || game.phase === "showdown" || game.phase === "complete");
-        const actionText = seat.lastAction?.startsWith("过牌") ? "让牌"
-          : seat.lastAction?.startsWith("跟注") ? "跟注"
-          : seat.lastAction?.startsWith("加注") ? "下注"
+        const actionText = seat.streetAction === "check" ? "让牌"
+          : seat.streetAction === "call" ? "跟注"
+          : seat.streetAction === "bet" ? "下注"
+          : seat.streetAction === "raise" ? "加注"
           : seat.lastAction?.startsWith("弃牌") ? "弃牌"
           : null;
-        const actionClass = actionText === "让牌" ? "check" : actionText === "跟注" ? "call" : actionText === "下注" ? "bet" : actionText === "弃牌" ? "fold" : "";
+        const actionClass = seat.streetAction ?? (actionText === "弃牌" ? "fold" : "");
         return <motion.div data-seat-id={seat.id} className={`seat ${sideClass} ${rowClass} ${isActor ? "active" : ""} ${seat.folded ? "folded" : ""} ${seat.allIn ? "all-in-seat" : ""} ${winners.some((winner) => winner.id === seat.id) ? "winner-seat" : ""} ${isMe ? "hero-seat" : "opponent-seat"} ${seat.connected === false ? "offline" : ""} ${!isMe ? "interactable-seat" : ""}`} style={positionStyle(seat.position ?? 0)} key={seat.id}>
           <b className="seat-name">{seat.name}{isMe ? " · 你" : ""}</b>
           {isMe
-            ? <div className="avatar-ring"><GameAvatar seed={seat.avatar || seat.userId || seat.id} label={seat.name} />{isActor && <><i className={`timer-ring ${turnRemaining <= 5_000 ? "urgent" : ""}`} style={{ "--turn-progress": Math.max(0, Math.min(1, turnRemaining / 25_000)) } as CSSProperties} /><em className="seat-countdown">{Math.max(0, Math.ceil(turnRemaining / 1000))}</em></>}{seat.allIn && game.phase !== "complete" && <motion.i className="all-in-status" initial={{ opacity:0, scale:.75 }} animate={{ opacity:1, scale:1 }}>All in</motion.i>}</div>
-            : <button type="button" className="avatar-ring interactable-avatar" aria-label={`与 ${seat.name} 互动`} onClick={() => setInteractionSeatId(seat.id)}><GameAvatar seed={seat.avatar || seat.userId || seat.id} label={seat.name} />{isActor && <><i className={`timer-ring ${turnRemaining <= 5_000 ? "urgent" : ""}`} style={{ "--turn-progress": Math.max(0, Math.min(1, turnRemaining / 25_000)) } as CSSProperties} /><em className="seat-countdown">{Math.max(0, Math.ceil(turnRemaining / 1000))}</em></>}{seat.allIn && game.phase !== "complete" && <motion.i className="all-in-status" initial={{ opacity:0, scale:.75 }} animate={{ opacity:1, scale:1 }}>All in</motion.i>}</button>}
+            ? <div className="avatar-ring"><GameAvatar seed={seat.avatar || seat.userId || seat.id} label={seat.name} />{isActor && <><i className={`timer-ring ${turnRemaining <= 5_000 ? "urgent" : ""}`} style={{ "--turn-progress": Math.max(0, Math.min(1, turnRemaining / 25_000)) } as CSSProperties} /><em className="seat-countdown">{Math.max(0, Math.ceil(turnRemaining / 1000))}s</em></>}{seat.allIn && game.phase !== "complete" && <motion.i className="all-in-status" initial={{ opacity:0, scale:.75 }} animate={{ opacity:1, scale:1 }}>All in</motion.i>}</div>
+            : <button type="button" className="avatar-ring interactable-avatar" aria-label={`与 ${seat.name} 互动`} onClick={() => setInteractionSeatId(seat.id)}><GameAvatar seed={seat.avatar || seat.userId || seat.id} label={seat.name} />{isActor && <><i className={`timer-ring ${turnRemaining <= 5_000 ? "urgent" : ""}`} style={{ "--turn-progress": Math.max(0, Math.min(1, turnRemaining / 25_000)) } as CSSProperties} /><em className="seat-countdown">{Math.max(0, Math.ceil(turnRemaining / 1000))}s</em></>}{seat.allIn && game.phase !== "complete" && <motion.i className="all-in-status" initial={{ opacity:0, scale:.75 }} animate={{ opacity:1, scale:1 }}>All in</motion.i>}</button>}
           <div className="seat-cards">
             {Array.from({ length: cardCount }, (_, cardIndex) => {
               const card = displayHoleCards[cardIndex] ?? undefined;
@@ -216,10 +221,12 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
             })}
           </div>
           {showHandName && handNameForSeat(seat) && <small className="seat-hand-rank">{handNameForSeat(seat)}</small>}
-          <span className="seat-stack">{seat.stack.toLocaleString()}</span>
-          {!seat.allIn && actionText && <motion.div className={`action-bubble action-${actionClass}`} initial={{ scale: .7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>{actionText}</motion.div>}
+          <div className="seat-stack-line">
+            <span className="seat-stack">{seat.stack.toLocaleString()}</span>
+            {seat.id === dealerSeatId && <span className="dealer-button">D</span>}
+          </div>
+          {!seat.allIn && actionText && <motion.div data-action={actionClass} className={`action-bubble action-${actionClass}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>{actionText}</motion.div>}
           {game.phase !== "complete" && (seat.bet > 0 || (seat.allIn && seat.allInAmount)) && <motion.div className="seat-bet" initial={{ scale: 0 }} animate={{ scale: 1 }}><i aria-hidden="true" />{(seat.bet || seat.allInAmount || 0).toLocaleString()}</motion.div>}
-          {seat.id === dealerSeatId && <span className="dealer-button">D</span>}
         </motion.div>;
       })}
 
@@ -230,7 +237,7 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
         return <motion.div className={`seat pending-seat ${sideClass} ${rowClass} ${member.userId === user?.id ? "hero-seat" : ""}`} style={positionStyle(member.seatIndex!)} key={member.userId} initial={{ opacity: 0, scale: .8 }} animate={{ opacity: 1, scale: 1 }}>
           <b className="seat-name">{member.nickname}{member.userId === user?.id ? " · 你" : ""}</b>
           <div className="avatar-ring"><GameAvatar seed={member.avatar || member.userId} label={member.nickname} /></div>
-          <span className="seat-stack">下一手加入</span>
+          <div className="seat-stack-line"><span className="seat-stack">下一手加入</span></div>
         </motion.div>;
       })}
 
@@ -251,7 +258,7 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
       <EmojiTray targetSeatId={targetSeatId} targets={interactionTargets} onSend={playInteraction} />
       <EffectsLayer seatPositions={effectSeatPositions} />
       {latestAllInSeat && latestAllInAction && <ChipCommitEffect actionId={latestAllInAction.id} amount={latestAllInAction.amount ?? latestAllInSeat.totalContribution} from={positionPoint(latestAllInSeat.position ?? 0)} />}
-      {game.phase === "complete" && winnerTargets.length > 0 && <PotAwardEffect handId={game.handId} pot={game.result?.pot ?? 0} targets={winnerTargets} />}
+      {game.phase === "complete" && winnerTargets.length > 0 && <PotAwardEffect handId={game.handId} targets={winnerTargets} />}
       <AnimatePresence>
         {game.phase === "complete" && game.result?.reason === "showdown" && game.result.winnerSeatIds.includes(room.mySeatId) && <motion.strong key="showdown-win" className="showdown-win-label" initial={{ opacity:0, scale:.5, y:10 }} animate={{ opacity:[0,1,1,0], scale:[.5,1.08,1,1], y:[10,0,0,-6] }} transition={{ duration:3.4, times:[0,.12,.82,1] }}>YOU WIN!</motion.strong>}
         {game.phase === "complete" && room.status === "playing" && <motion.div key="hand-settlement" className="showdown-summary hand-settlement" initial={{ opacity: 0, scale: .92, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: .96 }} transition={{ delay:1.55, duration:.28 }}>
@@ -284,7 +291,7 @@ function ChipCommitEffect({ actionId, amount, from }: { actionId: string; amount
   </div>;
 }
 
-function PotAwardEffect({ handId, pot, targets }: { handId: string; pot: number; targets: Array<{ id: string; x: number; y: number }> }) {
+function PotAwardEffect({ handId, targets }: { handId: string; targets: Array<{ id: string; amount: number; x: number; y: number }> }) {
   return <div className="pot-award-layer" aria-hidden="true">
     {targets.flatMap((target, winnerIndex) => Array.from({ length: 9 }, (_, coinIndex) => <motion.i
       className="pot-award-coin"
@@ -300,7 +307,7 @@ function PotAwardEffect({ handId, pot, targets }: { handId: string; pot: number;
       initial={{ opacity:0, scale:.4 }}
       animate={{ opacity:[0,1,0], scale:[.4,1.22,1.5] }}
       transition={{ duration:.72, delay:1.38 + index * .08, ease:"easeOut" }}
-    ><b>+{Math.max(1, Math.floor(pot / targets.length)).toLocaleString()}</b></motion.span>)}
+    ><b>+{target.amount.toLocaleString()}</b></motion.span>)}
   </div>;
 }
 

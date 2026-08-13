@@ -4,5 +4,8 @@ dist-server/
 data/
 playwright-report/
 test-results/
+test-results-*/
+qa-card-results-*/
+qa-screenshots/
 .env
 *.log

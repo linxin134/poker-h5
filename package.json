@@ -3,6 +3,9 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "concurrently \"vite --host 0.0.0.0\" \"tsx watch server/index.ts\"",
     "dev:web": "vite --host 0.0.0.0",

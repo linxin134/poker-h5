@@ -23,6 +23,7 @@ describe("game engine", () => {
     expect(state.winnerText).toContain("赢得");
     expect(state.result?.pot).toBe(20);
     expect(state.result?.winnerSeatIds).toHaveLength(1);
+    expect(state.result?.payouts).toEqual([{ seatId:state.result!.winnerSeatIds[0], amount:20 }]);
   });
 
   it("退回无人跟注的加注部分且底池只记录实际争夺筹码", () => {
@@ -63,6 +64,31 @@ describe("game engine", () => {
     expect(state.actorIndex).toBe(1);
     expect(state.board).toHaveLength(3);
     expect(state.deck).toHaveLength(44);
+  });
+
+  it("每条街只保留本街自愿动作并在换街时清空", () => {
+    let state = startHand(createInitialState([
+      { id: "a", name: "A", avatar: "A", stack: 1000, isHuman: true },
+      { id: "b", name: "B", avatar: "B", stack: 1000, isHuman: true }
+    ], 10, 20), () => .31);
+    expect(state.seats.map((seat) => seat.streetAction)).toEqual([undefined, undefined]);
+
+    state = applyAction(state, "a", "call");
+    expect(state.seats[0].streetAction).toBe("call");
+    state = applyAction(state, "b", "check");
+    expect(state.phase).toBe("flop");
+    expect(state.seats.map((seat) => seat.streetAction)).toEqual([undefined, undefined]);
+
+    state = applyAction(state, "b", "check");
+    expect(state.seats[1].streetAction).toBe("check");
+    expect(state.seats[0].streetAction).toBeUndefined();
+    state = applyAction(state, "a", "raise", 20);
+    expect(state.seats[0].streetAction).toBe("bet");
+    state = applyAction(state, "b", "raise", 40);
+    expect(state.seats[1].streetAction).toBe("raise");
+    expect(state.seats[0].streetAction).toBe("bet");
+    state = applyAction(state, "a", "fold");
+    expect(state.seats[0].streetAction).toBeUndefined();
   });
 
   it("完整过牌到摊牌会烧三张牌且筹码守恒", () => {
@@ -159,6 +185,11 @@ describe("game engine", () => {
     expect(state.phase).toBe("complete");
     expect(state.seats.map((seat) => seat.stack)).toEqual([300, 400, 1]);
     expect(state.result?.winnerSeatIds).toEqual(expect.arrayContaining(["a", "b"]));
+    expect(state.result?.payouts).toEqual([
+      { seatId: "a", amount: 300 },
+      { seatId: "b", amount: 400 }
+    ]);
+    expect(state.result?.payouts?.reduce((sum, payout) => sum + payout.amount, 0)).toBe(state.result?.pot);
   });
 
   it("平分奇数底池时余数给庄家左手第一位赢家", () => {
@@ -175,6 +206,11 @@ describe("game engine", () => {
     state = applyAction(state, "a", "check");
     expect(state.seats[0].stack).toBe(17);
     expect(state.seats[1].stack).toBe(8);
+    expect(state.result?.payouts).toEqual(expect.arrayContaining([
+      { seatId: "a", amount: 7 },
+      { seatId: "b", amount: 8 }
+    ]));
+    expect(state.result?.payouts?.reduce((sum, payout) => sum + payout.amount, 0)).toBe(15);
   });
 
   it("多手随机合法行动下不会死循环、负筹码或破坏筹码守恒", () => {
