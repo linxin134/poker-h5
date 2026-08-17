@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { useGameStore } from "../store/gameStore";
 import { playSound } from "../services/audio";
@@ -12,6 +12,7 @@ export function EmojiTray({ targetSeatId, targets, onSend }: { targetSeatId: str
   const [tab, setTab] = useState<"emoji" | "prop">("emoji");
   const [target, setTarget] = useState(targetSeatId);
   const volume = useGameStore((state) => state.settings.sound);
+  useEffect(() => { setTarget(targetSeatId); }, [targetSeatId]);
   return <>
     {open && <motion.div className="emoji-popover interaction-popover" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
       <header><nav><button className={tab === "emoji" ? "active" : ""} onClick={() => setTab("emoji")}>表情</button><button className={tab === "prop" ? "active" : ""} onClick={() => setTab("prop")}>互动</button></nav><button className="popover-close" aria-label="关闭表情面板" onClick={() => setOpen(false)}><UiIcon name="close" /></button></header>

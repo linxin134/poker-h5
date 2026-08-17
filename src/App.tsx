@@ -68,7 +68,7 @@ export function App() {
       {screen === "lobby" ? (
         <Lobby user={user} onLogin={() => setAuthOpen(true)} onLogout={async () => { await api.logout(); setUser(null); }} onUserChange={setUser} />
       ) : (
-        <PokerTable user={user} onLogin={() => setAuthOpen(true)} />
+        <PokerTable user={user} />
       )}
       <AnimatePresence>
         {authOpen && <AuthModal onClose={() => setAuthOpen(false)} onAuthenticated={authenticated} />}

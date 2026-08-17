@@ -180,7 +180,7 @@ export function GameDrawer({ initialTab, onClose, onLeave, onDissolve, onStand, 
 
       {tab === "settings" && <div className="wpk-settings-panel">
         <RangeSetting label="游戏音效" value={settings.sound} onChange={(sound) => updateSettings({ sound })} />
-        <RangeSetting label="动画速度" min={.5} max={2} step={.25} value={settings.animationSpeed} onChange={(animationSpeed) => updateSettings({ animationSpeed })} />
+        <RangeSetting label="动画速度" min={.5} max={2} step={.25} value={settings.animationSpeed} unit="x" onChange={(animationSpeed) => updateSettings({ animationSpeed })} />
       </div>}
 
       {tab === "guide" && <div className="wpk-guide-panel">
@@ -204,6 +204,6 @@ function CardStrip({ cards, empty }: { cards: Array<Card | null>; empty?: string
   })}</span>;
 }
 function PixelChip({ value, compact = false }: { value: number; compact?: boolean }) { return <span className={`pixel-chip ${value > 0 ? "positive" : value < 0 ? "negative" : "zero"} ${compact ? "compact" : ""}`}><b>{value > 0 ? "+" : ""}{value.toLocaleString()}</b><i /></span>; }
-function RangeSetting({ label, value, onChange, min = 0, max = 1, step = .05 }: { label: string; value: number; onChange(value: number): void; min?: number; max?: number; step?: number }) { return <label className="drawer-setting"><span>{label}<b>{Math.round(value * (max <= 2 ? 100 : 1))}{max === 1 ? "%" : ""}</b></span><input type="range" min={min} max={max} step={step} value={value} onChange={(event) => onChange(Number(event.target.value))} /></label>; }
+function RangeSetting({ label, value, onChange, min = 0, max = 1, step = .05, unit }: { label: string; value: number; onChange(value: number): void; min?: number; max?: number; step?: number; unit?: string }) { return <label className="drawer-setting"><span>{label}<b>{unit ? `${value}${unit}` : max <= 1 ? `${Math.round(value * 100)}%` : value}</b></span><input type="range" min={min} max={max} step={step} value={value} onChange={(event) => onChange(Number(event.target.value))} /></label>; }
 function Empty({ icon, title, body }: { icon: string; title: string; body: string }) { return <div className="empty-state"><span>{icon}</span><b>{title}</b><p>{body}</p></div>; }
 function Guide({ n, title, children }: { n: string; title: string; children: React.ReactNode }) { return <article><span>{n}</span><div><b>{title}</b><p>{children}</p></div></article>; }
