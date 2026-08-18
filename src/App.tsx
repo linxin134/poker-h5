@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence } from "motion/react";
 import { AuthModal } from "./components/AuthModal";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Lobby } from "./components/Lobby";
 import { PokerTable } from "./components/PokerTable";
 import { api, type User } from "./services/api";
@@ -68,7 +69,9 @@ export function App() {
       {screen === "lobby" ? (
         <Lobby user={user} onLogin={() => setAuthOpen(true)} onLogout={async () => { await api.logout(); setUser(null); }} onUserChange={setUser} />
       ) : (
-        <PokerTable user={user} />
+        <ErrorBoundary>
+          <PokerTable user={user} />
+        </ErrorBoundary>
       )}
       <AnimatePresence>
         {authOpen && <AuthModal onClose={() => setAuthOpen(false)} onAuthenticated={authenticated} />}
