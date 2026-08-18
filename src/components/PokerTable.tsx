@@ -144,7 +144,7 @@ export function PokerTable({ user }: { user: User | null }) {
   const nextHandRemaining = room.nextHandAt ? room.nextHandAt - now : 0;
   const turnRemaining = room.turnEndsAt ? room.turnEndsAt - now : 0;
   const targetSeatId = game.seats.find((seat) => seat.id !== room.mySeatId && !seat.folded)?.id ?? game.seats.find((seat) => seat.id !== room.mySeatId)?.id ?? room.mySeatId;
-  const winners = game.seats.filter((seat) => game.result?.winnerSeatIds.includes(seat.id));
+  const winners = game.seats.filter((seat) => game.result?.winnerSeatIds?.includes(seat.id));
   const myMember = room.members.find((member) => member.userId === user?.id);
   const mySeat = game.seats.find((seat) => seat.id === room.mySeatId && !seat.standing);
   // Every client owns its perspective: rotate the local player's physical

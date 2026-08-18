@@ -709,6 +709,14 @@ export const roomService = {
           room.clients.delete(user.id);
           member.connected = false;
           if (member.left) return;
+          // 房主断线时，将房主转移给其他在线成员
+          if (room.hostUserId === user.id) {
+            const onlineMember = room.members.find((m) => m.userId !== user.id && !m.left && m.connected);
+            if (onlineMember) {
+              room.hostUserId = onlineMember.userId;
+              for (const m of room.members) m.isHost = !m.left && m.userId === room.hostUserId;
+            }
+          }
           ensureRoomProgress(room);
           broadcastRoom(room);
         }
