@@ -36,7 +36,16 @@ export function ActionBar({ game, mySeatId, turnRemainingMs, heroPoint, onAct }:
   const dockStyle = { "--hero-x": `${heroPoint.x}%`, "--hero-y": `${heroPoint.y}%`, "--preaction-x": `${preactionX}%`, "--preaction-y": preactionY } as CSSProperties;
   const quickRaises = [["1/3", .33], ["1/2", .5], ["2/3", .67], ["底池", 1]] as const;
   const chipUnit = Math.max(1, game.smallBlind);
-  const quickTarget = (ratio: number) => Math.min(legal.maxRaiseTo, Math.max(legal.minRaiseTo, Math.round((visiblePot * ratio + game.currentBet) / chipUnit) * chipUnit));
+  const heroBet = actor?.bet ?? 0;
+  const totalPot = game.pot + game.seats.reduce((sum, seat) => sum + seat.bet, 0);
+  const quickTarget = (ratio: number) => {
+    // Standard pot raise: raiseTo = currentBet + raiseSize
+    // where raiseSize = totalPot + (currentBet - heroBet) = totalPot + callAmount
+    // For fractional pot: raiseSize = totalPot * ratio + (currentBet - heroBet)
+    const raiseSize = totalPot * ratio + (game.currentBet - heroBet);
+    const target = game.currentBet + raiseSize;
+    return Math.min(legal.maxRaiseTo, Math.max(legal.minRaiseTo, Math.round(target / chipUnit) * chipUnit));
+  };
   const submit = (action: PlayerAction, label: string, target?: number) => {
     if (!actor || submittedAction?.actorSeatId === actor.id) return;
     setRaiseOpen(false);
@@ -59,7 +68,7 @@ export function ActionBar({ game, mySeatId, turnRemainingMs, heroPoint, onAct }:
       <div className="action-context"><span>{isMyTurn ? "轮到你了" : "等待行动"}</span><b><GameAvatar seed={actor.avatar || actor.userId || actor.id} label={actor.name} /> {actor.name}</b><small>{isMyTurn ? "请在倒计时结束前行动" : "其他玩家行动中"}</small></div>
       <div className="action-buttons">
         <button className="action fold" disabled={!can("fold")} onClick={() => submit("fold", "弃牌")}>弃牌</button>
-        {can("check") ? <button className="action neutral" onClick={() => submit("check", "过牌")}>过牌</button> : <button className="action neutral" disabled={!can("call")} onClick={() => submit("call", "跟注")}>跟注 {isMyTurn ? legal.callAmount : ""}</button>}
+        {can("check") ? <button className="action neutral" onClick={() => submit("check", "过牌")}>过牌</button> : <button className="action neutral" disabled={!can("call")} onClick={() => submit("call", "跟注")}>跟注 {isMyTurn && legal.callAmount > 0 ? legal.callAmount : ""}</button>}
         <button className={`action raise ${raiseOpen ? "selected" : ""}`} disabled={!can("raise")} onClick={() => setRaiseOpen((open) => !open)}>加注</button>
         <button className="action allin" disabled={!can("all-in")} onClick={() => submit("all-in", "全下")}>全下</button>
       </div>

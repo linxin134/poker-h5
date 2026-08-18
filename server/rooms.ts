@@ -652,6 +652,13 @@ export const roomService = {
             if (!room.game || room.status !== "playing") throw new Error("牌局尚未开始");
             const actor = room.game.seats[room.game.actorIndex];
             if (!actor || actor.userId !== user.id) throw new Error("还没轮到你");
+            // Validate raiseTo for raise actions
+            if (message.action === "raise") {
+              const legal = legalActions(room.game);
+              if (!Number.isInteger(message.raiseTo) || message.raiseTo! < legal.minRaiseTo || message.raiseTo! > legal.maxRaiseTo) {
+                throw new Error("加注金额不合法");
+              }
+            }
             room.game = applyAction(room.game, actor.id, message.action, message.raiseTo);
             if (message.action === "fold" && member.standAfterHand) {
               const foldedSeat = room.game.seats.find((seat) => seat.userId === user.id);

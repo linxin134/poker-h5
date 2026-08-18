@@ -108,7 +108,7 @@ export function GameDrawer({ initialTab, onClose, onLeave, onDissolve, onStand, 
           return <article className={entry.seatId === room.mySeatId ? "me" : ""} key={entry.seatId}>
             <span className="wpk-rank">{index + 1}</span>
             <span className="wpk-rank-avatar"><GameAvatar seed={entry.avatar || entry.seatId} label={entry.nickname} /></span>
-            <div><b>{entry.nickname}</b><p><span>入池 {playerHands.length ? "100" : "0"}%</span><span>胜率 {playerHands.length ? Math.round(wins / playerHands.length * 100) : 0}%</span><span>带入 {(member?.buyIn || room.startingStack).toLocaleString()}</span></p></div>
+            <div><b>{entry.nickname}</b><p><span>入池 {room.hands.length ? Math.round(playerHands.length / room.hands.length * 100) : 0}%</span><span>胜率 {playerHands.length ? Math.round(wins / playerHands.length * 100) : 0}%</span><span>带入 {(member?.buyIn || room.startingStack).toLocaleString()}</span></p></div>
             <PixelChip value={entry.delta} />
           </article>;
         })}</div>
