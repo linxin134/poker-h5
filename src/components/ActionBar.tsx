@@ -88,6 +88,14 @@ export function ActionBar({ game, mySeatId, turnRemainingMs, heroPoint, onAct }:
   // action/pre-action control and leaves only the avatar status plus cards.
   if (mySeat?.folded || mySeat?.allIn) return null;
 
+  const heroBet = mySeat?.bet ?? 0;
+  const quickTarget = (ratio: number) => {
+    // Pot-sized raises must include the outstanding call before applying the
+    // selected pot fraction. Keep the server-provided legal range authoritative.
+    const raiseSize = visiblePot * ratio + (game.currentBet - heroBet);
+    return clampRaiseTarget(game.currentBet + raiseSize, legal.minRaiseTo, legal.maxRaiseTo, chipUnit);
+  };
+
   const raisePresets: RaisePreset[] = game.phase === "preflop"
     ? [2, 3, 4, 5, 6].map((blindMultiple) => {
       const target = clampRaiseTarget(game.bigBlind * blindMultiple, legal.minRaiseTo, legal.maxRaiseTo, chipUnit);
@@ -102,10 +110,9 @@ export function ActionBar({ game, mySeatId, turnRemainingMs, heroPoint, onAct }:
       key: `pot-${label}`,
       eyebrow: "底池",
       label: String(label),
-      target: clampRaiseTarget(game.currentBet + visiblePot * Number(ratio), legal.minRaiseTo, legal.maxRaiseTo, chipUnit),
-      detail: clampRaiseTarget(game.currentBet + visiblePot * Number(ratio), legal.minRaiseTo, legal.maxRaiseTo, chipUnit).toLocaleString(),
+      target: quickTarget(Number(ratio)),
+      detail: quickTarget(Number(ratio)).toLocaleString(),
     }));
-
   const submit = (action: PlayerAction, label: string, target?: number) => {
     // Touch browsers can emit pointerup and a synthetic click for one tap.
     // Guard synchronously so one visible action can never be sent twice.

@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { applyAction, createInitialState, legalActions, startHand } from "../src/game/engine";
 import { evaluateHand } from "../src/game/cards";
 import type { PokerState } from "../src/game/types";
@@ -166,8 +166,11 @@ function finishRoom(room: RoomRuntime) {
   if (room.game?.room) room.game.room.status = "finished";
   if (room.turnTimer) clearTimeout(room.turnTimer);
   if (room.nextHandTimer) clearTimeout(room.nextHandTimer);
+  room.turnTimer = undefined;
+  room.nextHandTimer = undefined;
   saveRoom(room);
   broadcastRoom(room);
+  setTimeout(() => rooms.delete(room.code), 60_000);
 }
 
 function recordCompletedHand(room: RoomRuntime) {
@@ -213,17 +216,19 @@ function scheduleTurn(room: RoomRuntime) {
     return;
   }
   const actor = room.game.seats[room.game.actorIndex];
-  const actorConnected = room.members.find((member) => member.userId === actor?.userId)?.connected ?? false;
+  if (!actor) return;
+  const actorUserId = actor.userId;
+  const actorConnected = room.members.find((member) => member.userId === actorUserId)?.connected ?? false;
   const turnDuration = actorConnected ? 25_000 : 1_800;
   room.turnEndsAt = Date.now() + turnDuration;
   room.turnTimer = setTimeout(() => {
     room.turnTimer = undefined;
     if (!room.game || room.game.phase === "complete") return;
-    const actor = room.game.seats[room.game.actorIndex];
-    if (!actor) return;
+    const currentActor = room.game.seats[room.game.actorIndex];
+    if (!currentActor || currentActor.userId !== actorUserId) return;
     const legal = legalActions(room.game);
     const fallback = legal.actions.includes("check") ? "check" : "fold";
-    room.game = applyAction(room.game, actor.id, fallback);
+    room.game = applyAction(room.game, currentActor.id, fallback);
     if (room.game.phase === "complete") completeHand(room);
     else {
       scheduleTurn(room);
@@ -293,8 +298,15 @@ function applyPendingStands(room: RoomRuntime) {
     member.standingNow = false;
     member.topUpTarget = null;
   }
+  const dealerSeatId = room.game.seats[room.game.dealerIndex]?.id;
   room.game.seats = room.game.seats.filter((seat) => !standingUserIds.has(seat.userId ?? ""));
-  room.game.dealerIndex = Math.min(room.game.dealerIndex, room.game.seats.length - 1);
+  if (room.game.seats.length === 0) {
+    room.game.dealerIndex = -1;
+  } else {
+    const dealerNewIndex = room.game.seats.findIndex((seat) => seat.id === dealerSeatId);
+    room.game.dealerIndex = dealerNewIndex >= 0 ? dealerNewIndex : Math.min(room.game.dealerIndex, room.game.seats.length - 1);
+    if (room.game.dealerIndex < 0) room.game.dealerIndex = 0;
+  }
 }
 
 function applyPendingTopUps(room: RoomRuntime) {
@@ -311,6 +323,7 @@ function applyPendingTopUps(room: RoomRuntime) {
 }
 
 function dealNextHand(room: RoomRuntime) {
+  room.nextHandTimer = undefined;
   if (!room.game) return;
   const expired = room.endsAt !== null && Date.now() >= room.endsAt;
   for (const member of room.members) {
@@ -333,6 +346,9 @@ function dealNextHand(room: RoomRuntime) {
 
 function completeHand(room: RoomRuntime) {
   if (room.turnTimer) clearTimeout(room.turnTimer);
+  if (room.nextHandTimer) clearTimeout(room.nextHandTimer);
+  room.turnTimer = undefined;
+  room.nextHandTimer = undefined;
   room.turnEndsAt = null;
   recordCompletedHand(room);
   room.nextHandAt = Date.now() + 4_800;
@@ -420,8 +436,10 @@ export const roomService = {
       const stillInCurrentHand = room.game?.seats.some((seat) => seat.userId === user.id) ?? false;
       existing.left = false;
       existing.connected = false;
-      existing.seatIndex = null;
-      existing.seatId = "";
+      if (!stillInCurrentHand) {
+        existing.seatIndex = null;
+        existing.seatId = "";
+      }
       existing.standAfterHand = stillInCurrentHand;
       existing.standingNow = false;
       existing.isHost = existing.userId === room.hostUserId;
@@ -527,6 +545,16 @@ export const roomService = {
             const userSockets = room.clients.get(user.id) ?? new Set<RoomSocket>();
             for (const target of userSockets) send(target, { type: "left" });
             room.clients.delete(user.id);
+            if (activeMembers.length === 0 && room.status === "playing") {
+              if (room.turnTimer) clearTimeout(room.turnTimer);
+              if (room.nextHandTimer) clearTimeout(room.nextHandTimer);
+              room.turnTimer = undefined;
+              room.nextHandTimer = undefined;
+              room.status = "finished";
+              rooms.delete(room.code);
+              saveRoom(room);
+              return;
+            }
             ensureRoomProgress(room);
             saveRoom(room);
             broadcastRoom(room);
@@ -592,12 +620,12 @@ export const roomService = {
             room.lastEmojiAt.set(user.id, now);
             let payload: RoomServerMessage;
             if (message.kind === "expression") {
-              payload = { type: "emoji", kind: "expression", id: crypto.randomUUID(), emoji, fromSeatId: from.seatId, createdAt: now };
+              payload = { type: "emoji", kind: "expression", id: randomUUID(), emoji, fromSeatId: from.seatId, createdAt: now };
             } else {
               const target = room.members.find((entry) => !entry.left && entry.seatIndex !== null && entry.seatId === message.targetSeatId);
               if (!target) throw new Error("互动目标已离开座位");
               if (target.userId === user.id) throw new Error("不能向自己发送互动");
-              payload = { type: "emoji", kind: "interaction", id: crypto.randomUUID(), emoji, fromSeatId: from.seatId, targetSeatId: target.seatId, createdAt: now };
+              payload = { type: "emoji", kind: "interaction", id: randomUUID(), emoji, fromSeatId: from.seatId, targetSeatId: target.seatId, createdAt: now };
             }
             for (const sockets of room.clients.values()) for (const target of sockets) send(target, payload);
             return;
@@ -608,7 +636,7 @@ export const roomService = {
             if (!text) throw new Error("聊天内容不能为空");
             if (text.length > 80) throw new Error("聊天内容不能超过 80 个字符");
             const chatMessage: RoomChatMessage = {
-              id: crypto.randomUUID(),
+              id: randomUUID(),
               userId: member.userId,
               seatId: member.seatId,
               nickname: member.nickname,
@@ -651,6 +679,13 @@ export const roomService = {
             if (!room.game || room.status !== "playing") throw new Error("牌局尚未开始");
             const actor = room.game.seats[room.game.actorIndex];
             if (!actor || actor.userId !== user.id) throw new Error("还没轮到你");
+            // Validate raiseTo for raise actions
+            if (message.action === "raise") {
+              const legal = legalActions(room.game);
+              if (!Number.isInteger(message.raiseTo) || message.raiseTo! < legal.minRaiseTo || message.raiseTo! > legal.maxRaiseTo) {
+                throw new Error("加注金额不合法");
+              }
+            }
             room.game = applyAction(room.game, actor.id, message.action, message.raiseTo);
             if (message.action === "fold" && member.standAfterHand) {
               const foldedSeat = room.game.seats.find((seat) => seat.userId === user.id);

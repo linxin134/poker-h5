@@ -17,7 +17,6 @@ export function EmojiTray({ targetSeatId, targets, onSendExpression, onSendInter
   const [tab, setTab] = useState<"emoji" | "prop">("emoji");
   const [target, setTarget] = useState(targetSeatId);
   const volume = useGameStore((state) => state.settings.sound);
-
   useEffect(() => {
     const validIds = new Set(targets.map((item) => item.id));
     setTarget((current) => {

@@ -18,7 +18,7 @@ export function PlayingCard({ card, hidden = false, delay = 0, small = false }: 
   const faceCard = rank === "J" || rank === "Q" || rank === "K";
   return (
     <motion.div
-      aria-label={hidden ? "未公开手牌" : cardLabel(card!)}
+      aria-label={hidden || !card ? "未公开手牌" : cardLabel(card)}
       className={`playing-card ${small ? "small" : ""} ${faceCard ? "face-card" : ""} ${hidden ? "card-back" : ""} ${red ? "red" : ""} ${suitName ? `suit-${suitName}` : ""}`}
       data-rank={hidden ? undefined : rank}
       data-suit={hidden ? undefined : suitName}

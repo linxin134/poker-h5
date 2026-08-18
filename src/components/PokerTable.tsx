@@ -22,7 +22,7 @@ function formatClock(milliseconds: number) {
   return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
-export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
+export function PokerTable({ user }: { user: User | null }) {
   const room = useRoomStore((state) => state.room);
   const connectionStatus = useRoomStore((state) => state.connectionStatus);
   const roomError = useRoomStore((state) => state.error);
@@ -197,9 +197,11 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
     return seat.holeCards[0][0] === seat.holeCards[1][0] ? "一对" : "高牌";
   }
 
+  const noticeTimerRef = useRef(0);
   function showNotice(message: string) {
+    window.clearTimeout(noticeTimerRef.current);
     setNotice(message);
-    window.setTimeout(() => setNotice(null), 1_800);
+    noticeTimerRef.current = window.setTimeout(() => setNotice(null), 1_800);
   }
 
   function playInteraction(emoji: string, target: string) {
@@ -267,8 +269,9 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
             {Array.from({ length: cardCount }, (_, cardIndex) => {
               const card = displayHoleCards[cardIndex] ?? undefined;
               const canReveal = isMe && seat.folded && Boolean(card) && !(seat.revealedHoleCardIndexes ?? []).includes(cardIndex);
-              const renderedCard = <PlayingCard small key={`${game.handId}-${cardIndex}-${card ?? "back"}`} card={card} hidden={!card} delay={cardIndex * .08} />;
-              return canReveal ? <button className="reveal-hole-card" aria-label={`公开第 ${cardIndex + 1} 张底牌`} key={`${game.handId}-reveal-${cardIndex}`} onClick={(event) => { event.stopPropagation(); send({ type:"revealCard", cardIndex }); }}>{renderedCard}<em>点击公开</em></button> : renderedCard;
+              const holeCardKey = `${game.handId}-hole-${seat.id}-${cardIndex}`;
+              const renderedCard = <PlayingCard small key={holeCardKey} card={card} hidden={!card} delay={cardIndex * .08} />;
+              return canReveal ? <button className="reveal-hole-card" aria-label={`公开第 ${cardIndex + 1} 张底牌`} key={holeCardKey} onClick={(event) => { event.stopPropagation(); send({ type:"revealCard", cardIndex }); }}>{renderedCard}<em>点击公开</em></button> : renderedCard;
             })}
           </div>
           {showHandName && handNameForSeat(seat) && <small className="seat-hand-rank">{handNameForSeat(seat)}</small>}
@@ -292,9 +295,9 @@ export function PokerTable({ user }: { user: User | null; onLogin(): void }) {
         </motion.div>;
       })}
 
-      {canChooseLateSeat && Array.from({ length: room.capacity }, (_, position) => !occupiedPositions.has(position) && <motion.button type="button" className="waiting-table-seat empty late-seat-choice" style={positionStyle(position)} onClick={() => send({ type: "sit", seatIndex: position })} key={`late-${position}`} initial={{ opacity: 0, scale: .75 }} animate={{ opacity: 1, scale: 1 }}>
+      {canChooseLateSeat && Array.from({ length: room.capacity }, (_, position) => !occupiedPositions.has(position) ? <motion.button type="button" className="waiting-table-seat empty late-seat-choice" style={positionStyle(position)} onClick={() => send({ type: "sit", seatIndex: position })} key={`late-${position}`} initial={{ opacity: 0, scale: .75 }} animate={{ opacity: 1, scale: 1 }}>
         <span>＋</span><b>空位</b><small>点击落座</small>
-      </motion.button>)}
+      </motion.button> : null)}
 
       <AnimatePresence>{interactionSeat && interactionPoint && <motion.div id="player-interaction-picker" role="dialog" aria-label={`与 ${interactionSeat.name} 互动`} data-target-seat-id={interactionSeat.id} className={`player-interaction-card ${interactionPoint.y <= 60 ? "interaction-above" : "interaction-below"} ${interactionPoint.x >= 66 ? "interaction-target-right" : interactionPoint.x <= 34 ? "interaction-target-left" : "interaction-target-center"}`} style={{ "--interaction-x": `${interactionPoint.x}%`, "--interaction-y": `${interactionPoint.y}%` } as CSSProperties} initial={{ opacity: 0, scale: .86 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: .9 }}>
         <header><span><GameAvatar seed={interactionSeat.avatar || interactionSeat.userId || interactionSeat.id} label={interactionSeat.name} /></span><div><small>与玩家互动</small><b>{interactionSeat.name}</b></div><button type="button" aria-label="关闭玩家互动" onClick={() => setInteractionSeatId(null)}><UiIcon name="close" /></button></header>
