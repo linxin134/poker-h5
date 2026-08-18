@@ -65,7 +65,7 @@ describe("发牌规则", () => {
     const deckAfterTurn = state.deck.length;
     state = applyAction(state, state.seats[state.actorIndex].id, "check");
     state = applyAction(state, state.seats[state.actorIndex].id, "check");
-    expect(state.phase).toBe("river" || "complete");
+    expect(["river", "complete"]).toContain(state.phase);
     expect(state.board).toHaveLength(5);
     expect(state.deck.length).toBe(deckAfterTurn - 2);
   });
