@@ -113,6 +113,13 @@
   border-radius:12px;
   background:#f4f7f6;
   box-shadow:0 3px 9px #001d176e;
+  /* Ensure button elements render identically to div */
+  appearance:none;
+  -webkit-appearance:none;
+  box-sizing:border-box;
+  font:inherit;
+  color:inherit;
+  cursor:default;
 }
 
 .app-shell.mode-mobile .fresh-table .seat>.avatar-ring>.game-avatar {
@@ -122,6 +129,18 @@
   overflow:hidden;
   border-radius:10px;
   clip-path:none;
+}
+
+/* Opponent avatar button must match hero avatar div exactly */
+.app-shell.mode-mobile .fresh-table .seat>.avatar-ring.interactable-avatar {
+  display:block;
+  width:46px;
+  min-width:46px;
+  height:46px;
+  min-height:46px;
+  cursor:pointer;
+  appearance:none;
+  -webkit-appearance:none;
 }
 
 /* Plain expressions are a local avatar overlay, not a targeted flight.  The
