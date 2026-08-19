@@ -6,9 +6,9 @@ export default defineConfig({
     { command: "npm run dev:api", port: 8787, reuseExistingServer: true },
     { command: "npm run dev:web", port: 5173, reuseExistingServer: true }
   ],
-  use: { baseURL: "http://127.0.0.1:5173", trace: "on-first-retry", channel: "chrome" },
+  use: { baseURL: "http://127.0.0.1:5173", trace: "on-first-retry" },
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"] } },
+    { name: "desktop", use: { ...devices["Desktop Chrome"], channel: "chromium" } },
     { name: "mobile", use: { ...devices["iPhone 13"], browserName: "chromium" } }
   ]
 });

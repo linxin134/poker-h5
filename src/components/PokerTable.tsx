@@ -22,10 +22,21 @@ function formatClock(milliseconds: number) {
   return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
+/** Pure router — never changes hook count between renders. */
 export function PokerTable({ user }: { user: User | null }) {
   const room = useRoomStore((state) => state.room);
   const connectionStatus = useRoomStore((state) => state.connectionStatus);
   const roomError = useRoomStore((state) => state.error);
+  const send = useRoomStore((state) => state.send);
+  const leave = useRoomStore((state) => state.leave);
+
+  if (!room) return <section className="room-loading"><span className="room-loader" /><b>{connectionStatus === "error" ? "连接失败" : "正在进入好友房"}</b><p>{roomError ?? "正在建立实时连接…"}</p><button className="ghost-button" onClick={() => leave()}>返回大厅</button></section>;
+  if (room.status === "waiting" || !room.game) return <WaitingRoom room={room} user={user} connectionStatus={connectionStatus} onSit={(seatIndex) => send({ type: "sit", seatIndex })} onStart={() => send({ type: "start" })} onTopup={(targetStack) => send({ type: "topup", targetStack })} onLeave={() => leave()} />;
+  return <GameTableView room={room} user={user} />;
+}
+
+/** Isolated game view — only mounted when room.game exists. All game hooks live here. */
+function GameTableView({ room, user }: { room: NonNullable<ReturnType<typeof useRoomStore.getState>["room"]>; user: User | null }) {
   const send = useRoomStore((state) => state.send);
   const leave = useRoomStore((state) => state.leave);
   const settings = useGameStore((state) => state.settings);
@@ -33,6 +44,7 @@ export function PokerTable({ user }: { user: User | null }) {
   const clearEmoji = useGameStore((state) => state.clearEmoji);
   const chatBubbles = useGameStore((state) => state.chatBubbles);
   const clearChatBubble = useGameStore((state) => state.clearChatBubble);
+  const roomError = useRoomStore((state) => state.error);
   const [drawer, setDrawer] = useState<DrawerTab | null>(null);
   const [interactionSeatId, setInteractionSeatId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -40,6 +52,10 @@ export function PokerTable({ user }: { user: User | null }) {
   const soundedHandRef = useRef<string | null>(null);
   const collectedHandRef = useRef<string | null>(null);
   const countdownRef = useRef(0);
+  const noticeTimerRef = useRef(0);
+
+  const game = room.game!;
+  const activeGame = room.game;
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 250);
@@ -62,10 +78,7 @@ export function PokerTable({ user }: { user: User | null }) {
     return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, [emojiOverlays, clearEmoji]);
 
-  const activeGame = room?.game;
-  useEffect(() => {
-    setInteractionSeatId(null);
-  }, [activeGame?.handId]);
+  useEffect(() => { setInteractionSeatId(null); }, [activeGame?.handId]);
 
   useEffect(() => {
     if (activeGame?.phase === "complete" || room?.status !== "playing") setInteractionSeatId(null);
@@ -73,9 +86,9 @@ export function PokerTable({ user }: { user: User | null }) {
 
   useEffect(() => {
     if (!interactionSeatId) return;
-    const targetStillSeated = activeGame?.seats.some((seat) => seat.id === interactionSeatId && seat.id !== room?.mySeatId && !seat.standing);
+    const targetStillSeated = activeGame?.seats.some((seat) => seat.id === interactionSeatId && seat.id !== room.mySeatId && !seat.standing);
     if (!targetStillSeated) setInteractionSeatId(null);
-  }, [activeGame?.seats, interactionSeatId, room?.mySeatId]);
+  }, [activeGame?.seats, interactionSeatId, room.mySeatId]);
 
   useEffect(() => {
     if (!interactionSeatId) return;
@@ -84,16 +97,12 @@ export function PokerTable({ user }: { user: User | null }) {
       if (target?.closest(".player-interaction-card,.interactable-avatar")) return;
       setInteractionSeatId(null);
     };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setInteractionSeatId(null);
-    };
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setInteractionSeatId(null); };
     document.addEventListener("pointerdown", closeOutside, true);
     window.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("pointerdown", closeOutside, true);
-      window.removeEventListener("keydown", closeOnEscape);
-    };
+    return () => { document.removeEventListener("pointerdown", closeOutside, true); window.removeEventListener("keydown", closeOnEscape); };
   }, [interactionSeatId]);
+
   useEffect(() => {
     const latest = activeGame?.history.at(-1);
     if (!latest || (activeGame?.history.length ?? 0) === 1) return;
@@ -104,7 +113,7 @@ export function PokerTable({ user }: { user: User | null }) {
     else if (latest.type === "check") playSound("check", settings.sound);
     else if (latest.type === "street") playSound("street", settings.sound);
     else if (["win", "showdown"].includes(latest.type)) playSound("win", settings.sound);
-  }, [activeGame?.handId, activeGame?.history.length, settings.sound]);
+  }, [activeGame?.handId, activeGame?.history?.length, settings.sound]);
 
   useEffect(() => {
     if (!activeGame?.handId || soundedHandRef.current === activeGame.handId) return;
@@ -112,40 +121,30 @@ export function PokerTable({ user }: { user: User | null }) {
     playSound("deal", settings.sound);
   }, [activeGame?.handId, settings.sound]);
 
-  const activeActorSeatId = activeGame?.seats[activeGame.actorIndex]?.id;
-  const isOwnTurn = Boolean(activeActorSeatId && activeActorSeatId === room?.mySeatId && activeGame?.phase !== "complete");
-  useEffect(() => {
-    if (isOwnTurn) playSound("turn", settings.sound);
-  }, [activeActorSeatId, activeGame?.handId, isOwnTurn, settings.sound]);
+  const actorIndex = game.actorIndex;
+  const activeActorSeatId = actorIndex >= 0 ? game.seats[actorIndex]?.id : undefined;
+  const isOwnTurn = Boolean(activeActorSeatId && activeActorSeatId === room.mySeatId && game.phase !== "complete");
+  useEffect(() => { if (isOwnTurn) playSound("turn", settings.sound); }, [activeActorSeatId, activeGame?.handId, isOwnTurn, settings.sound]);
 
-  const soundCountdown = isOwnTurn && room?.turnEndsAt ? Math.max(0, Math.ceil((room.turnEndsAt - now) / 1000)) : 0;
+  const soundCountdown = isOwnTurn && room.turnEndsAt ? Math.max(0, Math.ceil((room.turnEndsAt - now) / 1000)) : 0;
   useEffect(() => {
     if (soundCountdown > 0 && soundCountdown <= 5 && countdownRef.current !== soundCountdown) playSound("countdown", settings.sound);
     countdownRef.current = soundCountdown;
   }, [soundCountdown, settings.sound]);
 
   useEffect(() => {
-    if (!activeGame?.handId || activeGame.phase !== "complete" || !activeGame.result?.pot || collectedHandRef.current === activeGame.handId) return;
+    if (!activeGame?.handId || game.phase !== "complete" || !game.result?.pot || collectedHandRef.current === activeGame.handId) return;
     collectedHandRef.current = activeGame.handId;
     const timer = window.setTimeout(() => playSound("collect", settings.sound), 520);
     return () => window.clearTimeout(timer);
-  }, [activeGame?.handId, activeGame?.phase, activeGame?.result?.pot, settings.sound]);
+  }, [activeGame?.handId, game.phase, game.result?.pot, settings.sound]);
 
-  const noticeTimerRef = useRef(0);
   function showNotice(message: string) {
     window.clearTimeout(noticeTimerRef.current);
     setNotice(message);
     noticeTimerRef.current = window.setTimeout(() => setNotice(null), 1_800);
   }
 
-  function leaveRoom() {
-    leave();
-  }
-
-  if (!room) return <section className="room-loading"><span className="room-loader" /><b>{connectionStatus === "error" ? "连接失败" : "正在进入好友房"}</b><p>{roomError ?? "正在建立实时连接…"}</p><button className="ghost-button" onClick={leaveRoom}>返回大厅</button></section>;
-  if (room.status === "waiting" || !room.game) return <WaitingRoom room={room} user={user} connectionStatus={connectionStatus} onSit={(seatIndex) => send({ type: "sit", seatIndex })} onStart={() => send({ type: "start" })} onTopup={(targetStack) => send({ type: "topup", targetStack })} onLeave={leaveRoom} />;
-
-  const game = room.game;
   const visiblePot = game.phase === "complete" ? (game.result?.pot ?? 0) : game.pot + game.seats.reduce((sum, seat) => sum + seat.bet, 0);
   const roomRemaining = room.endsAt ? room.endsAt - now : 0;
   const nextHandRemaining = room.nextHandAt ? room.nextHandAt - now : 0;
@@ -154,11 +153,9 @@ export function PokerTable({ user }: { user: User | null }) {
   const winners = game.seats.filter((seat) => game.result?.winnerSeatIds?.includes(seat.id));
   const myMember = room.members.find((member) => member.userId === user?.id);
   const mySeat = game.seats.find((seat) => seat.id === room.mySeatId && !seat.standing);
-  // Every client owns its perspective: rotate the local player's physical
-  // seat to relative position zero, the safe bottom position.
   const anchorPosition = mySeat?.position ?? myMember?.seatIndex ?? game.seats[0]?.position ?? 0;
-  const actorSeatId = game.seats[game.actorIndex]?.id;
-  const dealerSeatId = game.seats[game.dealerIndex]?.id;
+  const actorSeatId = activeActorSeatId;
+  const dealerSeatId = game.dealerIndex >= 0 ? game.seats[game.dealerIndex]?.id : undefined;
   const displaySeats = [...game.seats].sort((a, b) => (((a.position ?? 0) - anchorPosition + room.capacity) % room.capacity) - (((b.position ?? 0) - anchorPosition + room.capacity) % room.capacity));
   const participatingUserIds = new Set(game.seats.map((seat) => seat.userId));
   const pendingMembers = room.members.filter((member) => member.seatIndex !== null && !participatingUserIds.has(member.userId));
@@ -185,17 +182,12 @@ export function PokerTable({ user }: { user: User | null }) {
     const point = positionPoint(seat.position ?? 0);
     return [seat.id, { x: point.x / 100, y: point.y / 100 }];
   }));
-  // Keep the target bound to the opponent that was actually tapped. A stale
-  // id (self, stood-up player, or a player removed by the next room update)
-  // must never silently fall through to another opponent.
   const interactionSeat = game.seats.find((seat) => seat.id === interactionSeatId && seat.id !== room.mySeatId && !seat.standing);
   const interactionPoint = interactionSeat ? positionPoint(interactionSeat.position ?? 0) : null;
   const interactionTargets = game.seats.filter((seat) => seat.id !== room.mySeatId).map((seat) => ({ id: seat.id, name: seat.name }));
   const myRoomSeatId = room.mySeatId;
   const latestAllInAction = [...game.history].reverse().find((record) => record.type === "all-in" && now - record.at < 1_600);
-  const latestAllInSeat = latestAllInAction?.seatId
-    ? game.seats.find((seat) => seat.id === latestAllInAction.seatId)
-    : null;
+  const latestAllInSeat = latestAllInAction?.seatId ? game.seats.find((seat) => seat.id === latestAllInAction.seatId) : null;
 
   function handNameForSeat(seat: (typeof game.seats)[number]) {
     if (seat.holeCards.length < 2) return null;
@@ -254,9 +246,7 @@ export function PokerTable({ user }: { user: User | null }) {
           : seat.lastAction?.startsWith("弃牌") ? "弃牌"
           : null;
         const actionClass = seat.streetAction ?? (actionText === "弃牌" ? "fold" : "");
-        const chatBubble = !isMe
-          ? chatBubbles.find((bubble) => bubble.seatId === seat.id && bubble.userId !== user?.id && now < bubble.createdAt + 3_000)
-          : undefined;
+        const chatBubble = !isMe ? chatBubbles.find((bubble) => bubble.seatId === seat.id && bubble.userId !== user?.id && now < bubble.createdAt + 3_000) : undefined;
         const emojiOverlay = emojiOverlays.find((overlay) => overlay.from === seat.id && now < overlay.createdAt + 3_000);
         return <motion.div data-seat-id={seat.id} className={`seat ${sideClass} ${rowClass} ${isActor ? "active" : ""} ${seat.folded ? "folded" : ""} ${seat.allIn ? "all-in-seat" : ""} ${winners.some((winner) => winner.id === seat.id) ? "winner-seat" : ""} ${isMe ? "hero-seat" : "opponent-seat"} ${seat.connected === false ? "offline" : ""} ${!isMe ? "interactable-seat" : ""}`} style={positionStyle(seat.position ?? 0)} key={seat.id}>
           <AnimatePresence>{chatBubble && <motion.div key={chatBubble.id} className="seat-chat-bubble" role="status" data-chat-id={chatBubble.id} initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:.16 }}>{chatBubble.text}</motion.div>}</AnimatePresence>
@@ -323,13 +313,13 @@ export function PokerTable({ user }: { user: User | null }) {
         {room.status === "finished" && <motion.div key="room-finished" className="winner-banner room-finished" initial={{ opacity: 0, scale: .92 }} animate={{ opacity: 1, scale: 1 }}>
           <p>ROOM COMPLETE · {room.hands.length} HANDS</p><h2>好友房已结束</h2>
           <div className="finish-ranking">{room.scoreboard.map((entry, index) => <div key={entry.seatId}><span>{index + 1}</span><i><GameAvatar seed={entry.avatar || entry.seatId} label={entry.nickname} /></i><b>{entry.nickname}</b><small>最终 {entry.stack.toLocaleString()}</small><strong className={entry.delta > 0 ? "positive" : entry.delta < 0 ? "negative" : "zero"}>{entry.delta > 0 ? "+" : ""}{entry.delta}</strong></div>)}</div>
-          <div className="finish-actions"><button className="secondary-button" onClick={() => setDrawer("history")}>查看战绩</button><button className="primary-button" onClick={leaveRoom}>返回大厅</button></div>
+          <div className="finish-actions"><button className="secondary-button" onClick={() => setDrawer("history")}>查看战绩</button><button className="primary-button" onClick={() => leave()}>返回大厅</button></div>
         </motion.div>}
       </AnimatePresence>
       {room.status === "playing" && mySeat && <ActionBar game={game} mySeatId={room.mySeatId} heroPoint={positionPoint(mySeat.position ?? 0)} turnRemainingMs={turnRemaining} onAct={(action, raiseTo) => send({ type: "action", action, raiseTo })} />}
     </div>
     {(roomError || notice) && <div className="room-toast">{roomError ?? notice}</div>}
-    {drawer && <><div className="drawer-shade" onClick={() => setDrawer(null)} /><GameDrawer key={drawer} initialTab={drawer} room={room} currentUserId={user?.id ?? ""} onClose={() => setDrawer(null)} onLeave={leaveRoom} onDissolve={() => send({ type: "dissolve" })} onStand={() => send({ type: "stand" })} onTopup={(targetStack) => send({ type: "topup", targetStack })} onChat={(text) => send({ type: "chat", text })} /></>}
+    {drawer && <><div className="drawer-shade" onClick={() => setDrawer(null)} /><GameDrawer key={drawer} initialTab={drawer} room={room} currentUserId={user?.id ?? ""} onClose={() => setDrawer(null)} onLeave={() => leave()} onDissolve={() => send({ type: "dissolve" })} onStand={() => send({ type: "stand" })} onTopup={(targetStack) => send({ type: "topup", targetStack })} onChat={(text) => send({ type: "chat", text })} /></>}
   </section>;
 }
 
