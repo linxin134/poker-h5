@@ -131,6 +131,13 @@ export function PokerTable({ user }: { user: User | null }) {
     return () => window.clearTimeout(timer);
   }, [activeGame?.handId, activeGame?.phase, activeGame?.result?.pot, settings.sound]);
 
+  const noticeTimerRef = useRef(0);
+  function showNotice(message: string) {
+    window.clearTimeout(noticeTimerRef.current);
+    setNotice(message);
+    noticeTimerRef.current = window.setTimeout(() => setNotice(null), 1_800);
+  }
+
   function leaveRoom() {
     leave();
   }
@@ -195,13 +202,6 @@ export function PokerTable({ user }: { user: User | null }) {
     const availableCards = [...seat.holeCards, ...game.board];
     if (availableCards.length >= 5) return evaluateHand(availableCards).name;
     return seat.holeCards[0][0] === seat.holeCards[1][0] ? "一对" : "高牌";
-  }
-
-  const noticeTimerRef = useRef(0);
-  function showNotice(message: string) {
-    window.clearTimeout(noticeTimerRef.current);
-    setNotice(message);
-    noticeTimerRef.current = window.setTimeout(() => setNotice(null), 1_800);
   }
 
   function playInteraction(emoji: string, target: string) {
