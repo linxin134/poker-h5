@@ -49,10 +49,10 @@
   left:var(--seat-x);
   top:var(--seat-y);
   display:block!important;
-  width:72px;
-  min-width:72px;
-  height:46px;
-  min-height:46px;
+  width:80px;
+  min-width:80px;
+  height:56px;
+  min-height:56px;
   margin:0;
   padding:0;
   transform:translate(-50%,-50%)!important;
@@ -101,10 +101,10 @@
   top:0;
   left:50%;
   display:block;
-  width:46px;
-  min-width:46px;
-  height:46px;
-  min-height:46px;
+  width:56px;
+  min-width:56px;
+  height:56px;
+  min-height:56px;
   margin:0;
   padding:0;
   transform:translateX(-50%);
@@ -134,10 +134,10 @@
 /* Opponent avatar button must match hero avatar div exactly */
 .app-shell.mode-mobile .fresh-table .seat>.avatar-ring.interactable-avatar {
   display:block;
-  width:46px;
-  min-width:46px;
-  height:46px;
-  min-height:46px;
+  width:56px;
+  min-width:56px;
+  height:56px;
+  min-height:56px;
   cursor:pointer;
   appearance:none;
   -webkit-appearance:none;
@@ -302,28 +302,39 @@
   --seat-timer-track:#f4a824;
   position:absolute;
   z-index:11;
-  top:2px;
-  right:auto;
-  bottom:auto;
-  left:50%;
+  top:-2px;
+  left:-2px;
+  right:-2px;
+  bottom:-2px;
   box-sizing:border-box;
-  width:42px;
-  height:6px;
+  width:auto;
+  height:auto;
   padding:0;
-  transform:translateX(-50%);
-  border:0;
-  border-radius:999px;
-  background:linear-gradient(90deg,var(--seat-timer-color) 0 calc(var(--turn-progress,1) * 100%),var(--seat-timer-track) 0 100%);
-  box-shadow:0 1px 3px #001b17a8;
+  transform:none;
+  border:3px solid transparent;
+  border-radius:14px;
+  background:none;
+  box-shadow:none;
   animation:none;
   filter:none;
   pointer-events:none;
 }
 
+.app-shell.mode-mobile .fresh-table .seat.active .timer-ring {
+  border-color:var(--seat-timer-color);
+  border-top-color:transparent;
+  border-right-color:transparent;
+  animation:seat-spin 1.5s linear infinite;
+}
+@keyframes seat-spin { to { transform:rotate(360deg); } }
+
 .app-shell.mode-mobile .fresh-table .seat .timer-ring.urgent,
 .app-shell.mode-mobile .fresh-table .seat.opponent-seat .timer-ring.urgent {
   --seat-timer-color:#f0a11a;
   --seat-timer-track:#553c16cc;
+  border-color:var(--seat-timer-color);
+  border-top-color:transparent;
+  border-right-color:transparent;
   filter:none;
 }
 
@@ -331,29 +342,27 @@
 .app-shell.mode-mobile .fresh-table .seat.opponent-seat .seat-countdown {
   position:absolute;
   z-index:12;
-  top:-1px;
-  right:auto;
-  bottom:auto;
+  top:50%;
   left:50%;
   display:grid;
-  width:38px;
+  width:56px;
   min-width:0;
-  height:12px;
+  height:56px;
   margin:0;
   padding:0;
-  transform:translateX(-50%);
+  transform:translate(-50%,-50%);
   place-items:center;
   border:0;
-  border-radius:999px;
+  border-radius:50%;
   color:#fff;
   background:transparent;
   box-shadow:none;
-  font-size:8px;
+  font-size:16px;
   font-style:normal;
   font-weight:900;
   font-variant-numeric:tabular-nums;
   line-height:1;
-  text-shadow:0 1px 3px #001d17,0 0 3px #001d17;
+  text-shadow:0 1px 4px #001d17,0 0 6px #001d17;
   pointer-events:none;
 }
 
@@ -473,10 +482,8 @@
 .app-shell.mode-mobile .fresh-table .seat.opponent-seat>.seat-cards {
   position:absolute;
   z-index:7;
-  top:29px;
-  /* The seat box is 72px wide while the avatar starts at x=13px.
-     x=48 therefore anchors the first card 35px from the avatar edge. */
-  left:48px;
+  top:35px;
+  left:56px;
   display:flex;
   gap:0;
   width:auto;
@@ -619,12 +626,12 @@
 .app-shell.mode-mobile .fresh-table .seat.folded>.action-bubble.action-fold,
 .app-shell.mode-mobile .fresh-table .seat.opponent-seat.folded>.action-bubble.action-fold {
   top:0;
-  left:13px;
+  left:12px;
   display:grid;
-  width:46px;
-  min-width:46px;
-  height:46px;
-  min-height:46px;
+  width:56px;
+  min-width:56px;
+  height:56px;
+  min-height:56px;
   place-items:center;
   padding:0;
   transform:none!important;
@@ -652,10 +659,7 @@
   z-index:8;
   top:50%;
   right:auto;
-  /* The 46px avatar is centred in the 72px seat anchor. Opponent hole-card
-     corners extend 9px beyond its lower-right edge, so a 12px edge clearance
-     keeps the inward bet marker independent from both avatar and cards. */
-  left:calc(50% + 35px);
+  left:calc(50% + 32px);
   display:flex;
   min-width:0;
   height:17px;
@@ -687,14 +691,12 @@
   box-shadow:0 0 0 1px #20c9c480;
 }
 .app-shell.mode-mobile .fresh-table .seat.seat-right>.seat-bet {
-  right:calc(50% + 35px);
+  right:calc(50% + 32px);
   left:auto;
 }
 .app-shell.mode-mobile .fresh-table .seat.seat-center:not(.hero-seat)>.seat-bet {
-  /* A top opponent uses the clean left avatar edge; the lower-right edge is
-     reserved for its two miniature cards and the stack remains below. */
   top:50%;
-  right:calc(50% + 35px);
+  right:calc(50% + 32px);
   left:auto;
   transform:none;
   translate:0 -50%;
